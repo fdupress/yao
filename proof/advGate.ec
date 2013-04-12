@@ -21,7 +21,7 @@ module Adv(Adv:Gate.Scheme.Adv) : Dkc.Adv = {
   var l : int
 
   var input : Gate.inputG
-  var g : Gate.functG
+  var g : ((bool*bool), token) map.
   var preG : ((bool*bool), Gate.token) map
   var x : (int*bool, Gate.token) map
   var t : (int, bool) map
@@ -191,10 +191,12 @@ module Adv(Adv:Gate.Scheme.Adv) : Dkc.Adv = {
   
   fun get_challenge(answers:Dkc.answer list) : bool = {
     var challenge : bool;
+    var gg : functG;
     if (l=1) computeG1(answers);
     if (l=2) computeG2(answers);
     if (l=3) computeG3(answers);
-    (*challenge := Adv.get_challenge((g, input, unit));*)
+    gg = (proj g.[(false, false)], proj g.[(false, true)], proj g.[(true, false)], proj g.[(true, true)]);
+    (*challenge := Adv.get_challenge((gg, input, unit));*)
     return challenge;
   }
 }.
