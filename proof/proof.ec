@@ -1,43 +1,53 @@
-require Dkc.
-require Gate.
+require import Real.
+
+require import Dkc.
+require import Gate.
 require AdvGate.
 
-(*TODOLIST :
-  - Ecrire les jeux fake, real et hy
-  - phi function
-  - Spécifier les fonctions de gate
-  - Ecrire les différents lemmes
-*)
+require import Scheme.
 
-(*On introduit les jeux real, fake et Hy*)
+axiom real :
+  forall (Adv <: Scheme.Adv),
+    forall &mDkc,(*forced b to 1 and l to 1*)
+      forall &mGate,
+        Pr[Dkc.Game(Dkc.Dkc, AdvGate.Adv(*(Adv)*)).main()@ &mDkc:res] =
+          Pr[Gate.Game(Scheme.PrvInd, Adv).main()@ &mGate:res].
 
-(*On introduit l'adversaire*)
+axiom middle :
+  forall (Adv <: Scheme.Adv),
+    forall &mDkc1,(*forced b to 0 and l to 1*)
+      forall &mDkc2,(*forced b to 1 and l to 2*)
+        Pr[Dkc.Game(Dkc.Dkc, AdvGate.Adv(*(Adv)*)).main()@ &mDkc1: !res] =
+        Pr[Dkc.Game(Dkc.Dkc, AdvGate.Adv(*(Adv)*)).main()@ &mDkc2:  res].
 
-(*On montre que en fonction de l, on a une chance sur deux
-de tomber sur les jeux(real, fake hy) correspondent*)
+axiom fake :
+  forall (Adv <: Scheme.Adv),
+    forall &m,(*forced b to 0 and l to 2*)
+      Pr[Gate.Game(Scheme.PrvInd, Adv).main()@ &m: !res] = 1%r / 2%r.
 
-(*On montre la formule liant la probabilité de l'attaquant de
-résussir avec celle de dkc*)
+axiom DkcAdv :
+  forall (ADVDKC<:Dkc.Adv),
+  forall &mDKC,
+  forall &mDKC1,(*forced b to 1*)
+  forall &mDKC0,(*forced b to 0*)
+    2%r * Pr[Dkc.Game(Dkc.Dkc, ADVDKC).main()@ &mDKC:res] - 1%r =
+ Pr[Dkc.Game(Dkc.Dkc, ADVDKC).main()@ &mDKC1:res] - Pr[Dkc.Game(Dkc.Dkc, ADVDKC).main()@ &mDKC0: !res].
 
-(*On doit être capable de montrer le lemme*)
+axiom DkcGateRelation1 :
+  forall &mDKC,
+    forall (ADVGAR<:Scheme.Adv),
+    forall &mGAR,
+      2%r * Pr[Dkc.Game(Dkc.Dkc, AdvGate.Adv).main()@ &mDKC:res] - 1%r
+        =
+      (2%r * Pr[Gate.Game(Scheme.PrvInd, ADVGAR).main()@ &mGAR:res] - 1%r ) / 6%r.
 
-(*lemma PrvInd : Gate.PrvInd.*)
+axiom DKCGateRelation2 :
+  forall &mDKC,
+    forall (ADVGAR<:Scheme.Adv),
+    forall &mGAR,
+      Pr[Gate.Game(Scheme.PrvInd, ADVGAR).main()@ &mGAR:res] <= Pr[Dkc.Game(Dkc.Dkc, AdvGate.Adv).main()@ &mDKC:res].
 
-(* ??? Composition demo *)
-
-(*lemma PrvInd : Garble.PrvInd.*)
-
-
-
-
-
-(*axiom temp : forall (ADVDKC<:Dkc.DKC_adv), forall &mDKC, forall (ADVGAR<:MainGame.GARBLE_adv), forall &mGAR,
-     2%r * Pr[Dkc.Game(Dkc.DKC, ADVDKC).main()@ &mDKC:res] - 1%r
-       =
-     (2%r * Pr[MainGame.Game(MainGame.PrvInd, ADVGAR).main()@ &mGAR:res] - 1%r ) / 6%r.
-
-lemma temp2 : forall (ADVDKC<:Dkc.DKC_adv), forall &mDKC, forall (ADVGAR<:MainGame.GARBLE_adv), forall &mGAR,
-     Pr[MainGame.Game(MainGame.PrvInd, ADVGAR).main()@ &mGAR:res] <= Pr[Dkc.Game(Dkc.DKC, ADVDKC).main()@ &mDKC:res].
-
-lemma PrvIndGarble : forall (ADV<:MainGame.GARBLE_adv), forall &m,
-     Pr[MainGame.Game(MainGame.PrvInd, ADV).main()@ &m:res] <= epsilon.*)
+axiom PrvIndGarble :
+  forall (epsilon:real),
+    forall (ADV<:Scheme.Adv), forall &m,
+      epsilon > 0%r => Pr[Gate.Game(Scheme.PrvInd, ADV).main()@ &m:res] <= epsilon.

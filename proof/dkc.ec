@@ -15,12 +15,12 @@ theory Dkc.
   type cipher = number.
   type tweak = number.
 
-  cnst k : int.
-  cnst tau : int.
-  cnst sb : int.
+  op k : int.
+  op tau : int.
+  op sb : int.
 
-  cnst genRandKey : key distr.
-  cnst genRandKeyLast : bool -> key distr.
+  op genRandKey : key distr.
+  op genRandKeyLast : bool -> key distr.
 
   op encode : tweak -> key -> key -> msg -> cipher.
   op decode : tweak -> key -> key -> cipher -> msg.
@@ -34,8 +34,8 @@ theory Dkc.
   type query = (int*bool)*(int*bool)*bool*tweak.
   type answer = key*key*cipher.
 
-  cnst bsample : bool distr.
-  cnst bad : answer.
+  op bsample : bool distr.
+  op bad : answer.
 
   module type Dkc = {
     fun initialize() : bool

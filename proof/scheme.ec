@@ -10,19 +10,29 @@ theory Scheme.
   type keyOutput.
   type inputG.
   type outputG.
+  
+  type random.
 
-  op garble : funct -> functG*keyInput*keyOutput.
+  op _garble : random -> funct -> functG*keyInput*keyOutput.
+  op getRandom : unit -> random.
+  op garble(f:funct) : functG*keyInput*keyOutput = _garble (getRandom tt) f.
   op encrypt : keyInput -> input -> inputG.
   op decrypt : keyOutput -> outputG -> output.
   op eval : funct -> input -> output.
-  op evalg : functG -> inputG -> outputG.
+  op evalG : functG -> inputG -> outputG.
+
+  axiom inverse :
+    forall (f : funct) ,
+    forall (i : input) ,
+      let (g, ki, ko) = garble f in
+      eval f i = decrypt ko (evalG g (encrypt ki i)).
 
   type query = (funct*input)*(funct*input).
   type answer = functG*inputG*keyOutput.
 
-  cnst bsample : bool distr.
+  op bsample : bool distr.
 
-  cnst k : int.
+  op k : int.
 
   module type GARBLE = {
     fun garble(q:query) : answer
@@ -52,7 +62,7 @@ theory Scheme.
       (f1, x1) = snd query;
       b = $bsample;
       if (b) { x = x1;f = f1; } else {x=x0;f=f0;}
-      (g, e, d) = garble(f);
+      (g, e, d) = garble f;
       y = encrypt e x;
       return (g, y, d);
     }
@@ -77,7 +87,7 @@ theory Scheme.
     }
   }.
   
-  lemma PrvInd :
+  axiom PrvInd :
     forall (epsilon:real),
     forall (ADV<:Adv),
     forall &m,

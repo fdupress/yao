@@ -9,21 +9,19 @@ require import List.
 require import Dkc.
 require import Gate.
 
-cnst unit : unit.
-
 op get(x:'a*'a, i:int) : 'a = let (a, b) = x in if i = 1 then a else b.
 op set(x:'a*'a, i:int, v:'a) : 'a*'a = let (a, b) = x in if i = 1 then (v, b) else (a, v).
 
-module Adv(Adv:Gate.Scheme.Adv) : Dkc.Adv = {
+module Adv(Adv:Gate.Adv) : Dkc.Adv = {
   var fc : Gate.funct
   var xc : Gate.input
   var tau : bool
   var l : int
 
   var input : Gate.inputG
-  var g : ((bool*bool), token) map.
-  var preG : ((bool*bool), Gate.token) map
-  var x : (int*bool, Gate.token) map
+  var g : ((bool*bool), token) map
+  var preG : ((bool*bool), token) map
+  var x : (int*bool, token) map
   var t : (int, bool) map
 
   fun common0() : unit = {
@@ -59,7 +57,7 @@ module Adv(Adv:Gate.Scheme.Adv) : Dkc.Adv = {
   }
   
   fun initG(a:bool, b:bool) : unit = {
-    g.[(a, b)] = Dkc.encode (Gate.tweak a b) (proj x.[(1, a)]) (proj x.[(2, b)]) (proj x.[(3, Gate.eval fc (a, b))]);
+    g.[(a, b)] = Dkc.encode (tweak a b) (proj x.[(1, a)]) (proj x.[(2, b)]) (proj x.[(3, Gate.eval fc (a, b))]);
   }
   fun initInput(i:int) : unit = {
     input = set input i (proj x.[(i, (get xc i))]);
@@ -85,7 +83,7 @@ module Adv(Adv:Gate.Scheme.Adv) : Dkc.Adv = {
 
     common1();
 
-    return [((1,  t1), (2, val0), true, Gate.tweak   t1  tau) ; ((1, !t1), (2, val1), true, Gate.tweak (!t1) tau)];
+    return [((1,  t1), (2, val0), true, tweak   t1  tau) ; ((1, !t1), (2, val1), true, tweak (!t1) tau)];
   }
 
   fun computeG1(answers:Dkc.answer list) : unit = {
@@ -94,8 +92,8 @@ module Adv(Adv:Gate.Scheme.Adv) : Dkc.Adv = {
     var val0 : bool = Gate.eval fc (x1, false);
     var val1 : bool = Gate.eval fc (x1, true);
 
-    var ki0, ko0, r0 : Gate.token*Gate.token*Gate.token = hd answers;
-    var ki1, ko1, r1 : Gate.token*Gate.token*Gate.token = hd (tl answers);
+    var ki0, ko0, r0 : token*token*token = hd answers;
+    var ki1, ko1, r1 : token*token*token = hd (tl answers);
     
     x.[(1,  t1)] = ki0;
     x.[(1, !t1)] = ki1;
@@ -122,7 +120,7 @@ module Adv(Adv:Gate.Scheme.Adv) : Dkc.Adv = {
     
     common1();
 
-    return [((1, vis1), (2, val), false, Gate.tweak vis1 tau)];
+    return [((1, vis1), (2, val), false, tweak vis1 tau)];
   }
   
   fun computeG2(answers:Dkc.answer list) : unit =  {
@@ -131,7 +129,7 @@ module Adv(Adv:Gate.Scheme.Adv) : Dkc.Adv = {
     var val:bool = Gate.eval fc (x1, !x2);
     var vis1:bool = x1^^(proj t.[1]);
 
-    var ki, ko, r : Gate.token*Gate.token*Gate.token = hd answers;
+    var ki, ko, r : token*token*token = hd answers;
 
     x.[(1, vis1)] = ki;
     x.[(3, val)] = ko;
@@ -180,7 +178,7 @@ module Adv(Adv:Gate.Scheme.Adv) : Dkc.Adv = {
     var ret : Dkc.query list;
     c = $Dbool.dbool;
     l = $Dinter.dinter 1 3;
-    (*query := Adv.gen_query();*)
+    query := Adv.gen_query();
     tau = tau;
     if (c) (fc, xc) = fst query; else (fc, xc) = snd query;
     if (l=1) ret := gen_queries1();
@@ -191,12 +189,12 @@ module Adv(Adv:Gate.Scheme.Adv) : Dkc.Adv = {
   
   fun get_challenge(answers:Dkc.answer list) : bool = {
     var challenge : bool;
-    var gg : functG;
+    var gg : Gate.functG;
     if (l=1) computeG1(answers);
     if (l=2) computeG2(answers);
     if (l=3) computeG3(answers);
     gg = (proj g.[(false, false)], proj g.[(false, true)], proj g.[(true, false)], proj g.[(true, true)]);
-    (*challenge := Adv.get_challenge((gg, input, unit));*)
+    challenge := Adv.get_challenge((gg, input, tt));
     return challenge;
   }
 }.
