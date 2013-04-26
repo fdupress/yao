@@ -73,30 +73,33 @@ module Adv(Adv:Gate.Adv) : Dkc.Adv = {
 
   fun gen_queries1() : Dkc.query list = {
     var x1 : bool = get xc 1;
-    var t1 : bool = ! x1 ^^ tau;
-    var val0 : bool = Gate.eval fc (x1, false);
-    var val1 : bool = Gate.eval fc (x1, true);
+    var t2 : bool = = proj t.[2];
+    var val0 : bool = Gate.eval fc (!x1, false);
+    var val1 : bool = Gate.eval fc (!x1, true);
     
     common0();
     
-    t.[1] = t1;
+    t.[1] = ! x1 ^^ tau;
 
     common1();
 
-    return [((1,  t1), (2, val0), true, tweak   t1  tau) ; ((1, !t1), (2, val1), true, tweak (!t1) tau)];
+    return [
+      ((1,  t2), (2, val0), true, tweak tau  t2) ;
+      ((1, !t2), (2, val1), true, tweak tau !t2)
+      ];
   }
 
   fun computeG1(answers:Dkc.answer list) : unit = {
     var x1 : bool = get xc 1;
-    var t1 : bool = ! x1 ^^ tau;
-    var val0 : bool = Gate.eval fc (x1, false);
-    var val1 : bool = Gate.eval fc (x1, true);
+    var t2 : bool = = proj t.[2];
+    var val0 : bool = Gate.eval fc (!x1, false);
+    var val1 : bool = Gate.eval fc (!x1, true);
 
     var ki0, ko0, r0 : token*token*token = hd answers;
     var ki1, ko1, r1 : token*token*token = hd (tl answers);
     
-    x.[(1,  t1)] = ki0;
-    x.[(1, !t1)] = ki1;
+    x.[(1,  t2)] = ki0;
+    x.[(1, !t2)] = ki1;
     x.[(3, val0)] = ko0;
     x.[(3, val1)] = ko1;
 
@@ -104,8 +107,8 @@ module Adv(Adv:Gate.Adv) : Dkc.Adv = {
 
     common3();
     
-    g.[( t1, tau)] = r0;
-    g.[(!t1, tau)] = r1;
+    g.[(tau,  t2)] = r0;
+    g.[(tau, !t2)] = r1;
   }
   
   fun gen_queries2() : Dkc.query list = {

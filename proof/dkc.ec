@@ -48,7 +48,7 @@ theory Dkc.
     fun get_challenge(answers: (answer list)) : bool
   }.
 
-  module Dkc : Dkc = {
+  module Dkc (*: Dkc*) = {
     var b : bool
     var ksec : key
     var r : (int*bool, key) map
@@ -122,10 +122,10 @@ theory Dkc.
       return advChallenge = realChallenge;
     }
   }.
-
+(*
   axiom DKCSec :
     forall (epsilon:real),
     forall (ADV<:Adv),
     forall &m,
-      (epsilon > 0%r) => (Pr[Game(Dkc, ADV).main()@ &m:res] < epsilon).
+      (epsilon > 0%r) => (Pr[Game(Dkc, ADV).main()@ &m:res] < epsilon).*)
 end Dkc.

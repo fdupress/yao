@@ -10,6 +10,7 @@ theory Scheme.
   type keyOutput.
   type inputG.
   type outputG.
+  type phiT.
   
   type random.
 
@@ -20,6 +21,7 @@ theory Scheme.
   op decrypt : keyOutput -> outputG -> output.
   op eval : funct -> input -> output.
   op evalG : functG -> inputG -> outputG.
+  op phi : funct -> phiT.
 
   axiom inverse :
     forall (f : funct) ,
@@ -35,7 +37,7 @@ theory Scheme.
   op k : int.
 
   module type GARBLE = {
-    fun garble(q:query) : answer
+    fun garb(q:query) : answer
     fun get_challenge() : bool
   }.
 
@@ -47,7 +49,7 @@ theory Scheme.
   module PrvInd : GARBLE = {
     var b : bool
   
-    fun garble(query:query) : answer = {
+    fun garb(query:query) : answer = {
       var f, f0, f1 : funct*funct*funct;
       var x, x0, x1 : input*input*input;
       var e : keyInput;
@@ -62,6 +64,7 @@ theory Scheme.
       (f1, x1) = snd query;
       b = $bsample;
       if (b) { x = x1;f = f1; } else {x=x0;f=f0;}
+      (*TODO generation tokens*)
       (g, e, d) = garble f;
       y = encrypt e x;
       return (g, y, d);
@@ -79,7 +82,7 @@ theory Scheme.
       var adv, real : bool*bool;
     
       query := ADV.gen_query();
-      answer := Garble.garble(query);
+      answer := Garble.garb(query);
       adv := ADV.get_challenge(answer);
       real := Garble.get_challenge();
 
@@ -88,9 +91,7 @@ theory Scheme.
   }.
   
   axiom PrvInd :
-    forall (epsilon:real),
-    forall (ADV<:Adv),
-    forall &m,
+    forall (epsilon:real) (ADV<:Adv) &m,
       (epsilon > 0%r) => (Pr[Game(PrvInd, ADV).main()@ &m:res] < epsilon).
 
 end Scheme.
