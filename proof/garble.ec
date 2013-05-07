@@ -1,41 +1,16 @@
-(*require import Bitstring.*)
 require import Int.
-require import Map.
-require import Pair.
 require import Array.
+require import Pair.
+
 require import Dkc.
-require import Bool.
+require import Scheme.
 require import GarbleTools.
 require import MyTools.
-
-(*
-clone Scheme as Gate with
-  type funct = bool*bool*bool*bool,
-  type functG = token*token*token*token,
-  type input = bool*bool,
-  type output = bool,
-  type keyInput = token*token*token*token,
-  type keyOutput = unit,
-  type inputG = token*token,
-  type outputG = bool,
-  type random = tokens.
-*)
 
 type w2g = int array.
 type 'a g2v = ('a*'a*'a*'a) array.
 type 'a functGen = int*int*int*w2g*w2g*('a g2v).
 
-theory Garble.
-  (*Types*)
-  type funct = bool functGen.
-  type functG = token functGen.
-  type input = bool array.
-  type output = bool array.
-  type keyInput = (token*token) array.
-  type keyOutput = unit.
-  type inputG = token array.
-  type outputG = token array.
-  type tPhi = int*int*int*w2g*w2g.
 
   (*Access to funct member*)
   op getN(f:'a functGen) : int =
@@ -51,34 +26,15 @@ theory Garble.
   op getG(f:'a functGen) : 'a g2v =
     let (n, m, q, a, b, g) = f in g.
 
-  (*Correction predicat*)
-  pred functCorrect(f:funct) =
-    (getN f) > 0 /\
-    (getM f) > 0 /\
-    (getM f) <= (getQ f) /\
-    (forall (i:int),
-      (getN f) <= i /\ i < (getQ f)+(getN f) =>
-        0 <= (getA f).[i] /\ (getA f).[i] < i /\
-        0 <= (getB f).[i] /\ (getB f).[i] < i).
-  pred inputCorrect(f:funct, i:input) =
-    (getN f) = Array.length i.
-  pred tokenCorrect(f:funct, x:tokens) =
-    tokenCorrect (getN f) (getQ f) (getM f) x.
-
-  (*Operator*)
-  op phi(f:functG) : tPhi =
-    let (n, m, q, aa, bb, gg) = f in
-    (n, m, q, aa, bb).
-
   op evalGen(f:'a functGen, x:'a array, extract:'a functGen -> int -> 'a array -> 'a) : 'a array =
     let values = appendInit x ((getN f)+(getQ f)) (extract f) in
     Array.sub values ((getN f) + (getQ f) - (getM f)) (getM f).
 
-  op extract(f:funct, g:int, x:bool array) : bool =
+  op extract(f:bool functGen, g:int, x:bool array) : bool =
     evalGate (getG f).[g] (x.[(getA f).[g]], x.[(getB f).[g]]).
-  op eval(f:funct, i:input) : output = evalGen f i extract.
 
-  op extractG(ff:functG, g:int, x:token array) : token =
+  
+  op extractG(ff:token functGen, g:int, x:token array) =
     let a = (getA ff).[g] in
     let b = (getB ff).[g] in
     let aA = x.[a] in
@@ -87,26 +43,63 @@ theory Garble.
     let b = lsb bB in
     let t = tweak g a b in
     Dkc.decode t aA bB (evalGate ((getG ff).[g]) (a, b)).
-  op evalG(f:functG, i:inputG) : outputG = evalGen f i extractG.
 
-  op garbMap(x:tokens, f:funct, g:int) : token*token*token*token =
+
+  op garbMap(x:tokens, f:bool functGen, g:int) : token*token*token*token =
     garbleGate x (getG f).[g] (getA f).[g] (getB f).[g] g.
-  op _garble(x:tokens, f:funct) : functG*keyInput*keyOutput =
+
+  op choose(k:(token*token) array, i:bool array, j:int) : token = getTok k j i.[j].
+
+clone Scheme as Gate with
+
+  (*Types*)
+  type funct = bool functGen,
+  type functG = token functGen,
+  type input = bool array,
+  type output = bool array,
+  type keyInput = (token*token) array,
+  type keyOutput = unit,
+  type inputG = token array,
+  type outputG = token array,
+  type tPhi = int*int*int*w2g*w2g,
+  
+  type random = tokens,
+
+  (*Operator*)
+  op phi(f:funct) =
+    let (n, m, q, aa, bb, gg) = f in
+    (n, m, q, aa, bb),
+
+  op phiG(f:functG) =
+    let (n, m, q, aa, bb, gg) = f in
+    (n, m, q, aa, bb),
+
+  op eval(f:funct, i:input) = evalGen f i extract,
+
+  op evalG(f:functG, i:inputG) = evalGen f i extractG,
+
+  op _garble(x:tokens, f:funct) =
     let pp = init2 ((getN f)+(getQ f)) (garbMap x f) in
     let ff = ((getN f), (getM f), (getQ f), (getA f), (getB f), pp) in
-    (ff, Array.sub x 0 (getN f), tt).
+    (ff, Array.sub x 0 (getN f), tt),
 
-  op choose(k:keyInput, i:input, j:int) : token = getTok k j i.[j].
-  op encrypt(k:keyInput, i:input) : inputG = init2 (Array.length i) (choose k i).
+  op encrypt(k:keyInput, i:input) = init2 (Array.length i) (choose k i),
   
-  op decrypt(k:keyOutput, o:outputG) : output = map lsb o.
+  op decrypt(k:keyOutput, o:outputG) = map lsb o.
 
   (*Lemma*)
   lemma encrypt_len :
     forall (k:keyInput, i:input),
       Array.length i > 0 =>
-      Array.length (encrypt k i) = Array.length i.
-  
+      Array.length (encrypt k i) = Array.length i
+  proof.
+  intros k i hyp.
+  delta encrypt.
+  simplify.
+  apply (init2_length<:token> (length i) (choose k i) _).
+  assumption.
+  save.
+
   lemma extract :
     forall (ar:bool array),
       forall (f:funct, k:int),
@@ -116,7 +109,10 @@ theory Garble.
           0 <= (getB f).[k] /\
           (getA f).[k] < k /\
           (getB f).[k] < k =>
-          extract f k ar = extract f k (sub ar 0 k).
+          extract f k ar = extract f k (sub ar 0 k)
+  proof.
+  admit.
+  save.
   
   lemma extractG :
     forall (ar:token array),
@@ -127,7 +123,10 @@ theory Garble.
           0 <= (getB f).[k] /\
           (getA f).[k] < k /\
           (getB f).[k] < k =>
-          extractG f k ar = extractG f k (sub ar 0 k).
+          extractG f k ar = extractG f k (sub ar 0 k)
+   proof.
+   admit.
+   save.
 
   lemma inverse :
     forall (i : input) ,
@@ -242,7 +241,11 @@ theory Garble.
           forall (k : int),
             k >= 0 => k < j =>
             ar2.[k] = getTok x k ar1.[k]
-        );[trivial|].
+        ).
+          rewrite ar1Val.
+          rewrite ar2Val.
+          intros k h1 h2.
+        apply (hypRec k _ _ _);trivial.
 
         cut aVal2 : (a = (getA g).[j]);[trivial|].
         cut bVal2 : (b = (getB g).[j]);[trivial|].
@@ -251,9 +254,9 @@ theory Garble.
         rewrite <- aVal2.
         rewrite <- bVal2.
   
-        cut ar2aVal : (ar2.[a] = (getTok x a (fst (ar1.[a], ar1.[b]))));[trivial|].
-        cut ar2bVal : (ar2.[b] = (getTok x b (snd (ar1.[a], ar1.[b]))));[trivial|].
-        cut getGVal : ((getG g).[j] = garbleGate x (getG f).[j] a b j);[trivial|].
+        cut ar2aVal : (ar2.[a] = (getTok x a (fst (ar1.[a], ar1.[b]))));[admit|].
+        cut ar2bVal : (ar2.[b] = (getTok x b (snd (ar1.[a], ar1.[b]))));[admit|].
+        cut getGVal : ((getG g).[j] = garbleGate x (getG f).[j] a b j);[admit|].
 
         rewrite ar2aVal.
         rewrite ar2bVal.
@@ -347,3 +350,18 @@ theory Garble.
   save.
 
 end Garble.
+
+
+  (*Correction predicat*)
+  pred functCorrect(f:funct) =
+    (getN f) > 0 /\
+    (getM f) > 0 /\
+    (getM f) <= (getQ f) /\
+    (forall (i:int),
+      (getN f) <= i /\ i < (getQ f)+(getN f) =>
+        0 <= (getA f).[i] /\ (getA f).[i] < i /\
+        0 <= (getB f).[i] /\ (getB f).[i] < i).
+  pred inputCorrect(f:funct, i:input) =
+    (getN f) = Array.length i.
+  pred randCorrect(f:funct, x:tokens) =
+    randCorrect (getN f) (getQ f) (getM f) x.

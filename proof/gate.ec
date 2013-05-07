@@ -2,56 +2,48 @@ require import Bitstring.
 require import Int.
 require import Map.
 require import Pair.
-require import Dkc.
-require import GarbleTools.
 require import Bool.
 
-(*
+require import Dkc.
+require import GarbleTools.
 require import Scheme.
+
 clone Scheme as Gate with
   type funct = bool*bool*bool*bool,
   type functG = token*token*token*token,
   type input = bool*bool,
   type output = bool,
-  type keyInput = token*token*token*token,
+  type keyInput = tokens,
   type keyOutput = unit,
   type inputG = token*token,
-  type outputG = bool,
-  type random = tokens.
-*)
+  type outputG = token,
+  type tPhi = unit,
 
-theory Gate.
+  type random = tokens,
 
-  type funct = bool*bool*bool*bool.
-  type functG = token*token*token*token.
-  type input = bool*bool.
-  type output = bool.
-  type keyInput = tokens.
-  type keyOutput = unit.
-  type inputG = token*token.
-  type outputG = token.
-  type phiT = unit.
+  pred functCorrect(f:funct) = true,
+  pred randomCorrect(f:funct, x:tokens) = tokenCorrect 2 1 1 x,
+  pred inputCorrect(f:funct, i:input) = true,
 
-  op phi : phiT = tt.
+  op phi(f:funct) = tt,
+  op phiG(g:functG) = tt,
 
-  op eval(f:funct, i:input) : output = evalGate f i.
+  op eval(f:funct, i:input) = evalGate f i,
 
-  op _garble(x:tokens, f:funct) : functG*keyInput*keyOutput =
-    (garbleGate x f 0 1 2, x, tt).
-  
-  pred tokenCorrect(x:tokens) = tokenCorrect 2 1 1 x.
+  op _garble(x:random, f:funct) =
+    (garbleGate x f 0 1 2, x, tt),
 
-  op encrypt(k:keyInput, i:input) : inputG =
-    (getTok k 0 (fst i), getTok k 1 (snd i)).
+  op encrypt(k:keyInput, i:input) =
+    (getTok k 0 (fst i), getTok k 1 (snd i)),
 
-  op decrypt(k:keyOutput, o:outputG) : output = lsb o.
+  op decrypt(k:keyOutput, o:outputG) = lsb o,
 
-  op evalG(g:functG, i:inputG) : outputG =
+  op evalG(g:functG, i:inputG) =
     let a = lsb (fst i) in
     let b = lsb (snd i) in
     let t = evalGate g (a, b) in
     Dkc.decode (tweak 2 a b) (fst i) (snd i) t.
-
+(*
   lemma inverse :
     forall (i : input) ,
     forall (f : funct) ,
@@ -81,5 +73,6 @@ theory Gate.
   trivial.
   trivial.
   save.
+*)
 
-end Gate.
+  

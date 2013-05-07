@@ -1,5 +1,6 @@
 require import Int.
 require import Array.
+require import Logic.
 
 lemma strongInduction:
   forall (p:int -> bool),

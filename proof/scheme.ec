@@ -10,9 +10,13 @@ theory Scheme.
   type keyOutput.
   type inputG.
   type outputG.
-  type phiT.
+  type tPhi.
   
   type random.
+
+  pred functCorrect : funct.
+  pred randomCorrect : (funct, random).
+  pred inputCorrect : (funct, input).
 
   op _garble : random -> funct -> functG*keyInput*keyOutput.
   op getRandom : unit -> random.
@@ -21,12 +25,14 @@ theory Scheme.
   op decrypt : keyOutput -> outputG -> output.
   op eval : funct -> input -> output.
   op evalG : functG -> inputG -> outputG.
-  op phi : funct -> phiT.
+  op phi : funct -> tPhi.
+  op phiG : functG -> tPhi.
 
   axiom inverse :
-    forall (f : funct) ,
-    forall (i : input) ,
-      let (g, ki, ko) = garble f in
+    forall (f : funct) , functCorrect f =>
+    forall (x : random) , randomCorrect f x =>
+    forall (i : input) , inputCorrect f i =>
+      let (g, ki, ko) = _garble x f in
       eval f i = decrypt ko (evalG g (encrypt ki i)).
 
   type query = (funct*input)*(funct*input).

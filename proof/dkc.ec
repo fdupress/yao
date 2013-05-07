@@ -1,10 +1,9 @@
-require import Int.
-require import Bool.
 require import Bitstring.
-require import Pair.
-require import Map.
 require import List.
+require import Map.
 require import Set.
+require import Pair.
+require import Int.
 require import Real.
 
 theory Dkc.
@@ -37,7 +36,7 @@ theory Dkc.
   op bsample : bool distr.
   op bad : answer.
 
-  module type Dkc = {
+  module type Dkc_t = {
     fun initialize() : bool
     fun encrypt(q:query) : answer
     fun get_challenge() : bool
@@ -48,7 +47,7 @@ theory Dkc.
     fun get_challenge(answers: (answer list)) : bool
   }.
 
-  module Dkc (*: Dkc*) = {
+  module Dkc : Dkc_t = {
     var b : bool
     var ksec : key
     var r : (int*bool, key) map
@@ -96,7 +95,7 @@ theory Dkc.
     }
   }.
 
-  module Game(Dkc:Dkc, Adv:Adv) = {
+  module Game(D:Dkc_t, Adv:Adv) = {
     fun main() : bool = {
       var queries : query list;
       var answers : answer list;
@@ -106,26 +105,26 @@ theory Dkc.
       var realChallenge : bool;
       var nquery : int;
       var answer : answer;
-      info := Dkc.initialize();
+      info := D.initialize();
       queries := Adv.gen_queries(info);
       nquery = List.length queries;
       answers = [];
       i = 0;
       while (i < nquery)
       {
-        answer := Dkc.encrypt (List.hd queries);
+        answer := D.encrypt (List.hd queries);
         answers = answer::answers;
         queries = List.tl queries;
       }
       advChallenge := Adv.get_challenge(answers);
-      realChallenge := Dkc.get_challenge();
+      realChallenge := D.get_challenge();
       return advChallenge = realChallenge;
     }
   }.
-(*
+
   axiom DKCSec :
     forall (epsilon:real),
     forall (ADV<:Adv),
     forall &m,
-      (epsilon > 0%r) => (Pr[Game(Dkc, ADV).main()@ &m:res] < epsilon).*)
+      (epsilon > 0%r) => (Pr[Game(Dkc, ADV).main()@ &m:res] < epsilon).
 end Dkc.

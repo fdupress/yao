@@ -8,6 +8,7 @@ require import List.
 
 require import Dkc.
 require import Gate.
+require import GarbleTools.
 
 op get(x:'a*'a, i:int) : 'a = let (a, b) = x in if i = 1 then a else b.
 op set(x:'a*'a, i:int, v:'a) : 'a*'a = let (a, b) = x in if i = 1 then (v, b) else (a, v).
@@ -57,7 +58,7 @@ module Adv(Adv:Gate.Adv) : Dkc.Adv = {
   }
   
   fun initG(a:bool, b:bool) : unit = {
-    g.[(a, b)] = Dkc.encode (tweak a b) (proj x.[(1, a)]) (proj x.[(2, b)]) (proj x.[(3, Gate.eval fc (a, b))]);
+    g.[(a, b)] = Dkc.encode (tweak 0 a b) (proj x.[(1, a)]) (proj x.[(2, b)]) (proj x.[(3, Gate.eval fc (a, b))]);
   }
   fun initInput(i:int) : unit = {
     input = set input i (proj x.[(i, (get xc i))]);
@@ -73,7 +74,7 @@ module Adv(Adv:Gate.Adv) : Dkc.Adv = {
 
   fun gen_queries1() : Dkc.query list = {
     var x1 : bool = get xc 1;
-    var t2 : bool = = proj t.[2];
+    var t2 : bool = proj t.[2];
     var val0 : bool = Gate.eval fc (!x1, false);
     var val1 : bool = Gate.eval fc (!x1, true);
     
@@ -84,14 +85,14 @@ module Adv(Adv:Gate.Adv) : Dkc.Adv = {
     common1();
 
     return [
-      ((1,  t2), (2, val0), true, tweak tau  t2) ;
-      ((1, !t2), (2, val1), true, tweak tau !t2)
+      ((1,  t2), (2, val0), true, tweak 0 tau   t2 ) ;
+      ((1, !t2), (2, val1), true, tweak 0 tau (!t2))
       ];
   }
 
   fun computeG1(answers:Dkc.answer list) : unit = {
     var x1 : bool = get xc 1;
-    var t2 : bool = = proj t.[2];
+    var t2 : bool = proj t.[2];
     var val0 : bool = Gate.eval fc (!x1, false);
     var val1 : bool = Gate.eval fc (!x1, true);
 
@@ -123,7 +124,7 @@ module Adv(Adv:Gate.Adv) : Dkc.Adv = {
     
     common1();
 
-    return [((1, vis1), (2, val), false, tweak vis1 tau)];
+    return [((1, vis1), (2, val), false, tweak 0 vis1 tau)];
   }
   
   fun computeG2(answers:Dkc.answer list) : unit =  {
