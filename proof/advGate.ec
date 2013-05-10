@@ -30,21 +30,21 @@ module Adv(Adv:Gate.Adv) : Dkc.Adv = {
     preG = Map.empty;
     g = Map.empty;
     t = Map.empty;
+    t.[0] = $Dbool.dbool;
     t.[1] = $Dbool.dbool;
-    t.[2] = $Dbool.dbool;
-    t.[3] = false;
+    t.[2] = false;
   }
 
   fun initX(i:int, b:bool) : unit = {
     x.[(i, b)] = $Dkc.genRandKeyLast((proj t.[1])^^b);
   }
   fun common1() : unit = {
+    initX(0, false);
+    initX(0,  true);
     initX(1, false);
     initX(1,  true);
     initX(2, false);
     initX(2,  true);
-    initX(3, false);
-    initX(3,  true);
   }
 
   fun initPreG(a:bool, b:bool) : unit = {
@@ -58,7 +58,7 @@ module Adv(Adv:Gate.Adv) : Dkc.Adv = {
   }
   
   fun initG(a:bool, b:bool) : unit = {
-    g.[(a, b)] = Dkc.encode (tweak 0 a b) (proj x.[(1, a)]) (proj x.[(2, b)]) (proj x.[(3, Gate.eval fc (a, b))]);
+    g.[(a, b)] = Dkc.encode (tweak 0 a b) (proj x.[(0, a)]) (proj x.[(1, b)]) (proj x.[(2, Gate.eval fc (a, b))]);
   }
   fun initInput(i:int) : unit = {
     input = set input i (proj x.[(i, (get xc i))]);
@@ -73,8 +73,8 @@ module Adv(Adv:Gate.Adv) : Dkc.Adv = {
   }
 
   fun gen_queries1() : Dkc.query list = {
-    var x1 : bool = get xc 1;
-    var t2 : bool = proj t.[2];
+    var x1 : bool = get xc 0;
+    var t2 : bool = proj t.[1];
     var val0 : bool = Gate.eval fc (!x1, false);
     var val1 : bool = Gate.eval fc (!x1, true);
     
@@ -85,24 +85,24 @@ module Adv(Adv:Gate.Adv) : Dkc.Adv = {
     common1();
 
     return [
-      ((1,  t2), (2, val0), true, tweak 0 tau   t2 ) ;
-      ((1, !t2), (2, val1), true, tweak 0 tau (!t2))
+      ((0,  t2), (1, val0), true, tweak 0 tau   t2 ) ;
+      ((0, !t2), (1, val1), true, tweak 0 tau (!t2))
       ];
   }
 
   fun computeG1(answers:Dkc.answer list) : unit = {
-    var x1 : bool = get xc 1;
-    var t2 : bool = proj t.[2];
+    var x1 : bool = get xc 0;
+    var t2 : bool = proj t.[1];
     var val0 : bool = Gate.eval fc (!x1, false);
     var val1 : bool = Gate.eval fc (!x1, true);
 
     var ki0, ko0, r0 : token*token*token = hd answers;
     var ki1, ko1, r1 : token*token*token = hd (tl answers);
     
-    x.[(1,  t2)] = ki0;
-    x.[(1, !t2)] = ki1;
-    x.[(3, val0)] = ko0;
-    x.[(3, val1)] = ko1;
+    x.[(0,  t2)] = ki0;
+    x.[(0, !t2)] = ki1;
+    x.[(2, val0)] = ko0;
+    x.[(2, val1)] = ko1;
 
     common2();
 
@@ -113,30 +113,30 @@ module Adv(Adv:Gate.Adv) : Dkc.Adv = {
   }
   
   fun gen_queries2() : Dkc.query list = {
-    var x1 : bool = get xc 1;
-    var x2 : bool = get xc 2;
+    var x1 : bool = get xc 0;
+    var x2 : bool = get xc 1;
     var val:bool = Gate.eval fc (x1, !x2);
-    var vis1:bool = x1^^(proj t.[1]);
+    var vis1:bool = x1^^(proj t.[0]);
 
     common0();
     
-    t.[2] = ! x2 ^^ tau;
+    t.[1] = ! x2 ^^ tau;
     
     common1();
 
-    return [((1, vis1), (2, val), false, tweak 0 vis1 tau)];
+    return [((0, vis1), (1, val), false, tweak 0 vis1 tau)];
   }
   
   fun computeG2(answers:Dkc.answer list) : unit =  {
-    var x1 : bool = get xc 1;
-    var x2 : bool = get xc 2;
+    var x1 : bool = get xc 0;
+    var x2 : bool = get xc 1;
     var val:bool = Gate.eval fc (x1, !x2);
-    var vis1:bool = x1^^(proj t.[1]);
+    var vis1:bool = x1^^(proj t.[0]);
 
     var ki, ko, r : token*token*token = hd answers;
 
-    x.[(1, vis1)] = ki;
-    x.[(3, val)] = ko;
+    x.[(0, vis1)] = ki;
+    x.[(2, val)] = ko;
     
     common2();
     
@@ -161,8 +161,8 @@ module Adv(Adv:Gate.Adv) : Dkc.Adv = {
 
     common2();
 
-    l1 = (get xc 1)^^(proj t.[1]);
-    l2 = (get xc 2)^^(proj t.[2]);
+    l1 = (get xc 0)^^(proj t.[0]);
+    l2 = (get xc 1)^^(proj t.[1]);
     preG.[(!l1,  l2)] = $Dkc.genRandKey;
     preG.[( l1, !l2)] = $Dkc.genRandKey;
     preG.[(!l1, !l2)] = $Dkc.genRandKey;
@@ -176,12 +176,15 @@ module Adv(Adv:Gate.Adv) : Dkc.Adv = {
     
   }
   
+  fun preInit() : unit = {
+    l = $Dinter.dinter 0 2;
+  }
+
   fun gen_queries(tau:bool) : Dkc.query list = {
     var c : bool;
     var query : Gate.query;
     var ret : Dkc.query list;
     c = $Dbool.dbool;
-    l = $Dinter.dinter 1 3;
     query := Adv.gen_query();
     tau = tau;
     if (c) (fc, xc) = fst query; else (fc, xc) = snd query;
@@ -194,9 +197,9 @@ module Adv(Adv:Gate.Adv) : Dkc.Adv = {
   fun get_challenge(answers:Dkc.answer list) : bool = {
     var challenge : bool;
     var gg : Gate.functG;
-    if (l=1) computeG1(answers);
-    if (l=2) computeG2(answers);
-    if (l=3) computeG3(answers);
+    if (l=0) computeG1(answers);
+    if (l=1) computeG2(answers);
+    if (l=2) computeG3(answers);
     gg = (proj g.[(false, false)], proj g.[(false, true)], proj g.[(true, false)], proj g.[(true, true)]);
     challenge := Adv.get_challenge((gg, input, tt));
     return challenge;

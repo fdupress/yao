@@ -37,12 +37,14 @@ theory Dkc.
   op bad : answer.
 
   module type Dkc_t = {
+    fun preInit() : unit
     fun initialize() : bool
     fun encrypt(q:query) : answer
     fun get_challenge() : bool
   }.
 
   module type Adv = {
+    fun preInit() : unit
     fun gen_queries(info:bool) : (query list)
     fun get_challenge(answers: (answer list)) : bool
   }.
@@ -54,8 +56,11 @@ theory Dkc.
     var kpub : (int*bool, key) map
     var used : tweak set
 
-    fun initialize() : bool = {
+    fun preInit() : unit = {
       b = $bsample;
+    }
+      
+    fun initialize() : bool = {
       ksec = $genRandKey;
       return ksec.[0];
     }
@@ -96,7 +101,12 @@ theory Dkc.
   }.
 
   module Game(D:Dkc_t, Adv:Adv) = {
-    fun main() : bool = {
+    fun preInit() : unit = {
+      D.preInit();
+      Adv.preInit();
+    }
+
+    fun work() : bool = {
       var queries : query list;
       var answers : answer list;
       var i : int;
@@ -106,7 +116,7 @@ theory Dkc.
       var nquery : int;
       var answer : answer;
       info := D.initialize();
-      queries := Adv.gen_queries(info);
+      queries = [] (*:= Adv.gen_queries(info)*);
       nquery = List.length queries;
       answers = [];
       i = 0;
@@ -116,9 +126,16 @@ theory Dkc.
         answers = answer::answers;
         queries = List.tl queries;
       }
-      advChallenge := Adv.get_challenge(answers);
+      advChallenge = true (*:= Adv.get_challenge(answers)*);
       realChallenge := D.get_challenge();
       return advChallenge = realChallenge;
+    }
+    
+    fun main() : bool = {
+      var r : bool;
+      preInit();
+      r := work();
+      return r;
     }
   }.
 
