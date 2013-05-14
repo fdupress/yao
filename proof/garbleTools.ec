@@ -87,28 +87,20 @@ proof.
         gi2
         (evalGate (garbleGate x f a b g) (lsb gi1,lsb gi2))
       = getTok x g inter
-).
-intros inter.
-intros h1.
-delta evalGate garbleGate.
-simplify.
-cut removeIf : ((
-if !lsb gi1 && !lsb gi2 then enc x f a b g false false else
-if !lsb gi1 &&  lsb gi2 then enc x f a b g false  true else
-if  lsb gi1 && !lsb gi2 then enc x f a b g  true false else
-enc x f a b g true true) = enc x f a b g (lsb gi1) (lsb gi2)).
-trivial.
-rewrite removeIf.
-delta enc gi1 gi2.
-simplify.
-cut tempi1 : ((lsb (getTok x a true) = lsb (getTok x a (fst i))) = (fst i)).
-trivial.
-cut tempi2 : ((lsb (getTok x b true) = lsb (getTok x b (snd i))) = (snd i)).
-trivial.
-rewrite tempi1.
-rewrite tempi2.
-rewrite h1.
-trivial.
-apply (main (evalGate f i) _).
-trivial.
+  );[|trivial].
+  intros inter h1.
+  delta evalGate garbleGate.
+  simplify.
+  cut removeIf : ((
+    if !lsb gi1 && !lsb gi2 then enc x f a b g false false else
+    if !lsb gi1 &&  lsb gi2 then enc x f a b g false  true else
+    if  lsb gi1 && !lsb gi2 then enc x f a b g  true false else
+    enc x f a b g true true) = enc x f a b g (lsb gi1) (lsb gi2));[trivial|].
+  rewrite removeIf.
+  delta enc gi1 gi2.
+  simplify.
+  rewrite (_:(lsb (getTok x a true) = lsb (getTok x a (fst i))) = (fst i));[trivial|].
+  rewrite (_:(lsb (getTok x b true) = lsb (getTok x b (snd i))) = (snd i));[trivial|].
+  rewrite h1.
+  trivial.
 save.

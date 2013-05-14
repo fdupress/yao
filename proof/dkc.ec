@@ -100,10 +100,11 @@ theory Dkc.
     }
   }.
 
-  module Game(D:Dkc_t, Adv:Adv) = {
+  module Game(D:Dkc_t, A:Adv) = {
+
     fun preInit() : unit = {
       D.preInit();
-      Adv.preInit();
+      A.preInit();
     }
 
     fun work() : bool = {
@@ -116,7 +117,7 @@ theory Dkc.
       var nquery : int;
       var answer : answer;
       info := D.initialize();
-      queries = [] (*:= Adv.gen_queries(info)*);
+      queries := A.gen_queries(info);
       nquery = List.length queries;
       answers = [];
       i = 0;
@@ -126,8 +127,8 @@ theory Dkc.
         answers = answer::answers;
         queries = List.tl queries;
       }
-      advChallenge = true (*:= Adv.get_challenge(answers)*);
       realChallenge := D.get_challenge();
+      advChallenge := A.get_challenge(answers);
       return advChallenge = realChallenge;
     }
     

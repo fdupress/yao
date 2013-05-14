@@ -43,36 +43,27 @@ clone Scheme as Gate with
     let b = lsb (snd i) in
     let t = evalGate g (a, b) in
     Dkc.decode (tweak 2 a b) (fst i) (snd i) t.
-(*
-  lemma inverse :
-    forall (i : input) ,
-    forall (f : funct) ,
-    forall (x : tokens) ,
-      tokenCorrect x =>
-      let (g, ki, ko) = _garble x f in
-      eval f i = decrypt ko (evalG g (encrypt ki i))
-  proof.
-  intros i f x.
-  intros tokCor.
+
+export Gate.
+
+lemma inverse :
+  forall (f : funct) , functCorrect f =>
+  forall (x : random) , randomCorrect f x =>
+  forall (i : input) , inputCorrect f i =>
+    let (g, ki, ko) = _garble x f in
+    eval f i = decrypt ko (evalG g (encrypt ki i))
+proof.
+  intros f fC x xC i iC.
   cut main : (
     let (g, ki, ko) = _garble x f in
     evalG g (encrypt ki i) = getTok x 2 (eval f i)
   ).
-  delta _garble decrypt eval evalG encrypt.
-  simplify.
-  apply (inverse_base i 2 1 1 0 1 2 f x _ _ _ _ _ _ _).
-  trivial.
-  trivial.
-  trivial.
-  trivial.
-  trivial.
-  trivial.
-  trivial.
+    delta _garble decrypt eval evalG encrypt.
+    simplify.
+  apply (inverse_base i 2 1 1 0 1 2 f x _ _ _ _ _ _ _);trivial.
   cut main2 : (let (g, ki, ko) = _garble x f in
-    eval f i = decrypt ko (getTok x 2 (eval f i))).
-  trivial.
-  trivial.
-  save.
-*)
+    eval f i = decrypt ko (getTok x 2 (eval f i)));trivial.
+save.
+
 
   

@@ -1,8 +1,12 @@
 require import Real.
 require import Bool.
+require import Logic.
+require import Map.
+require import Array.
 
 require import Dkc.
 require import Gate.
+require import GarbleTools.
 require AdvGate.
 
 op opQuery : Gate.query.
@@ -24,7 +28,6 @@ proof.
 admit.
 save.
 
-
 lemma middleEq :
   forall &mDkc1,
     forall &mDkc2,
@@ -37,42 +40,83 @@ lemma middleEq :
           ==> !res{1} = res{2}
         ]
 proof.
-intros &m1 &m2 Adv.
-fun.
+  intros &m1 &m2 Adv.
+  fun.
+
+  call (AdvGate.Adv.l{1}=0/\AdvGate.Adv.l{2}=1) (res{1}=res{2}).
+    fun.
+    call (answer{1}=answer{2}) (res{1}=res{2});[admit(*ADV rule*)|intros ch1 ch2].
+    wp.
+    app 1 2 : (AdvGate.Adv.input{1}=AdvGate.Adv.input{2}/\AdvGate.Adv.g{1}=AdvGate.Adv.g{2}/\AdvGate.Adv.l{1}=0/\AdvGate.Adv.l{2}=1).
+    rcondf {2} 1;[intros &m;skip;trivial|].
+    rcondt {1} 1;[intros &m;skip;trivial|].
+    rcondt {2} 1;[intros &m;skip;trivial|].
+    call (true) (AdvGate.Adv.input{1}=AdvGate.Adv.input{2}/\AdvGate.Adv.g{1}=AdvGate.Adv.g{2}).
+      fun.
+      wp.
+      call (true) (
+       (* (
+          (AdvGate.Adv.g{2}.[( (AdvGate.get AdvGate.Adv.xc{2} 0)^^(proj (AdvGate.Adv.t{2}.[0])),  AdvGate.Adv.tau{2})] = hd answers{2}) /\
+          (AdvGate.Adv.g{1}.[(tau,  t2)] = r0) /\
+          (AdvGate.Adv.g{1}.[(tau, !t2)] = r1)
+        ) => AdvGate.Adv.g{1}=AdvGate.Adv.g{2} *)
+        AdvGate.Adv.input{1} = AdvGate.Adv.input{2}
+      ).
+      fun.
+      call (false) (AdvGate.get AdvGate.Adv.input{1} 1 = AdvGate.get AdvGate.Adv.input{2} 1).
+        fun.
+        simplify.
+        wp.
+        skip.
+
+
+
+
+    intros _ _.
+    skip.
+    trivial.
+    rcondf {1} 1;[intros &m;skip;trivial|].
+    rcondf {1} 1;[intros &m;skip;trivial|].
+    rcondf {2} 1;[intros &m;skip;trivial|].
+    skip.
+    intros &1 &2 h.
+    split.
+    cut lem : (forall b1 b2,
+      proj AdvGate.Adv.g{1}.[(b1, b2)] = proj AdvGate.Adv.g{1}.[(b1, b2)]).
+    trivial.
+    trivial.
+    trivial.
+
 call
   ((!Dkc.Dkc.b{1} = Dkc.Dkc.b{2}))
   (!res{1} = res{2}).
   fun.
   skip.
   trivial.
-(*call (true) (res{1} = res{2}).*)
-wp.
+intros resultDkc_L resultDkc_R.
 while (true).
   wp.
   call (true) (res{1} = res{2}).
     admit.
   admit.
   wp.
-  call (true) (true).
-    fun.
-    rnd.
+  app 1 1 : (true).
+    call (true) (true).
+      fun.
+      rnd.
+      skip.
+      trivial.
+    intros result_L0 result_R0.
     skip.
     trivial.
+    admit. (*Call adv*)
+admit. (*
+call
+  (true)
+  (res{1} = res{2}).
+  fun.
   skip.
-  intros &mm1 &mm2 h1 h2 h3.
-  split.
-  trivial.
-  intros h4 h5.
-  (*
-    Etrange si la ligne suivante est mise je ne sais pas
-    quoi mettre entre les accolades, 
-      - si je mets 1 il me dit que &1(avec &) n'existe pas
-      - si je mets mm1, il me dit aue mm1(sans &) n'existe pas
-      - si je mets &mm1 j'ai une erreur de parsing
-  *)
-  (*cut test : (res{???} = !res{???}).*)
-  trivial.
-  admit.
+  trivial.*)
 save.
 
 module RandBit = {

@@ -10,10 +10,25 @@ require import Dkc.
 require import Gate.
 require import GarbleTools.
 
-op get(x:'a*'a, i:int) : 'a = let (a, b) = x in if i = 1 then a else b.
-op set(x:'a*'a, i:int, v:'a) : 'a*'a = let (a, b) = x in if i = 1 then (v, b) else (a, v).
+op get(x:'a*'a, i:int) : 'a = let (a, b) = x in if i = 0 then a else b.
+op set(x:'a*'a, i:int, v:'a) : 'a*'a = let (a, b) = x in if i = 0 then (v, b) else (a, v).
 
-module Adv(Adv:Gate.Adv) : Dkc.Adv = {
+
+module Wrapper(A:Gate.Adv) : Gate.Adv = {
+    fun gen_query() : Gate.query = {
+      var r : query;
+      return r;
+    }
+    fun get_challenge(answer: Gate.answer) : bool = {
+      var r : bool;
+      return r;
+    }
+}.
+
+module Adv(A:Gate.Adv) : Dkc.Adv = {
+
+  module Adv = Wrapper(A)
+
   var fc : Gate.funct
   var xc : Gate.input
   var tau : bool
@@ -68,8 +83,8 @@ module Adv(Adv:Gate.Adv) : Dkc.Adv = {
     initG(false,  true);
     initG( true, false);
     initG( true,  true);
+    initInput(0);
     initInput(1);
-    initInput(2);
   }
 
   fun gen_queries1() : Dkc.query list = {
@@ -188,9 +203,9 @@ module Adv(Adv:Gate.Adv) : Dkc.Adv = {
     query := Adv.gen_query();
     tau = tau;
     if (c) (fc, xc) = fst query; else (fc, xc) = snd query;
-    if (l=1) ret := gen_queries1();
-    if (l=2) ret := gen_queries2();
-    if (l=3) ret := gen_queries3();
+    if (l=0) ret := gen_queries1();
+    if (l=1) ret := gen_queries2();
+    if (l=2) ret := gen_queries3();
     return ret;
   }
   
