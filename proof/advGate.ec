@@ -10,9 +10,27 @@ require import Dkc.
 require import Gate.
 require import GarbleTools.
 
-op get(x:'a*'a, i:int) : 'a = let (a, b) = x in if i = 0 then a else b.
-op set(x:'a*'a, i:int, v:'a) : 'a*'a = let (a, b) = x in if i = 0 then (v, b) else (a, v).
+op get(x:'a*'a, i:int) : 'a = if i = 0 then fst x else snd x.
+op set(x:'a*'a, i:int, v:'a) : 'a*'a = if i = 0 then (v, snd x) else (fst x, v).
 
+op enc(
+  x:(int*bool, token) map,
+  preG:((bool*bool), token) map,
+  fc : Gate.funct, a:bool, b:bool) =
+Dkc.encode (tweak 0 a b) (proj x.[(0, a)]) (proj x.[(1, b)]) (proj preG.[(a, b)]).
+
+op initG(
+  g:((bool*bool), token) map,
+  x:(int*bool, token) map,
+  preG:((bool*bool), token) map,
+  fc : Gate.funct, a:bool, b:bool) =
+    g.[(a, b) <- enc x preG fc a b].
+
+op initInput(
+  input:Gate.inputG,
+  x:(int*bool, token) map,
+  xc:Gate.input, i:int) =
+    set input i (proj x.[(i, (get xc i))]).
 
 module Wrapper(A:Gate.Adv) : Gate.Adv = {
     fun gen_query() : Gate.query = {
@@ -63,7 +81,7 @@ module Adv(A:Gate.Adv) : Dkc.Adv = {
   }
 
   fun initPreG(a:bool, b:bool) : unit = {
-    preG.[(a, b)] = proj x.[(3, Gate.eval fc (a, b))];
+    preG.[(a, b)] = proj x.[(2, Gate.eval fc (a, b))];
   }
   fun common2() : unit = {
     initPreG(false, false);
@@ -72,19 +90,25 @@ module Adv(A:Gate.Adv) : Dkc.Adv = {
     initPreG( true,  true);
   }
   
-  fun initG(a:bool, b:bool) : unit = {
-    g.[(a, b)] = Dkc.encode (tweak 0 a b) (proj x.[(0, a)]) (proj x.[(1, b)]) (proj x.[(2, Gate.eval fc (a, b))]);
+  (*fun initG(a:bool, b:bool) : unit = {
+    g.[(a, b)] = Dkc.encode (tweak 0 a b) (proj x.[(0, a)]) (proj x.[(1, b)]) (proj preG.[(a, b)]);
   }
   fun initInput(i:int) : unit = {
     input = set input i (proj x.[(i, (get xc i))]);
-  }
+  }*)
   fun common3() : unit = {
-    initG(false, false);
+    g = initG g x preG fc false false;
+    g = initG g x preG fc false true;
+    g = initG g x preG fc true false;
+    g = initG g x preG fc true true;
+    input = initInput input x xc 0;
+    input = initInput input x xc 1;
+    (*initG(false, false);
     initG(false,  true);
     initG( true, false);
     initG( true,  true);
     initInput(0);
-    initInput(1);
+    initInput(1);*)
   }
 
   fun gen_queries1() : Dkc.query list = {
@@ -167,12 +191,17 @@ module Adv(A:Gate.Adv) : Dkc.Adv = {
   }
   
   fun gen_queries3() : Dkc.query list = {
-    var l1 : bool;
-    var l2 : bool;
 
     common0();
 
     common1();
+    
+    return [];
+  }
+
+  fun computeG3(answers:Dkc.answer list) : unit = {
+    var l1 : bool;
+    var l2 : bool;
 
     common2();
 
@@ -183,25 +212,19 @@ module Adv(A:Gate.Adv) : Dkc.Adv = {
     preG.[(!l1, !l2)] = $Dkc.genRandKey;
 
     common3();
-    
-    return [];
-  }
-
-  fun computeG3(answers:Dkc.answer list) : unit = {
-    
   }
   
   fun preInit() : unit = {
     l = $Dinter.dinter 0 2;
   }
 
-  fun gen_queries(tau:bool) : Dkc.query list = {
+  fun gen_queries(info:bool) : Dkc.query list = {
     var c : bool;
     var query : Gate.query;
     var ret : Dkc.query list;
     c = $Dbool.dbool;
     query := Adv.gen_query();
-    tau = tau;
+    tau = info;
     if (c) (fc, xc) = fst query; else (fc, xc) = snd query;
     if (l=0) ret := gen_queries1();
     if (l=1) ret := gen_queries2();

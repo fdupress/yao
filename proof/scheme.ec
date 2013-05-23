@@ -43,7 +43,7 @@ theory Scheme.
   op k : int.
 
   module type GARBLE = {
-    fun garb(q:query) : answer
+    fun garb(query:query) : answer
     fun get_challenge() : bool
   }.
 
