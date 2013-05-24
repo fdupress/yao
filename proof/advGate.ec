@@ -5,241 +5,222 @@ require import Pair.
 require import Map.
 require import Distr.
 require import List.
+require import Array.
 
 require import Dkc.
 require import Gate.
 require import GarbleTools.
 
-op get(x:'a*'a, i:int) : 'a = if i = 0 then fst x else snd x.
-op set(x:'a*'a, i:int, v:'a) : 'a*'a = if i = 0 then (v, snd x) else (fst x, v).
 
-op enc(
-  x:(int*bool, token) map,
-  preG:((bool*bool), token) map,
-  fc : Gate.funct, a:bool, b:bool) =
-Dkc.encode (tweak 0 a b) (proj x.[(0, a)]) (proj x.[(1, b)]) (proj preG.[(a, b)]).
+  module A:Gate.Adv = {
+    fun gen_query() : query = { var x : query; return x;}
+    fun get_challenge(answer:answer) : bool = { var x : bool; return x;}
+  }.
 
-op initG(
-  g:((bool*bool), token) map,
-  x:(int*bool, token) map,
-  preG:((bool*bool), token) map,
-  fc : Gate.funct, a:bool, b:bool) =
-    g.[(a, b) <- enc x preG fc a b].
-
-op initInput(
-  input:Gate.inputG,
-  x:(int*bool, token) map,
-  xc:Gate.input, i:int) =
-    set input i (proj x.[(i, (get xc i))]).
-
-module Wrapper(A:Gate.Adv) : Gate.Adv = {
-    fun gen_query() : Gate.query = {
-      var r : query;
-      return r;
-    }
-    fun get_challenge(answer: Gate.answer) : bool = {
-      var r : bool;
-      return r;
-    }
-}.
-
-module Adv(A:Gate.Adv) : Dkc.Adv = {
-
-  module Adv = Wrapper(A)
-
+module Adv(Adv:Gate.Adv) : Dkc.Adv = {
+  var c : bool
   var fc : Gate.funct
   var xc : Gate.input
   var tau : bool
-  var l : int
 
   var input : Gate.inputG
   var g : ((bool*bool), token) map
-  var preG : ((bool*bool), token) map
-  var x : (int*bool, token) map
-  var t : (int, bool) map
 
-  fun common0() : unit = {
-    x = Map.empty;
-    preG = Map.empty;
-    g = Map.empty;
-    t = Map.empty;
-    t.[0] = $Dbool.dbool;
-    t.[1] = $Dbool.dbool;
-    t.[2] = false;
-  }
+  var l : int
 
-  fun initX(i:int, b:bool) : unit = {
-    x.[(i, b)] = $Dkc.genRandKeyLast((proj t.[1])^^b);
-  }
-  fun common1() : unit = {
-    initX(0, false);
-    initX(0,  true);
-    initX(1, false);
-    initX(1,  true);
-    initX(2, false);
-    initX(2,  true);
-  }
+  var t : bool
 
-  fun initPreG(a:bool, b:bool) : unit = {
-    preG.[(a, b)] = proj x.[(2, Gate.eval fc (a, b))];
-  }
-  fun common2() : unit = {
-    initPreG(false, false);
-    initPreG( true, false);
-    initPreG(false,  true);
-    initPreG( true,  true);
-  }
-  
-  (*fun initG(a:bool, b:bool) : unit = {
-    g.[(a, b)] = Dkc.encode (tweak 0 a b) (proj x.[(0, a)]) (proj x.[(1, b)]) (proj preG.[(a, b)]);
-  }
-  fun initInput(i:int) : unit = {
-    input = set input i (proj x.[(i, (get xc i))]);
-  }*)
-  fun common3() : unit = {
-    g = initG g x preG fc false false;
-    g = initG g x preG fc false true;
-    g = initG g x preG fc true false;
-    g = initG g x preG fc true true;
-    input = initInput input x xc 0;
-    input = initInput input x xc 1;
-    (*initG(false, false);
-    initG(false,  true);
-    initG( true, false);
-    initG( true,  true);
-    initInput(0);
-    initInput(1);*)
-  }
+  fun gen_queries0() : Dkc.query list = {
 
-  fun gen_queries1() : Dkc.query list = {
-    var x1 : bool = get xc 0;
-    var t2 : bool = proj t.[1];
-    var val0 : bool = Gate.eval fc (!x1, false);
-    var val1 : bool = Gate.eval fc (!x1, true);
-    
-    common0();
-    
-    t.[1] = ! x1 ^^ tau;
-
-    common1();
+    t = $Dbool.dbool;
 
     return [
-      ((0,  t2), (1, val0), true, tweak 0 tau   t2 ) ;
-      ((0, !t2), (1, val1), true, tweak 0 tau (!t2))
+      ((0,  t), (1, Gate.eval fc (!(fst xc), false)), true, tweak 0 tau   t ) ;
+      ((0, !t), (1, Gate.eval fc (!(fst xc),  true)), true, tweak 0 tau (!t))
       ];
   }
 
-  fun computeG1(answers:Dkc.answer list) : unit = {
-    var x1 : bool = get xc 0;
-    var t2 : bool = proj t.[1];
-    var val0 : bool = Gate.eval fc (!x1, false);
-    var val1 : bool = Gate.eval fc (!x1, true);
-
+  fun compute0(answers:Dkc.answer list) : unit = {
+    var x : tokens;
+    var key : token;
+    var inp : token*token;
+    var out : token*token;
     var ki0, ko0, r0 : token*token*token = hd answers;
     var ki1, ko1, r1 : token*token*token = hd (tl answers);
-    
-    x.[(0,  t2)] = ki0;
-    x.[(0, !t2)] = ki1;
-    x.[(2, val0)] = ko0;
-    x.[(2, val1)] = ko1;
 
-    common2();
-
-    common3();
+    if (Gate.eval fc (!(fst xc), false) = Gate.eval fc (!(fst xc), true))
+    {
+      key = $Dkc.genRandKeyLast(!(Gate.eval fc (!(fst xc), false)));
+      if (Gate.eval fc (!(fst xc), false))
+        out = (key, ko0);
+      else
+        out = (ko0, key);
+    }
+    else
+    {
+      if (Gate.eval fc (!(fst xc), false))
+        out = (ko1, ko0);
+      else
+        out = (ko0, ko1);
+    }
     
-    g.[(tau,  t2)] = r0;
-    g.[(tau, !t2)] = r1;
+    key = $Dkc.genRandKeyLast(!tau);
+
+    if (tau)
+      inp = (Bitstring.zeros 0, key);
+    else
+      inp = (key, Bitstring.zeros 0);
+
+    x = Array.empty:::(ki0, ki1):::inp:::out;
+
+    input = Gate.encrypt x xc;
+
+    g = Map.empty;
+    g.[(!tau, false)] = enc x fc 0 1 2 (!tau) false;
+    g.[(!tau,  true)] = enc x fc 0 1 2 (!tau)  true;
+    g.[( tau,    t)] = r0;
+    g.[( tau,   !t)] = r1;
   }
   
-  fun gen_queries2() : Dkc.query list = {
-    var x1 : bool = get xc 0;
-    var x2 : bool = get xc 1;
-    var val:bool = Gate.eval fc (x1, !x2);
-    var vis1:bool = x1^^(proj t.[0]);
+  fun gen_queries1() : Dkc.query list = {
 
-    common0();
-    
-    t.[1] = ! x2 ^^ tau;
-    
-    common1();
+    t = $Dbool.dbool;
 
-    return [((0, vis1), (1, val), false, tweak 0 vis1 tau)];
+    return [((0, t^^(fst xc)), (1, Gate.eval fc (fst xc, !(snd xc))), false, tweak 0 (t^^(fst xc)) tau)];
   }
   
-  fun computeG2(answers:Dkc.answer list) : unit =  {
-    var x1 : bool = get xc 0;
-    var x2 : bool = get xc 1;
-    var val:bool = Gate.eval fc (x1, !x2);
-    var vis1:bool = x1^^(proj t.[0]);
 
+  fun compute1(answers:Dkc.answer list) : unit =  {
+    var x : tokens;
+    var key : token;
+    var key2 : token;
+    var key3 : token;
+    var k0 : token*token;
+    var k1 : token*token;
+    var k2 : token*token;
     var ki, ko, r : token*token*token = hd answers;
 
-    x.[(0, vis1)] = ki;
-    x.[(2, val)] = ko;
-    
-    common2();
-    
-    preG.[(!vis1,  tau)] = $Dkc.genRandKey;
-    if ((Gate.eval fc (!x1, false) = Gate.eval fc (!x1, true)))
-      preG.[(!vis1, !tau)] = proj preG.[(!vis1,  tau)];
+    key = $Dkc.genRandKeyLast(!t);
+    if (fst xc)
+      k0 = (key ,ki);
     else
-      preG.[(!vis1, !tau)] = $Dkc.genRandKey;
+      k0 = (ki, key);
 
-    common3();
+    key2 = $Dkc.genRandKeyLast(!tau);
+
+    if (tau)
+      k1 = (Bitstring.zeros 0, key2);
+    else
+      k1 = (key2, Bitstring.zeros 0);
+
+    key3 = $Dkc.genRandKeyLast(!(Gate.eval fc (fst xc, !(snd xc))));
+
+    if (Gate.eval fc (fst xc, !(snd xc)))
+      k2 = (key3, ko);
+    else
+      k2 = (ko, key3);
+
+    x = Array.empty:::k0:::k1:::k2;
     
-    g.[( vis1,  tau)] = r;
-  }
-  
-  fun gen_queries3() : Dkc.query list = {
-
-    common0();
-
-    common1();
+    input = Gate.encrypt x xc;
     
-    return [];
-  }
-
-  fun computeG3(answers:Dkc.answer list) : unit = {
-    var l1 : bool;
-    var l2 : bool;
-
-    common2();
-
-    l1 = (get xc 0)^^(proj t.[0]);
-    l2 = (get xc 1)^^(proj t.[1]);
-    preG.[(!l1,  l2)] = $Dkc.genRandKey;
-    preG.[( l1, !l2)] = $Dkc.genRandKey;
-    preG.[(!l1, !l2)] = $Dkc.genRandKey;
-
-    common3();
+    g.[(  t^^(fst xc), !tau)] = enc x fc 0 1 2 (t^^(fst xc)) (!tau);
+    g.[(  t^^(fst xc),  tau)] = r;
+    key = $Dkc.genRandKey;
+    key2 = $Dkc.genRandKey;
+    k2 = (key, key2);
+    
+    x = Array.empty:::k0:::k1:::k2;
+    g.[( !t^^(fst xc), false)] = enc x fc 0 1 2 (!t^^(fst xc)) false;
+    g.[( !t^^(fst xc),  true)] = enc x fc 0 1 2 (!t^^(fst xc)) true;
   }
   
   fun preInit() : unit = {
-    l = $Dinter.dinter 0 2;
+    l = $Dinter.dinter 0 1;
   }
 
   fun gen_queries(info:bool) : Dkc.query list = {
-    var c : bool;
     var query : Gate.query;
     var ret : Dkc.query list;
     c = $Dbool.dbool;
-    query := Adv.gen_query();
+    query := A.gen_query();
     tau = info;
     if (c) (fc, xc) = fst query; else (fc, xc) = snd query;
-    if (l=0) ret := gen_queries1();
-    if (l=1) ret := gen_queries2();
-    if (l=2) ret := gen_queries3();
+    if (l=0) ret := gen_queries0();
+    if (l=1) ret := gen_queries1();
     return ret;
   }
   
   fun get_challenge(answers:Dkc.answer list) : bool = {
     var challenge : bool;
     var gg : Gate.functG;
-    if (l=0) computeG1(answers);
-    if (l=1) computeG2(answers);
-    if (l=2) computeG3(answers);
+    if (l=0) compute0(answers);
+    if (l=1) compute1(answers);
     gg = (proj g.[(false, false)], proj g.[(false, true)], proj g.[(true, false)], proj g.[(true, true)]);
-    challenge := Adv.get_challenge((gg, input, tt));
-    return challenge;
+    challenge := A.get_challenge((gg, input, tt));
+    return c = challenge;
   }
+
+  fun fake() : bool = {
+    var c : bool;
+    var query : Gate.query;
+    var ret : Dkc.query list;
+    var challenge : bool;
+    var gg : Gate.functG;
+    var x : random;
+    var v : bool;
+    var t0 : bool;
+    var t1 : bool;
+    var k0 : token*token;
+    var k1 : token*token;
+    var f0 : Gate.funct;
+    var x0 : Gate.input;
+    var f1 : Gate.funct;
+    var x1 : Gate.input;
+    var key : token;
+    var key1 : token;
+
+    query := A.gen_query();
+    (f0, x0) = fst query;
+    (f1, x1) = snd query;
+    v = Gate.eval f0 x0;
+    
+    t0 = $Dbool.dbool;
+    t1 = $Dbool.dbool;
+
+    key = $Dkc.genRandKeyLast(t0);
+    key1 = $Dkc.genRandKeyLast(!t0);
+    if (t0)
+      k0 = (key1, key);
+    else
+      k0 = (key, key1);
+
+    key = $Dkc.genRandKeyLast(t1);
+    key1 = $Dkc.genRandKeyLast(!t1);
+    if (t1)
+      k1 = (key1, key);
+    else
+      k1 = (key, key1);
+
+    keyFromDkc = $Dkc.genRandKey;
+    x = Array.empty:::k0:::k1:::(key, key);
+    g.[(  t0, !t1)] =  enc x fc 0 1 2   t0  (!t1);
+    key = $Dkc.genRandKeyLast(Gate.eval f1 x1);
+    x = Array.empty:::k0:::k1:::(key, key);
+    g.[(  t0,  t1)] =  enc x fc 0 1 2   t0    t1 ;
+    key = $Dkc.genRandKey;
+    x = Array.empty:::k0:::k1:::(key, key);
+    g.[( !t0,  t1)] =  enc x fc 0 1 2 (!t0)   t1 ;
+    key = $Dkc.genRandKey;
+    x = Array.empty:::k0:::k1:::(key, key);
+    g.[( !t0, !t1)] =  enc x fc 0 1 2 (!t0) (!t1);
+
+    input = Gate.encrypt x xc;
+
+    gg = (proj g.[(false, false)], proj g.[(false, true)], proj g.[(true, false)], proj g.[(true, true)]);
+    challenge := A.get_challenge((gg, input, tt));
+    c = $Dbool.dbool;
+    return c = challenge;
+  }
+
 }.

@@ -24,160 +24,40 @@ require import Dkc.
 require import Gate.
 require import GarbleTools.
 
-module Adv(A:Gate.Adv) : Dkc.Adv = {
-    fun advgen_query() : Gate.query = {
-      var r : query;
-      return r;
-    }
-    fun advget_challenge(answer: Gate.answer) : bool = {
-      var r : bool;
-      return r;
-    }
-
-  var fc : Gate.funct
-  var xc : Gate.input
-  var tau : bool
-  var l : int
-
-  var input : Gate.inputG
-  var g : ((bool*bool), token) map
-  var preG : ((bool*bool), token) map
-  var x : (int*bool, token) map
-  var t : (int, bool) map
-
-  fun common0() : unit = {
-    x = Map.empty;
-    preG = Map.empty;
-    g = Map.empty;
-    t = Map.empty;
-    t.[0] = $Dbool.dbool;
-    t.[1] = $Dbool.dbool;
-    t.[2] = false;
-  }
-
-  fun initX(i:int, b:bool) : unit = {
-    x.[(i, b)] = $Dkc.genRandKeyLast((proj t.[i])^^b);
-  }
-  fun common1() : unit = {
-    initX(0, false);
-    initX(0,  true);
-    initX(1, false);
-    initX(1,  true);
-    initX(2, false);
-    initX(2,  true);
-  }
-
-  fun initPreG(a:bool, b:bool) : unit = {
-    preG.[(a, b)] = proj x.[(2, Gate.eval fc (a, b))];
-  }
-  fun common2() : unit = {
-    initPreG(false, false);
-    initPreG( true, false);
-    initPreG(false,  true);
-    initPreG( true,  true);
-  }
-  
-  fun common3() : unit = {
-    g = initG g x preG fc false false;
-    g = initG g x preG fc false true;
-    g = initG g x preG fc true false;
-    g = initG g x preG fc true true;
-    input = initInput input x xc 0;
-    input = initInput input x xc 1;
-  }
-
-  fun gen_queries3() : Dkc.query list = {
-
-    common0();
-
-    common1();
-    
-    return [];
-  }
-
-  fun computeG3(answers:Dkc.answer list) : unit = {
-    var x1 : bool = get xc 0;
-    var x2 : bool = get xc 1;
-    var vis1:bool = (get xc 0)^^(proj t.[0]);
-    var vis2:bool = (get xc 1)^^(proj t.[1]);
-
-    common2();
-
-    preG.[( vis1,  vis2)] = $Dkc.genRandKeyLast((proj t.[2])^^(Gate.eval fc (vis1, vis2))];
-    preG.[( vis1, !vis2)] = $Dkc.genRandKey;
-    preG.[(!vis1,  vis2)] = $Dkc.genRandKey;
-    preG.[(!vis1, !vis2)] = $Dkc.genRandKey;
-
-    common3();
-  }
-  
-  fun preInit() : unit = {
-    l = $Dinter.dinter 0 2;
-  }
-
-  fun gen_queries(info:bool) : Dkc.query list = {
-    var c : bool;
-    var query : Gate.query;
-    var ret : Dkc.query list;
-    c = $Dbool.dbool;
-    query := advgen_query();
-    tau = info;
-    if (c) (fc, xc) = fst query; else (fc, xc) = snd query;
-    gen_queries3();
-    return ret;
-  }
-  
-  fun get_challenge(answers:Dkc.answer list) : bool = {
-    var challenge : bool;
-    var gg : Gate.functG;
-    computeG3(answers);
-    gg = (proj g.[(false, false)], proj g.[(false, true)], proj g.[(true, false)], proj g.[(true, true)]);
-    challenge := advget_challenge((gg, input, tt));
-    return challenge;
-  }
-}.
-
-
-lemma MiddleEq2 :
+lemma FakeEq :
   forall (Adv <: Gate.Adv),
     equiv [
-      Dkc.Game(Dkc.Dkc, AdvGate.Adv(Adv)).work ~ Dkc.Game(Dkc.Dkc, AdvGate.Adv(Adv)).work :
+      Dkc.Game(Dkc.Dkc, AdvGate.Adv(Adv)).work ~ AdvGate.Adv(Adv).fake :
       (! Dkc.Dkc.b{1}) /\ (AdvGate.Adv.l{1}=1) /\ (Dkc.Dkc.b{2}) /\ (AdvGate.Adv.l{2}=2) ==> res{1} = res{2}
     ]
 proof.
   intros Adv.
   fun.
-  inline {1} AdvGate.Adv.gen_queries.
-  rcondf {1} 7;[admit|].
-  (*rcondf {1} 7. intros &m.
-wp.
-call true true.
-  wp;try (call true true;[admit|]);try rnd .
-  wp;try (call true true;[admit|]);try rnd .
-  wp;try (call true true;[admit|]);try rnd .
-  wp;try (call true true;[admit|]);try rnd .
-call true true.*)
-
-  rcondf {1} 8;[admit|].
-  rcondt {1} 7;[admit|].
-  rcondt {1} 12;[admit|].
-  rcondf {1} 15;[admit|].
-  inline {1} AdvGate.Adv.get_challenge.
-  rcondf {1} 17;[admit|].
-  rcondf {1} 18;[admit|].
-  rcondt {1} 17;[admit|].
   inline {1} Dkc.Dkc.preInit.
   inline {1} Dkc.Dkc.get_challenge.
   inline {1} Dkc.Dkc.initialize.
+  inline {1} AdvGate.Adv.gen_queries.
+  inline {1} AdvGate.Adv.get_challenge.
+  rcondf {1} 8;[admit|].
+  rcondt {1} 8;[admit|].
+  rcondf {1} 16;[admit|].
+  rcondt {1} 16;[admit|].
+  inline {1} AdvGate.Adv.compute1.
+  inline {1} AdvGate.Adv.gen_queries1.
+  rcondt {1} 14;[admit|].
+  rcondf {1} 17;[admit|].
   inline {1} Dkc.Dkc.encrypt.
-  inline {1} AdvGate.Adv.computeG2.
-  inline {1} AdvGate.Adv.gen_queries2.
-  inline {1} AdvGate.Adv.common0.
-  inline {1} AdvGate.Adv.common1.
-  inline {1} AdvGate.Adv.initX.
-  inline {1} AdvGate.Adv.common2.
-  inline {1} AdvGate.Adv.initPreG.
-  inline {1} AdvGate.Adv.common3.
+
+  wp.
+  swap {2} 28 -20.
+  call (answer{1}=answer{2}) (res{1} = res{2}). admit.
+  wp.
+  rnd.
+  wp.
+  rnd.
+  wp.
+  rnd.
+  wp.
 
   inline {2} AdvGate.Adv.gen_queries.
   rcondf {2} 7;[admit|].

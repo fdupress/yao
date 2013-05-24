@@ -18,12 +18,42 @@ lemma hybridEq :
           Dkc.Game(Dkc.Dkc, AdvGate.Adv(Adv)).work ~
             Dkc.Game(Dkc.Dkc, AdvGate.Adv(Adv)).work :
           (!Dkc.Dkc.b{1}) /\ (AdvGate.Adv.l{1}=0) /\
-          (Dkc.Dkc.b{2}) /\ (AdvGate.Adv.l{1}=1)
+          (Dkc.Dkc.b{2}) /\ (AdvGate.Adv.l{2}=1)
           ==> !res{1} = res{2}
         ]
 proof.
   intros Adv.
   fun.
+  inline {1} Dkc.Dkc.preInit.
+  inline {1} Dkc.Dkc.get_challenge.
+  inline {1} Dkc.Dkc.initialize.
+  inline {1} Dkc.Dkc.encrypt.
+  inline {1} AdvGate.Adv.gen_queries.
+  inline {1} AdvGate.Adv.get_challenge.
+  rcondt {1} 8;[admit|].
+  rcondf {1} 9;[admit|].
+  rcondt {1} 16;[admit|].
+  rcondf {1} 17;[admit|].
+  inline {1} AdvGate.Adv.compute0.
+  inline {1} AdvGate.Adv.gen_queries0.
+
+  inline {2} Dkc.Dkc.preInit.
+  inline {2} Dkc.Dkc.get_challenge.
+  inline {2} Dkc.Dkc.initialize.
+  inline {2} Dkc.Dkc.encrypt.
+  inline {2} AdvGate.Adv.gen_queries.
+  inline {2} AdvGate.Adv.get_challenge.
+  rcondf {2} 8;[admit|].
+  rcondt {2} 8;[admit|].
+  rcondf {2} 16;[admit|].
+  rcondt {2} 16;[admit|].
+  inline {2} AdvGate.Adv.compute1.
+  inline {2} AdvGate.Adv.gen_queries1.
+
+  wp.
+
+  call true true.
+
   call (AdvGate.Adv.l{1}=0/\AdvGate.Adv.l{2}=1) (res{1}=res{2}).
     fun.
     call (answer{1}=answer{2}) (res{1}=res{2});[admit(*ADV rule*)|].

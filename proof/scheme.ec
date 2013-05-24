@@ -18,9 +18,7 @@ theory Scheme.
   pred randomCorrect : (funct, random).
   pred inputCorrect : (funct, input).
 
-  op _garble : random -> funct -> functG*keyInput*keyOutput.
-  op getRandom : unit -> random.
-  op garble(f:funct) : functG*keyInput*keyOutput = _garble (getRandom tt) f.
+  op garble : random -> funct -> functG*keyInput*keyOutput.
   op encrypt : keyInput -> input -> inputG.
   op decrypt : keyOutput -> outputG -> output.
   op eval : funct -> input -> output.
@@ -32,7 +30,7 @@ theory Scheme.
     forall (f : funct) , functCorrect f =>
     forall (x : random) , randomCorrect f x =>
     forall (i : input) , inputCorrect f i =>
-      let (g, ki, ko) = _garble x f in
+      let (g, ki, ko) = garble x f in
       eval f i = decrypt ko (evalG g (encrypt ki i)).
 
   type query = (funct*input)*(funct*input).
@@ -52,7 +50,9 @@ theory Scheme.
     fun get_challenge(answer:answer) : bool
   }.
 
-  module PrvInd : GARBLE = {
+  module type Rand_t = { fun gen() : random }.
+
+  module PrvInd(Rand:Rand_t) : GARBLE = {
     var b : bool
   
     fun garb(query:query) : answer = {
@@ -62,6 +62,7 @@ theory Scheme.
       var d : keyOutput;
       var g : functG;
       var y : inputG;
+      var r : random;
 
       (* Phi test*)
       (* Input test *)
@@ -70,8 +71,8 @@ theory Scheme.
       (f1, x1) = snd query;
       b = $bsample;
       if (b) { x = x1;f = f1; } else {x=x0;f=f0;}
-      (*TODO generation tokens*)
-      (g, e, d) = garble f;
+      r := Rand.gen();
+      (g, e, d) = garble r f;
       y = encrypt e x;
       return (g, y, d);
     }
@@ -81,6 +82,7 @@ theory Scheme.
     }
   }.
 
+
   module Game(Garble:GARBLE, ADV:Adv) = {
     fun main() : bool = {
       var query : query;
@@ -89,15 +91,11 @@ theory Scheme.
     
       query := ADV.gen_query();
       answer := Garble.garb(query);
-      adv := ADV.get_challenge(answer);
       real := Garble.get_challenge();
+      adv := ADV.get_challenge(answer);
 
       return (adv = real);
     }
   }.
-  
-  axiom PrvInd :
-    forall (epsilon:real) (ADV<:Adv) &m,
-      (epsilon > 0%r) => (Pr[Game(PrvInd, ADV).main()@ &m:res] < epsilon).
 
 end Scheme.

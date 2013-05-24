@@ -86,14 +86,14 @@ theory Dkc.
         if (! (in_dom i kpub)) kpub.[i] = $genRandKeyLast (snd i);
         if (! (in_dom j kpub)) kpub.[j] = $genRandKeyLast (snd j);
         if (! (in_dom i r)) r.[j] = $genRandKey;
-        if (pos = true) {
+        if (pos) {
           keya = ksec;
           keyb = proj kpub.[i];
         } else {
           keyb = ksec;
           keya = proj kpub.[i];
         }
-        if (b = true) msg = proj kpub.[j]; else msg = proj r.[j];
+        if (b) msg = proj kpub.[j]; else msg = proj r.[j];
         out = (proj kpub.[i], proj kpub.[j], encode t keya keyb msg);
       }
       return out;
