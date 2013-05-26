@@ -38,26 +38,55 @@ proof.
   inline {1} Dkc.Dkc.initialize.
   inline {1} AdvGate.Adv.gen_queries.
   inline {1} AdvGate.Adv.get_challenge.
-  rcondf {1} 8;[admit|].
-  rcondt {1} 8;[admit|].
-  rcondf {1} 16;[admit|].
-  rcondt {1} 16;[admit|].
+  rcondf {1} 9;[admit|].
+  rcondt {1} 9;[admit|].
+  rcondf {1} 17;[admit|].
+  rcondt {1} 17;[admit|].
   inline {1} AdvGate.Adv.compute1.
   inline {1} AdvGate.Adv.gen_queries1.
-  rcondt {1} 14;[admit|].
-  rcondf {1} 17;[admit|].
+  rcondt {1} 15;[admit|].
+  rcondf {1} 18;[admit|].
   inline {1} Dkc.Dkc.encrypt.
 
   wp.
-  swap {2} 28 -20.
+  swap {2} 22 -20.
   call (answer{1}=answer{2}) (res{1} = res{2}). admit.
   wp.
   rnd.
+  rnd.
+  rnd.
+  rnd.
+  rcondf {1} 27. admit.
+  rnd.
   wp.
+  rcondt {1} 18. admit.
+  wp.
+  rcondt {1} 19. admit.
+  rcondt {1} 20. admit.
+  rcondt {1} 21. admit.
+  rnd.
+  rnd.
   rnd.
   wp.
   rnd.
   wp.
+  call true (res{1} = res{2}). admit.
+  rnd.
+  wp.
+  app 1 1 : ((! Dkc.Dkc.b{1}) /\ (AdvGate.Adv.l{1}=1) /\ (Dkc.Dkc.b{2}) /\ (AdvGate.Adv.l{2}=2)/\t{1} = t1{2}).
+    rnd.
+    skip.
+    trivial.
+  app 1 0 : ((! Dkc.Dkc.b{1}) /\ (AdvGate.Adv.l{1}=1) /\ (Dkc.Dkc.b{2}) /\ (AdvGate.Adv.l{2}=2)/\t{1} = t1{2}).
+  admit.
+  skip.
+  simplify.
+  intros &1 &2 h hh hhh.
+  split.
+  trivial.
+  intros g gg L R ggggg.
+  simplify.
+
 
   inline {2} AdvGate.Adv.gen_queries.
   rcondf {2} 7;[admit|].

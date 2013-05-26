@@ -91,48 +91,44 @@ module Adv(Adv:Gate.Adv) : Dkc.Adv = {
   
 
   fun compute1(answers:Dkc.answer list) : unit =  {
-    var x : tokens;
-    var key : token;
-    var key2 : token;
-    var key3 : token;
-    var k0 : token*token;
-    var k1 : token*token;
-    var k2 : token*token;
+    var keynt : token;
+    var keyntau : token;
+    var keyCorrect : token;
+    var key_nt_ntau : token;
+    var key_nt_tau : token;
+    var nko : token;
     var ki, ko, r : token*token*token = hd answers;
+    var v : bool;
+    v = Gate.eval fc (fst xc, !(snd xc));
 
-    key = $Dkc.genRandKeyLast(!t);
-    if (fst xc)
-      k0 = (key ,ki);
+    if (v = Gate.eval fc xc)
+      keyCorrect = ko;
     else
-      k0 = (ki, key);
+      keyCorrect = $Dkc.genRandKeyLast(!(Gate.eval fc (fst xc, !(snd xc))));
 
-    key2 = $Dkc.genRandKeyLast(!tau);
+    keynt = $Dkc.genRandKeyLast(!t^^(fst xc));
+    keyntau = $Dkc.genRandKeyLast(!tau);
 
-    if (tau)
-      k1 = (Bitstring.zeros 0, key2);
-    else
-      k1 = (key2, Bitstring.zeros 0);
+    key_nt_tau = $Dkc.genRandKey;
+    key_nt_ntau = $Dkc.genRandKey;(*May be the same*)
 
-    key3 = $Dkc.genRandKeyLast(!(Gate.eval fc (fst xc, !(snd xc))));
-
-    if (Gate.eval fc (fst xc, !(snd xc)))
-      k2 = (key3, ko);
-    else
-      k2 = (ko, key3);
-
-    x = Array.empty:::k0:::k1:::k2;
-    
-    input = Gate.encrypt x xc;
-    
-    g.[(  t^^(fst xc), !tau)] = enc x fc 0 1 2 (t^^(fst xc)) (!tau);
+    input = (ki, keyntau);
+    g.[(  t^^(fst xc), !tau)] = Dkc.encode
+      (tweak 2 (t^^(fst xc)) (!tau))
+      ki
+      keyntau
+      keyCorrect;
     g.[(  t^^(fst xc),  tau)] = r;
-    key = $Dkc.genRandKey;
-    key2 = $Dkc.genRandKey;
-    k2 = (key, key2);
-    
-    x = Array.empty:::k0:::k1:::k2;
-    g.[( !t^^(fst xc), false)] = enc x fc 0 1 2 (!t^^(fst xc)) false;
-    g.[( !t^^(fst xc),  true)] = enc x fc 0 1 2 (!t^^(fst xc)) true;
+    g.[( !t^^(fst xc), tau)] = Dkc.encode
+      (tweak 2 (!t^^(fst xc)) (tau))
+      keynt
+      keyntau(*ETRANGE*)
+      key_nt_ntau;
+    g.[( !t^^(fst xc), tau)] = Dkc.encode
+      (tweak 2 (!t^^(fst xc)) (tau))
+      ki
+      keyntau(*ETRANGE*)
+      key_nt_tau;
   }
   
   fun preInit() : unit = {
@@ -167,18 +163,24 @@ module Adv(Adv:Gate.Adv) : Dkc.Adv = {
     var ret : Dkc.query list;
     var challenge : bool;
     var gg : Gate.functG;
-    var x : random;
     var v : bool;
     var t0 : bool;
     var t1 : bool;
-    var k0 : token*token;
-    var k1 : token*token;
     var f0 : Gate.funct;
     var x0 : Gate.input;
     var f1 : Gate.funct;
     var x1 : Gate.input;
-    var key : token;
-    var key1 : token;
+    var keyFromDkc : token;
+    var keyt1 : token;
+    var keynt1 : token;
+    var keyt0 : token;
+    var keynt0 : token;
+    var keyCorrect : token;
+    var key_nto_t1 : token;
+    var key_to_nt1 : token;
+    var key_nto_nt1 : token;
+
+    t1 = $Dbool.dbool;
 
     query := A.gen_query();
     (f0, x0) = fst query;
@@ -186,36 +188,40 @@ module Adv(Adv:Gate.Adv) : Dkc.Adv = {
     v = Gate.eval f0 x0;
     
     t0 = $Dbool.dbool;
-    t1 = $Dbool.dbool;
 
-    key = $Dkc.genRandKeyLast(t0);
-    key1 = $Dkc.genRandKeyLast(!t0);
-    if (t0)
-      k0 = (key1, key);
-    else
-      k0 = (key, key1);
+    keyt0 = $Dkc.genRandKeyLast(t0);
+    keynt1 = $Dkc.genRandKeyLast(!t1);
+    key_to_nt1  = $Dkc.genRandKey;
+    keyCorrect = $Dkc.genRandKeyLast(v);
 
-    key = $Dkc.genRandKeyLast(t1);
-    key1 = $Dkc.genRandKeyLast(!t1);
-    if (t1)
-      k1 = (key1, key);
-    else
-      k1 = (key, key1);
+    keynt0 = $Dkc.genRandKeyLast(!t0);
+    keyt1 = $Dkc.genRandKeyLast(t1);
 
-    keyFromDkc = $Dkc.genRandKey;
-    x = Array.empty:::k0:::k1:::(key, key);
-    g.[(  t0, !t1)] =  enc x fc 0 1 2   t0  (!t1);
-    key = $Dkc.genRandKeyLast(Gate.eval f1 x1);
-    x = Array.empty:::k0:::k1:::(key, key);
-    g.[(  t0,  t1)] =  enc x fc 0 1 2   t0    t1 ;
-    key = $Dkc.genRandKey;
-    x = Array.empty:::k0:::k1:::(key, key);
-    g.[( !t0,  t1)] =  enc x fc 0 1 2 (!t0)   t1 ;
-    key = $Dkc.genRandKey;
-    x = Array.empty:::k0:::k1:::(key, key);
-    g.[( !t0, !t1)] =  enc x fc 0 1 2 (!t0) (!t1);
+    key_nto_t1  = $Dkc.genRandKey;
+    key_nto_nt1 = $Dkc.genRandKey;
 
-    input = Gate.encrypt x xc;
+    input = (keyt0, keyt1);
+    
+    g.[( t0, t1)] = Dkc.encode
+      (tweak 2 t0 t1)
+      keyt0
+      keyt1
+      keyCorrect;
+    g.[( !t0, t1)] = Dkc.encode
+      (tweak 2 (!t0) t1)
+      keynt0
+      keyt1
+      key_nto_t1;
+    g.[( t0, !t1)] = Dkc.encode
+      (tweak 2 t0 (!t1))
+      keyt0
+      keynt1
+      key_to_nt1;
+    g.[( !t0, !t1)] = Dkc.encode
+      (tweak 2 (!t0) (!t1))
+      keynt0
+      keynt1
+      key_nto_nt1;
 
     gg = (proj g.[(false, false)], proj g.[(false, true)], proj g.[(true, false)], proj g.[(true, true)]);
     challenge := A.get_challenge((gg, input, tt));

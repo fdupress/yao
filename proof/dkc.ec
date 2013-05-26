@@ -5,6 +5,7 @@ require import Set.
 require import Pair.
 require import Int.
 require import Real.
+require import Bool.
 
 theory Dkc.
   type number = bitstring.
@@ -61,8 +62,10 @@ theory Dkc.
     }
       
     fun initialize() : bool = {
-      ksec = $genRandKey;
-      return ksec.[0];
+      var t : bool;
+      t = $Dbool.dbool;
+      ksec = $genRandKeyLast t;
+      return t;
     }
 
     fun get_challenge() : bool = {
