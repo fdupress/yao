@@ -137,44 +137,44 @@ proof.
 
   (*BEGIN DKC*)
   (*LOOP 1*)
-  rcondt {1} 28. admit. (* Dkc used *)
-  wp.
-  rcondt {1} 29. admit. (* Dkc not reusing *)
-  rcondf {1} 30. admit. (* Dkc not reusing *)
-  rcondt {1} 30. admit. (* Dkc not reusing *)
-  rnd. (* key_nt_tau *)
-  rnd. (* keynt *)
-  wp.
+  rcondt {1} 28;[admit|]; (* Dkc used *)
+  wp;
+  rcondt {1} 29;[admit|]; (* Dkc not reusing *)
+  rcondf {1} 30;[admit|]; (* Dkc not reusing *)
+  rcondt {1} 30;[admit|]; (* Dkc not reusing *)
+  rnd; (* key_nt_tau *)
+  rnd; (* keynt *)
+  wp;
   (*LOOP 2*)
-  rcondt {1} 21. admit. (* Dkc used *)
-  wp.
-  rcondt {1} 22. admit. (* Dkc not reusing *)
-  rcondf {1} 23. admit. (* Dkc not reusing *)
-  rcondt {1} 23. admit. (* Dkc not reusing *)
-  rnd. (* key_t_tau *)
-  rnd. (* keyt *)
-  wp.
+  rcondt {1} 21;[admit|]; (* Dkc used *)
+  wp;
+  rcondt {1} 22;[admit|]; (* Dkc not reusing *)
+  rcondf {1} 23;[admit|]; (* Dkc not reusing *)
+  rcondt {1} 23;[admit|]; (* Dkc not reusing *)
+  rnd; (* key_t_tau *)
+  rnd; (* keyt *)
+  wp;
   (*END DKC*)
-  rnd {1}. (* rand *)
-  rnd (lambda x, x^^(fst AdvGate.Adv.xc{1})) _. (* t *)
-  wp.
-  call true (res{1} = res{2}). admit. (* Call Adv gen_query *)
-  rnd. (* c *)
-  wp.
-  rnd. (*keyTau*)
-  rnd (lambda x, !x) _. (*tau*)
+  rnd {1}; (* rand *)
+  rnd (lambda x, x^^(fst AdvGate.Adv.xc{1})) _; (* t *)
+  wp;
+  call true (res{1} = res{2});[admit|]; (* Call Adv gen_query *)
+  rnd; (* c *)
+  wp;
+  rnd; (*keyTau*)
+  rnd (lambda x, !x) _; (*tau*)
 
-  skip.
+  skip;
 
-  intros &1 &2 pre.
+  intros &1 &2 pre;
   simplify.
-  intros tau1 ntau2; split;[trivial|];intros eqtau intau.
-  intros keyTau1 keyTau2;split;[trivial|];intros eqKeyTau inKeyTau.
-  intros c1 c2;split;[trivial|];intros eqc inc.  
-  intros query1 query2 eqQuery.
-  case c1;intros c1val.
-    intros t1 t2; split;[trivial|];intros eqt int.
-    intros rand inrand.
+  intros tau1 ntau2;split;[trivial|];intros eqtau intau;
+  intros keyTau1 keyTau2;split;[trivial|];intros eqKeyTau inKeyTau;
+  intros c1 c2;split;[trivial|];intros eqc inc;
+  intros query1 query2 eqQuery;
+  case c1;[|admit];intros c1val;
+    intros t1 t2; split;[trivial|];intros eqt int;
+    intros rand inrand;
 
     (* UGLY *)
     rewrite (hd_def<:(int*bool)*(int*bool)*bool*(bool array)> ((0, t1 ^^ fst (snd (fst query1))),
@@ -185,12 +185,12 @@ proof.
 (
     (((0, !t1 ^^ fst (snd (fst query1))),
       (2, rand), false, tweak 0 (!t1 ^^ fst (snd (fst query1))) tau1) ::
-      __nil))).
+      __nil)));
     (* END UGLY *)
 
-    simplify.
-    intros keyt1 keyt2; split;[trivial|];intros eqkeyt inkeyt.
-    intros key_t_tau inkey_t_tau.
+    simplify;
+    intros keyt1 keyt2; split;[trivial|];intros eqkeyt inkeyt;
+    intros key_t_tau inkey_t_tau;
 
     (* UGLY *)
     rewrite (tl_def<:(int*bool)*(int*bool)*bool*(bool array)> ((0, t1 ^^ fst (snd (fst query1))),
@@ -201,16 +201,16 @@ proof.
 (
     (((0, !t1 ^^ fst (snd (fst query1))),
       (2, rand), false, tweak 0 (!t1 ^^ fst (snd (fst query1))) tau1) ::
-      __nil))).
+      __nil)));
     rewrite (hd_def<:(int*bool)*(int*bool)*bool*(bool array)>
     ((0, !t1 ^^ fst (snd (fst query1))),
-      (2, rand), false, tweak 0 (!t1 ^^ fst (snd (fst query1))) tau1) __nil).
+      (2, rand), false, tweak 0 (!t1 ^^ fst (snd (fst query1))) tau1) __nil);
     (* END UGLY *)
 
-    rewrite (_:Dkc.Dkc.b{1} = false);[trivial|].
-    simplify.
-    intros keynt1 keynt2; split;[trivial|];intros eqkeynt inkeynt.
-    intros key_nt_tau inkey_nt_tau.
+    rewrite (_:Dkc.Dkc.b{1} = false);[trivial|];
+    simplify;
+    intros keynt1 keynt2; split;[trivial|];intros eqkeynt inkeynt;
+    intros key_nt_tau inkey_nt_tau;
 
     (* UGLY *)
 
@@ -239,11 +239,11 @@ rewrite (hd_def<:Dkc.key*Dkc.key*Dkc.cipher>
 
 (
 
-(proj Dkc.Dkc.kpub{1}.[(0,
+(proj Map.empty.[(0,
       t1 ^^ fst (snd (fst query1))) <- keyt1].[(0,
       t1 ^^ fst (snd (fst query1)))],
 
-      proj Dkc.Dkc.kpub{1}.[(0,
+      proj Map.empty.[(0,
         t1 ^^ fst (snd (fst query1))) <- keyt1].[(1,
         eval (fst (fst query1)) (fst (snd (fst query1)),
           !snd (snd (fst query1))))],
@@ -255,15 +255,95 @@ rewrite (hd_def<:Dkc.key*Dkc.key*Dkc.cipher>
             !snd (snd (fst query1)))) <- key_t_tau].[(1,
           eval (fst (fst query1)) (fst (snd (fst query1)),
             !snd (snd (fst query1))))])) ::
-      __nil)).
-
+      __nil));
     (* END UGLY *)
-    
-    delta hd.
+    simplify;
+    (* UGLY *)
 
-cut test : (forall (l : int list), let t::q = l in t = hd l).
+rewrite (tl_def<:Dkc.key*Dkc.key*Dkc.cipher>
+(proj Map.empty.[(0,
+    t1 ^^ fst (snd (fst query1))) <- keyt1].[(0,
+    !t1 ^^ fst (snd (fst query1))) <- keynt1].[(0,
+    !t1 ^^ fst (snd (fst query1)))],
 
-    simplify.
+    proj Map.empty.[(0,
+      t1 ^^ fst (snd (fst query1))) <- keyt1].[(0,
+      !t1 ^^ fst (snd (fst query1))) <- keynt1].[(2, rand)],
+
+      Dkc.encode
+        (tweak 0 (!t1 ^^ fst (snd (fst query1))) tau1)
+        (proj Map.empty
+          .[(0,t1 ^^ fst (snd (fst query1))) <- keyt1]
+          .[(0,!t1 ^^ fst (snd (fst query1))) <- keynt1]
+          .[(0,!t1 ^^ fst (snd (fst query1)))]) 
+        keyTau1
+        (proj Map.empty.[(1, eval (fst (fst query1)) (fst (snd (fst query1)),
+          !snd (snd (fst query1)))) <- key_t_tau]
+        .[(2, rand) <- key_nt_tau]
+        .[(2, rand)])
+)
+
+(
+
+(proj Map.empty.[(0,
+      t1 ^^ fst (snd (fst query1))) <- keyt1].[(0,
+      t1 ^^ fst (snd (fst query1)))],
+
+      proj Map.empty.[(0,
+        t1 ^^ fst (snd (fst query1))) <- keyt1].[(1,
+        eval (fst (fst query1)) (fst (snd (fst query1)),
+          !snd (snd (fst query1))))],
+
+        Dkc.encode (tweak 0 (!t1 ^^ fst (snd (fst query1))) tau1) (proj Map.empty.[(0,
+          t1 ^^ fst (snd (fst query1))) <- keyt1].[(0,
+          t1 ^^ fst (snd (fst query1)))]) keyTau1 (proj Map.empty.[(1,
+          eval (fst (fst query1)) (fst (snd (fst query1)),
+            !snd (snd (fst query1)))) <- key_t_tau].[(1,
+          eval (fst (fst query1)) (fst (snd (fst query1)),
+            !snd (snd (fst query1))))])) ::
+      __nil));
+rewrite (hd_def<:Dkc.key*Dkc.key*Dkc.cipher>
+
+(proj Map.empty.[(0,
+      t1 ^^ fst (snd (fst query1))) <- keyt1].[(0,
+      t1 ^^ fst (snd (fst query1)))],
+
+      proj Map.empty.[(0,
+        t1 ^^ fst (snd (fst query1))) <- keyt1].[(1,
+        eval (fst (fst query1)) (fst (snd (fst query1)),
+          !snd (snd (fst query1))))],
+
+        Dkc.encode (tweak 0 (!t1 ^^ fst (snd (fst query1))) tau1) (proj Map.empty.[(0,
+          t1 ^^ fst (snd (fst query1))) <- keyt1].[(0,
+          t1 ^^ fst (snd (fst query1)))]) keyTau1 (proj Map.empty.[(1,
+          eval (fst (fst query1)) (fst (snd (fst query1)),
+            !snd (snd (fst query1)))) <- key_t_tau].[(1,
+          eval (fst (fst query1)) (fst (snd (fst query1)),
+            !snd (snd (fst query1))))])) 
+      __nil);
+    (* END UGLY *)
+
+simplify;
+
+    intros key_t_ntau1 key_t_ntau2; split;[trivial|];intros eqkey_t_ntau inkey_t_ntau;
+    intros key_ntau inkey_ntau;
+    intros key_nt_ntau inkey_nt_ntau;
+    split.
+    admit.
+    intros h.
+clear h.
+    trivial.
+
+
+ key_nt_ntau
+  rnd. (* keyntau *)
+  wp.
+  rcondf {1} 37. admit. (*FAUX*) (* Reutilisation clef sortie *)
+  rcondf {1} 37. admit. (*FAUX*) (* Reutilisation clef sortie *)
+  key_t_ntau
+
+
+simplify.
 
 
 end proof what follow contains old stuff
