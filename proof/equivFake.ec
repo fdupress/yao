@@ -122,6 +122,8 @@ proof.
     Dkc.Dkc.ksec{1} = keytau{2} /\
     fst query{1} = query0{1} /\
     snd query{1} = query1{1} /\
+    fst query{2} = query0{2} /\
+    snd query{2} = query1{2} /\
     query{1} = query{2} /\
     AdvGate.Adv.c{1} = c{2} /\
     Dkc.Dkc.b{1} = false /\
@@ -135,8 +137,8 @@ proof.
   skip;intros _ _ _;simplify;trivial.
 
   case (Gate.eval (fst query0{2}) (snd query0{2}) = Gate.eval (fst query1{2}) (snd query1{2})).
- 
-  (rcondt {1} 1;[intros &m;skip;trivial|]).
+
+  (rcondt {1} 1;[intros &m;skip;trivial|]);
 
   (rcondf {1} 2;[admit|]); (* l condition *)
   (rcondt {1} 2;[admit|]); (* l condition *)
@@ -190,8 +192,10 @@ proof.
   elim pre; clear pre; intros pre eqeval;
   elim pre; clear pre; intros tau pre;
   elim pre; clear pre; intros keytau pre;
-  elim pre; clear pre; intros eqquery0 pre;
-  elim pre; clear pre; intros eqquery1 pre;
+  elim pre; clear pre; intros eqquery0L pre;
+  elim pre; clear pre; intros eqquery1L pre;
+  elim pre; clear pre; intros eqquery0R pre;
+  elim pre; clear pre; intros eqquery1R pre;
   elim pre; clear pre; intros eqquery pre;
   elim pre; clear pre; intros eqc pre;
   elim pre; clear pre; intros bval pre;
@@ -493,8 +497,13 @@ simplify;
     trivial.
 
 (*case else : BAD*)
-rcondt {1} 1.
-
   (rcondf {1} 1;[intros &m;skip;trivial|]).
+  (rcondf {1} 7;[intros &m;wp;skip;trivial|]).
+  (rcondf {1} 9;[intros &m;wp;skip;trivial|]).
+  (rcondf {2} 1;[intros &m;wp;skip;trivial|]).
+  rnd.
+  wp.
+  skip.
+  trivial.
 
 save.
