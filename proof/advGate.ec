@@ -31,7 +31,7 @@ module Adv(Adv:Gate.Adv) : Dkc.Adv = {
   var t : bool
 
   fun gen_queries0() : Dkc.query list = {
-
+    
     t = $Dbool.dbool;
 
     return [
@@ -83,52 +83,60 @@ module Adv(Adv:Gate.Adv) : Dkc.Adv = {
   }
   
   fun gen_queries1() : Dkc.query list = {
+    var rand : bool;
 
     t = $Dbool.dbool;
 
-    return [((0, t^^(fst xc)), (1, Gate.eval fc (fst xc, !(snd xc))), false, tweak 0 (t^^(fst xc)) tau)];
+    rand = $Dbool.dbool;
+
+    return [
+      ((0,  t^^(fst xc)), (1, Gate.eval fc (  fst xc , !(snd xc))), false, tweak 0 (!t^^(fst xc)) tau);
+      ((0, !t^^(fst xc)), (2, rand), false, tweak 0 (!t^^(fst xc)) tau)
+    ];
   }
   
 
   fun compute1(answers:Dkc.answer list) : unit =  {
+    var keyt : token;
     var keynt : token;
     var keyntau : token;
-    var keyCorrect : token;
+    var key_t_tau : token;
     var key_nt_ntau : token;
     var key_nt_tau : token;
-    var nko : token;
-    var ki, ko, r : token*token*token = hd answers;
-    var v : bool;
-    v = Gate.eval fc (fst xc, !(snd xc));
+    var key_t_ntau : token;
+    var r_t_tau : token;
+    var r_nt_tau : token;
 
-    if (v = Gate.eval fc xc)
-      keyCorrect = ko;
+    (keyt, key_t_tau, r_t_tau) = hd answers;
+    (keynt, key_nt_tau, r_nt_tau) = hd (tl answers);
+
+    if (Gate.eval fc xc=Gate.eval fc (fst xc, !(snd xc)))
+      key_t_ntau = key_t_tau;
     else
-      keyCorrect = $Dkc.genRandKeyLast(!(Gate.eval fc (fst xc, !(snd xc))));
-
-    keynt = $Dkc.genRandKeyLast(!t^^(fst xc));
+    {
+      if (Gate.eval fc xc=Gate.eval fc (fst xc, !(snd xc)))
+        key_t_ntau = key_nt_tau;
+      else
+        key_t_ntau = $Dkc.genRandKeyLast(Gate.eval fc xc);
+    }
+    
     keyntau = $Dkc.genRandKeyLast(!tau);
 
-    key_nt_tau = $Dkc.genRandKey;
-    key_nt_ntau = $Dkc.genRandKey;(*May be the same*)
+    key_nt_ntau = $Dkc.genRandKey;
 
-    input = (ki, keyntau);
+    input = (keyt, keyntau);
     g.[(  t^^(fst xc), !tau)] = Dkc.encode
       (tweak 2 (t^^(fst xc)) (!tau))
-      ki
+      keyt
       keyntau
-      keyCorrect;
-    g.[(  t^^(fst xc),  tau)] = r;
-    g.[( !t^^(fst xc), tau)] = Dkc.encode
-      (tweak 2 (!t^^(fst xc)) (tau))
+      key_t_ntau;
+    g.[(  t^^(fst xc),  tau)] = r_t_tau;
+    g.[( !t^^(fst xc), tau)] = r_nt_tau;
+    g.[( !t^^(fst xc), !tau)] = Dkc.encode
+      (tweak 2 (!t^^(fst xc)) (!tau))
       keynt
-      keyntau(*ETRANGE*)
+      keyntau
       key_nt_ntau;
-    g.[( !t^^(fst xc), tau)] = Dkc.encode
-      (tweak 2 (!t^^(fst xc)) (tau))
-      ki
-      keyntau(*ETRANGE*)
-      key_nt_tau;
   }
   
   fun preInit() : unit = {
@@ -141,7 +149,13 @@ module Adv(Adv:Gate.Adv) : Dkc.Adv = {
     c = $Dbool.dbool;
     query := A.gen_query();
     tau = info;
-    if (c) (fc, xc) = fst query; else (fc, xc) = snd query;
+    if (c) {
+      fc = fst (fst query);
+      xc = snd (fst query);
+    } else {
+      fc = fst (snd query);
+      xc = snd (snd query);
+    }
     if (l=0) ret := gen_queries0();
     if (l=1) ret := gen_queries1();
     return ret;
@@ -154,78 +168,6 @@ module Adv(Adv:Gate.Adv) : Dkc.Adv = {
     if (l=1) compute1(answers);
     gg = (proj g.[(false, false)], proj g.[(false, true)], proj g.[(true, false)], proj g.[(true, true)]);
     challenge := A.get_challenge((gg, input, tt));
-    return c = challenge;
-  }
-
-  fun fake() : bool = {
-    var c : bool;
-    var query : Gate.query;
-    var ret : Dkc.query list;
-    var challenge : bool;
-    var gg : Gate.functG;
-    var v : bool;
-    var t0 : bool;
-    var t1 : bool;
-    var f0 : Gate.funct;
-    var x0 : Gate.input;
-    var f1 : Gate.funct;
-    var x1 : Gate.input;
-    var keyFromDkc : token;
-    var keyt1 : token;
-    var keynt1 : token;
-    var keyt0 : token;
-    var keynt0 : token;
-    var keyCorrect : token;
-    var key_nto_t1 : token;
-    var key_to_nt1 : token;
-    var key_nto_nt1 : token;
-
-    t1 = $Dbool.dbool;
-
-    query := A.gen_query();
-    (f0, x0) = fst query;
-    (f1, x1) = snd query;
-    v = Gate.eval f0 x0;
-    
-    t0 = $Dbool.dbool;
-
-    keyt0 = $Dkc.genRandKeyLast(t0);
-    keynt1 = $Dkc.genRandKeyLast(!t1);
-    key_to_nt1  = $Dkc.genRandKey;
-    keyCorrect = $Dkc.genRandKeyLast(v);
-
-    keynt0 = $Dkc.genRandKeyLast(!t0);
-    keyt1 = $Dkc.genRandKeyLast(t1);
-
-    key_nto_t1  = $Dkc.genRandKey;
-    key_nto_nt1 = $Dkc.genRandKey;
-
-    input = (keyt0, keyt1);
-    
-    g.[( t0, t1)] = Dkc.encode
-      (tweak 2 t0 t1)
-      keyt0
-      keyt1
-      keyCorrect;
-    g.[( !t0, t1)] = Dkc.encode
-      (tweak 2 (!t0) t1)
-      keynt0
-      keyt1
-      key_nto_t1;
-    g.[( t0, !t1)] = Dkc.encode
-      (tweak 2 t0 (!t1))
-      keyt0
-      keynt1
-      key_to_nt1;
-    g.[( !t0, !t1)] = Dkc.encode
-      (tweak 2 (!t0) (!t1))
-      keynt0
-      keynt1
-      key_nto_nt1;
-
-    gg = (proj g.[(false, false)], proj g.[(false, true)], proj g.[(true, false)], proj g.[(true, true)]);
-    challenge := A.get_challenge((gg, input, tt));
-    c = $Dbool.dbool;
     return c = challenge;
   }
 

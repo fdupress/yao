@@ -53,7 +53,7 @@ theory Dkc.
   module Dkc : Dkc_t = {
     var b : bool
     var ksec : key
-    var r : (int*bool, key) map
+    var r : (int*bool, msg) map
     var kpub : (int*bool, key) map
     var used : tweak set
 
@@ -65,6 +65,8 @@ theory Dkc.
       var t : bool;
       t = $Dbool.dbool;
       ksec = $genRandKeyLast t;
+      kpub = Map.empty;
+      r = Map.empty;
       return t;
     }
 
