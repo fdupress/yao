@@ -22,6 +22,7 @@ module Adv(Adv:Gate.Adv) : Dkc.Adv = {
   var fc : Gate.funct
   var xc : Gate.input
   var tau : bool
+  var good : bool
 
   var input : Gate.inputG
   var g : ((bool*bool), token) map
@@ -145,29 +146,47 @@ module Adv(Adv:Gate.Adv) : Dkc.Adv = {
 
   fun gen_queries(info:bool) : Dkc.query list = {
     var query : Gate.query;
+    var query0 : Gate.funct*Gate.input;
+    var query1 : Gate.funct*Gate.input;
     var ret : Dkc.query list;
     c = $Dbool.dbool;
     query := A.gen_query();
+    query0 = fst query;
+    query1 = snd query;
     tau = info;
-    if (c) {
-      fc = fst (fst query);
-      xc = snd (fst query);
-    } else {
-      fc = fst (snd query);
-      xc = snd (snd query);
+    if (Gate.eval (fst query0) (snd query0) = Gate.eval (fst query0) (snd query0))
+    {
+      if (c) {
+        fc = fst (fst query);
+        xc = snd (fst query);
+      } else {
+        fc = fst (snd query);
+        xc = snd (snd query);
+      }
+      if (l=0) ret := gen_queries0();
+      if (l=1) ret := gen_queries1();
+      good = false;
     }
-    if (l=0) ret := gen_queries0();
-    if (l=1) ret := gen_queries1();
+    else
+    {
+      good = true;
+      ret = [];
+    }
     return ret;
   }
   
   fun get_challenge(answers:Dkc.answer list) : bool = {
     var challenge : bool;
     var gg : Gate.functG;
-    if (l=0) compute0(answers);
-    if (l=1) compute1(answers);
-    gg = (proj g.[(false, false)], proj g.[(false, true)], proj g.[(true, false)], proj g.[(true, true)]);
-    challenge := A.get_challenge((gg, input, tt));
+    if (good)
+    {
+      if (l=0) compute0(answers);
+      if (l=1) compute1(answers);
+      gg = (proj g.[(false, false)], proj g.[(false, true)], proj g.[(true, false)], proj g.[(true, true)]);
+      challenge := A.get_challenge((gg, input, tt));
+    }
+    else
+      challenge = $Dbool.dbool;
     return c = challenge;
   }
 
