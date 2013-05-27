@@ -10,7 +10,7 @@ require import Bool.
 require import Dkc.
 require import Gate.
 require import GarbleTools.
-require AdvGate.
+require import AdvGate.
 
 module Fake(Adv:Gate.Adv) = {
   fun fake() : bool = {
@@ -46,7 +46,7 @@ module Fake(Adv:Gate.Adv) = {
     query := AdvGate.A.gen_query();
     query0 = fst query;
     query1 = snd query;
-    if (Gate.eval (fst query0) (snd query0) = Gate.eval (fst query0) (snd query0))
+    if (Gate.eval (fst query0) (snd query0) = Gate.eval (fst query1) (snd query1))
     {
     v = Gate.eval (fst query0) (snd query0);
     
@@ -97,129 +97,130 @@ module Fake(Adv:Gate.Adv) = {
 }.
 
 lemma FakeEq :
-  forall (Adv <: Gate.Adv),
+  forall (ADV <: Gate.Adv),
     equiv [
-      Dkc.Game(Dkc.Dkc, AdvGate.Adv(Adv)).work ~ Fake(Adv).fake :
+      Dkc.Game(Dkc.Dkc, Adv(ADV)).work ~ Fake(ADV).fake :
       (! Dkc.Dkc.b{1}) /\ (AdvGate.Adv.l{1}=1) ==> res{1} = res{2}
     ]
 proof.
-  intros Adv.
+  intros ADV.
   fun.
   inline {1} Dkc.Dkc.preInit.
   inline {1} Dkc.Dkc.get_challenge.
   inline {1} Dkc.Dkc.initialize.
+  inline {1} Dkc.Dkc.encrypt.
   inline {1} AdvGate.Adv.gen_queries.
   inline {1} AdvGate.Adv.get_challenge.
   inline {1} AdvGate.Adv.compute1.
   inline {1} AdvGate.Adv.gen_queries1.
-  inline {1} Dkc.Dkc.encrypt.
 
   wp.
   swap {2} 7 -4. (* Move c *)
-
-  app 11 6 : (AdvGate.Adv.tau{1} = tau{2} /\ Dkc.Dkc.ksec{1} = keytau{2} /\
-  query0{1} = query0{2} /\ query1{1} = query1{2} /\ AdvGate.Adv.c{1} = c{2});wp.
+ 
+  app 11 6 : (
+    AdvGate.Adv.tau{1} = tau{2} /\
+    Dkc.Dkc.ksec{1} = keytau{2} /\
+    fst query{1} = query0{1} /\
+    snd query{1} = query1{1} /\
+    query{1} = query{2} /\
+    AdvGate.Adv.c{1} = c{2} /\
+    Dkc.Dkc.b{1} = false /\
+    Dkc.Dkc.r{1} = Map.empty /\
+    Dkc.Dkc.kpub{1} = Map.empty
+  );wp.
     call true (res{1} = res{2});[admit|];wp. (* Call adv gen_queries *)
     rnd; wp. (* c *)
     rnd. (*keyTau*)
     rnd. (*tau*)
   skip;intros _ _ _;simplify;trivial.
 
-  case (Gate.eval (fst query0{2}) (snd query0{2}) = Gate.eval (fst query0{2}) (snd query0{2})).
-
-  rcondt {1} 1;[intros &m;skip;trivial|].
-
-  rcondf {1} 2;[admit|]. (* l condition *)
-  rcondt {1} 2;[admit|]. (* l condition *)
-  rcondt {1} 10;[admit|]. (* While *)
-  rcondt {1} 17;[admit|]. (* While *)
-  rcondf {1} 24;[admit|]. (* While *)
+  case (Gate.eval (fst query0{2}) (snd query0{2}) = Gate.eval (fst query1{2}) (snd query1{2})).
  
-  rcondt {1} 26;[admit|]. (* good *)
+  (rcondt {1} 1;[intros &m;skip;trivial|]).
 
-  rcondf {1} 26;[admit|]. (* l condition *)
-  rcondt {1} 26;[admit|]. (* l condition *)
+  (rcondf {1} 2;[admit|]); (* l condition *)
+  (rcondt {1} 2;[admit|]); (* l condition *)
+  (rcondt {1} 10;[admit|]); (* While *)
+  (rcondt {1} 17;[admit|]); (* While *)
+  (rcondf {1} 24;[admit|]); (* While *)
+ 
+  (rcondt {1} 26;[admit|]); (* good *)
 
-  rcondt {2} 1. admit.
-  call (answer{1}=answer{2}) (res{1} = res{2}). admit. (* Call Adv get_challenge *)
-  wp.
-  rnd. (* key_nt_ntau *)
-  rnd. (* keyntau *)
-  wp.
-  rcondf {1} 29. admit. (*FAUX*) (* Reutilisation clef sortie *)
-  rcondf {1} 29. admit. (*FAUX*) (* Reutilisation clef sortie *)
-  rnd. (* key_t_ntau *)
-  wp.
+  (rcondf {1} 26;[admit|]); (* l condition *)
+  (rcondt {1} 26;[admit|]); (* l condition *)
+
+  (rcondt {2} 1;[admit|]);
+  (call (answer{1}=answer{2}) (res{1} = res{2});[admit|]); (* Call Adv get_challenge *)
+  wp;
+  rnd; (* key_nt_ntau *)
+  rnd; (* keyntau *)
+  wp;
+  (rcondf {1} 29;[admit|]); (*FAUX*) (* Reutilisation clef sortie *)
+  (rcondf {1} 29;[admit|]); (*FAUX*) (* Reutilisation clef sortie *)
+  rnd; (* key_t_ntau *)
+  wp;
 
   (*BEGIN DKC*)
   (*LOOP 1*)
-  rcondt {1} 20;[admit|]. (* Dkc used *)
-  wp.
-  rcondt {1} 21;[admit|]. (* Dkc not reusing *)
-  rcondf {1} 22;[admit|]. (* Dkc not reusing *)
-  rcondt {1} 22;[admit|]. (* Dkc not reusing *)
-  rnd. (* key_nt_tau *)
-  rnd. (* keynt *)
-  wp.
+  (rcondt {1} 20;[admit|]); (* Dkc used *)
+  wp;
+  (rcondt {1} 21;[admit|]); (* Dkc not reusing *)
+  (rcondf {1} 22;[admit|]); (* Dkc not reusing *)
+  (rcondt {1} 22;[admit|]); (* Dkc not reusing *)
+  rnd; (* key_nt_tau *)
+  rnd; (* keynt *)
+  wp;
   (*LOOP 2*)
-  rcondt {1} 13;[admit|]. (* Dkc used *)
-  wp.
-  rcondt {1} 14;[admit|]. (* Dkc not reusing *)
-  rcondf {1} 15;[admit|]. (* Dkc not reusing *)
-  rcondt {1} 15;[admit|]. (* Dkc not reusing *)
-  rnd. (* key_t_tau *)
-  rnd. (* keyt *)
-  wp.
+  (rcondt {1} 13;[admit|]); (* Dkc used *)
+  wp;
+  (rcondt {1} 14;[admit|]); (* Dkc not reusing *)
+  (rcondf {1} 15;[admit|]); (* Dkc not reusing *)
+  (rcondt {1} 15;[admit|]); (* Dkc not reusing *)
+  rnd; (* key_t_tau *)
+  rnd; (* keyt *)
+  wp;
   (*END DKC*)
-  rnd {1}. (* rand *)
-  rnd (lambda x, x^^(fst AdvGate.Adv.xc{1})) _. (* t *)
-  wp.
+  rnd {1}; (* rand *)
+  rnd (lambda x, x^^(fst AdvGate.Adv.xc{1})) _; (* t *)
+  wp;
 
-  skip.
+  skip;
 
-  intros &1 &2 pre.
-  simplify.
-  case (AdvGate.Adv.c{1});intros cVal;simplify.
-    intros t1 t2;split.
-split.
-split.
-split.
-intros h.
-trivial.
-trivial.
-intros h hh.
-cut test : (forall (b:bool), b ^^ b = false).
-trivial.
-cut test2 : ((fst (snd (fst query {1})) ^^
-  fst (snd (fst query {1})) = false)).
-apply (test (fst (snd (fst query {1})))).
-
-
-TOOOODOOOOOOOO
-
-rewrite xorb_spec.
-trivial.
-;(split;[trivial|]);intros eqt int.
-    intros rand inrand.
+  intros &1 &2 pre;
+  elim pre; clear pre; intros pre eqeval;
+  elim pre; clear pre; intros tau pre;
+  elim pre; clear pre; intros keytau pre;
+  elim pre; clear pre; intros eqquery0 pre;
+  elim pre; clear pre; intros eqquery1 pre;
+  elim pre; clear pre; intros eqquery pre;
+  elim pre; clear pre; intros eqc pre;
+  elim pre; clear pre; intros bval pre;
+  elim pre; clear pre; intros rval kpubval;
+  rewrite rval;
+  rewrite kpubval;
+  simplify;
+  case (AdvGate.Adv.c{1});intros cVal;simplify;
+    intros t1 t2;(split;[trivial|]);intros eqt int;
+    intros rand inrand;
 
     (* UGLY *)
-    rewrite (hd_def<:(int*bool)*(int*bool)*bool*(bool array)> ((0, t1 ^^ fst (snd (fst query1))),
+    rewrite (hd_def<:(int*bool)*(int*bool)*bool*(bool array)> ((0, t1 ^^ fst (snd (fst query{1}))),
     (1,
-      eval (fst (fst query1)) (fst (snd (fst query1)),
-        !snd (snd (fst query1)))),
-      false, tweak 0 (!t1 ^^ (fst (snd (fst query1)))) tau1)
+      eval (fst (fst query{1})) (fst (snd (fst query{1})),
+        !snd (snd (fst query{1})))),
+      false, tweak 0 (!t1 ^^ (fst (snd (fst query{1})))) AdvGate.Adv.tau{1})
 (
-    (((0, !t1 ^^ fst (snd (fst query1))),
-      (2, rand), false, tweak 0 (!t1 ^^ fst (snd (fst query1))) tau1) ::
+    (((0, !t1 ^^ fst (snd (fst query{1}))),
+      (2, rand), false, tweak 0 (!t1 ^^ fst (snd (fst query{1}))) AdvGate.Adv.tau{1}) ::
       __nil)));
-    rewrite (hd_def<:(int*bool)*(int*bool)*bool*(bool array)> ((0, t1 ^^ fst (snd (snd query1))),
+    rewrite (hd_def<:(int*bool)*(int*bool)*bool*(bool array)> ((0, t1 ^^ fst (snd (snd query{1}))),
     (1,
-      eval (fst (snd query1)) (fst (snd (snd query1)),
-        !snd (snd (snd query1)))),
-      false, tweak 0 (!t1 ^^ (fst (snd (snd query1)))) tau1)
+      eval (fst (snd query{1})) (fst (snd (snd query{1})),
+        !snd (snd (snd query{1})))),
+      false, tweak 0 (!t1 ^^ (fst (snd (snd query{1})))) AdvGate.Adv.tau{1})
 (
-    (((0, !t1 ^^ fst (snd (snd query1))),
-      (2, rand), false, tweak 0 (!t1 ^^ fst (snd (snd query1))) tau1) ::
+    (((0, !t1 ^^ fst (snd (snd query{1}))),
+      (2, rand), false, tweak 0 (!t1 ^^ fst (snd (snd query{1}))) AdvGate.Adv.tau{1}) ::
       __nil)));
     (* END UGLY *)
 
@@ -228,30 +229,30 @@ trivial.
     intros key_t_tau inkey_t_tau;
 
     (* UGLY *)
-    rewrite (tl_def<:(int*bool)*(int*bool)*bool*(bool array)> ((0, t1 ^^ fst (snd (fst query1))),
+    rewrite (tl_def<:(int*bool)*(int*bool)*bool*(bool array)> ((0, t1 ^^ fst (snd (fst query{1}))),
     (1,
-      eval (fst (fst query1)) (fst (snd (fst query1)),
-        !snd (snd (fst query1)))),
-      false, tweak 0 (!t1 ^^ (fst (snd (fst query1)))) tau1)
+      eval (fst (fst query{1})) (fst (snd (fst query{1})),
+        !snd (snd (fst query{1})))),
+      false, tweak 0 (!t1 ^^ (fst (snd (fst query{1})))) AdvGate.Adv.tau{1})
 (
-    (((0, !t1 ^^ fst (snd (fst query1))),
-      (2, rand), false, tweak 0 (!t1 ^^ fst (snd (fst query1))) tau1) ::
+    (((0, !t1 ^^ fst (snd (fst query{1}))),
+      (2, rand), false, tweak 0 (!t1 ^^ fst (snd (fst query{1}))) AdvGate.Adv.tau{1}) ::
       __nil)));
     rewrite (hd_def<:(int*bool)*(int*bool)*bool*(bool array)>
-    ((0, !t1 ^^ fst (snd (fst query1))),
-      (2, rand), false, tweak 0 (!t1 ^^ fst (snd (fst query1))) tau1) __nil);
-    rewrite (tl_def<:(int*bool)*(int*bool)*bool*(bool array)> ((0, t1 ^^ fst (snd (snd query1))),
+    ((0, !t1 ^^ fst (snd (fst query{1}))),
+      (2, rand), false, tweak 0 (!t1 ^^ fst (snd (fst query{1}))) AdvGate.Adv.tau{1}) __nil);
+    rewrite (tl_def<:(int*bool)*(int*bool)*bool*(bool array)> ((0, t1 ^^ fst (snd (snd query{1}))),
     (1,
-      eval (fst (snd query1)) (fst (snd (snd query1)),
-        !snd (snd (snd query1)))),
-      false, tweak 0 (!t1 ^^ (fst (snd (snd query1)))) tau1)
+      eval (fst (snd query{1})) (fst (snd (snd query{1})),
+        !snd (snd (snd query{1})))),
+      false, tweak 0 (!t1 ^^ (fst (snd (snd query{1})))) AdvGate.Adv.tau{1})
 (
-    (((0, !t1 ^^ fst (snd (snd query1))),
-      (2, rand), false, tweak 0 (!t1 ^^ fst (snd (snd query1))) tau1) ::
+    (((0, !t1 ^^ fst (snd (snd query{1}))),
+      (2, rand), false, tweak 0 (!t1 ^^ fst (snd (snd query{1}))) AdvGate.Adv.tau{1}) ::
       __nil)));
     rewrite (hd_def<:(int*bool)*(int*bool)*bool*(bool array)>
-    ((0, !t1 ^^ fst (snd (snd query1))),
-      (2, rand), false, tweak 0 (!t1 ^^ fst (snd (snd query1))) tau1) __nil);
+    ((0, !t1 ^^ fst (snd (snd query{1}))),
+      (2, rand), false, tweak 0 (!t1 ^^ fst (snd (snd query{1}))) AdvGate.Adv.tau{1}) __nil);
     (* END UGLY *)
 
     (rewrite (_:Dkc.Dkc.b{1} = false);[trivial|]);
@@ -263,23 +264,23 @@ trivial.
 
 rewrite (hd_def<:Dkc.key*Dkc.key*Dkc.cipher>
 (proj Map.empty.[(0,
-    t1 ^^ fst (snd (fst query1))) <- keyt1].[(0,
-    !t1 ^^ fst (snd (fst query1))) <- keynt1].[(0,
-    !t1 ^^ fst (snd (fst query1)))],
+    t1 ^^ fst (snd (fst query{1}))) <- keyt1].[(0,
+    !t1 ^^ fst (snd (fst query{1}))) <- keynt1].[(0,
+    !t1 ^^ fst (snd (fst query{1})))],
 
     proj Map.empty.[(0,
-      t1 ^^ fst (snd (fst query1))) <- keyt1].[(0,
-      !t1 ^^ fst (snd (fst query1))) <- keynt1].[(2, rand)],
+      t1 ^^ fst (snd (fst query{1}))) <- keyt1].[(0,
+      !t1 ^^ fst (snd (fst query{1}))) <- keynt1].[(2, rand)],
 
       Dkc.encode
-        (tweak 0 (!t1 ^^ fst (snd (fst query1))) tau1)
+        (tweak 0 (!t1 ^^ fst (snd (fst query{1}))) AdvGate.Adv.tau{1})
         (proj Map.empty
-          .[(0,t1 ^^ fst (snd (fst query1))) <- keyt1]
-          .[(0,!t1 ^^ fst (snd (fst query1))) <- keynt1]
-          .[(0,!t1 ^^ fst (snd (fst query1)))]) 
-        keyTau1
-        (proj Map.empty.[(1, eval (fst (fst query1)) (fst (snd (fst query1)),
-          !snd (snd (fst query1)))) <- key_t_tau]
+          .[(0,t1 ^^ fst (snd (fst query{1}))) <- keyt1]
+          .[(0,!t1 ^^ fst (snd (fst query{1}))) <- keynt1]
+          .[(0,!t1 ^^ fst (snd (fst query{1})))]) 
+        Dkc.Dkc.ksec{1}
+        (proj Map.empty.[(1, eval (fst (fst query{1})) (fst (snd (fst query{1})),
+          !snd (snd (fst query{1})))) <- key_t_tau]
         .[(2, rand) <- key_nt_tau]
         .[(2, rand)])
 )
@@ -287,43 +288,43 @@ rewrite (hd_def<:Dkc.key*Dkc.key*Dkc.cipher>
 (
 
 (proj Map.empty.[(0,
-      t1 ^^ fst (snd (fst query1))) <- keyt1].[(0,
-      t1 ^^ fst (snd (fst query1)))],
+      t1 ^^ fst (snd (fst query{1}))) <- keyt1].[(0,
+      t1 ^^ fst (snd (fst query{1})))],
 
       proj Map.empty.[(0,
-        t1 ^^ fst (snd (fst query1))) <- keyt1].[(1,
-        eval (fst (fst query1)) (fst (snd (fst query1)),
-          !snd (snd (fst query1))))],
+        t1 ^^ fst (snd (fst query{1}))) <- keyt1].[(1,
+        eval (fst (fst query{1})) (fst (snd (fst query{1})),
+          !snd (snd (fst query{1}))))],
 
-        Dkc.encode (tweak 0 (!t1 ^^ fst (snd (fst query1))) tau1) (proj Map.empty.[(0,
-          t1 ^^ fst (snd (fst query1))) <- keyt1].[(0,
-          t1 ^^ fst (snd (fst query1)))]) keyTau1 (proj Map.empty.[(1,
-          eval (fst (fst query1)) (fst (snd (fst query1)),
-            !snd (snd (fst query1)))) <- key_t_tau].[(1,
-          eval (fst (fst query1)) (fst (snd (fst query1)),
-            !snd (snd (fst query1))))])) ::
+        Dkc.encode (tweak 0 (!t1 ^^ fst (snd (fst query{1}))) AdvGate.Adv.tau{1}) (proj Map.empty.[(0,
+          t1 ^^ fst (snd (fst query{1}))) <- keyt1].[(0,
+          t1 ^^ fst (snd (fst query{1})))]) Dkc.Dkc.ksec{1} (proj Map.empty.[(1,
+          eval (fst (fst query{1})) (fst (snd (fst query{1})),
+            !snd (snd (fst query{1})))) <- key_t_tau].[(1,
+          eval (fst (fst query{1})) (fst (snd (fst query{1})),
+            !snd (snd (fst query{1}))))])) ::
       __nil));
 
 
 rewrite (hd_def<:Dkc.key*Dkc.key*Dkc.cipher>
 (proj Map.empty.[(0,
-    t1 ^^ fst (snd (snd query1))) <- keyt1].[(0,
-    !t1 ^^ fst (snd (snd query1))) <- keynt1].[(0,
-    !t1 ^^ fst (snd (snd query1)))],
+    t1 ^^ fst (snd (snd query{1}))) <- keyt1].[(0,
+    !t1 ^^ fst (snd (snd query{1}))) <- keynt1].[(0,
+    !t1 ^^ fst (snd (snd query{1})))],
 
     proj Map.empty.[(0,
-      t1 ^^ fst (snd (snd query1))) <- keyt1].[(0,
-      !t1 ^^ fst (snd (snd query1))) <- keynt1].[(2, rand)],
+      t1 ^^ fst (snd (snd query{1}))) <- keyt1].[(0,
+      !t1 ^^ fst (snd (snd query{1}))) <- keynt1].[(2, rand)],
 
       Dkc.encode
-        (tweak 0 (!t1 ^^ fst (snd (snd query1))) tau1)
+        (tweak 0 (!t1 ^^ fst (snd (snd query{1}))) AdvGate.Adv.tau{1})
         (proj Map.empty
-          .[(0,t1 ^^ fst (snd (snd query1))) <- keyt1]
-          .[(0,!t1 ^^ fst (snd (snd query1))) <- keynt1]
-          .[(0,!t1 ^^ fst (snd (snd query1)))]) 
-        keyTau1
-        (proj Map.empty.[(1, eval (fst (snd query1)) (fst (snd (snd query1)),
-          !snd (snd (snd query1)))) <- key_t_tau]
+          .[(0,t1 ^^ fst (snd (snd query{1}))) <- keyt1]
+          .[(0,!t1 ^^ fst (snd (snd query{1}))) <- keynt1]
+          .[(0,!t1 ^^ fst (snd (snd query{1})))]) 
+        Dkc.Dkc.ksec{1}
+        (proj Map.empty.[(1, eval (fst (snd query{1})) (fst (snd (snd query{1})),
+          !snd (snd (snd query{1})))) <- key_t_tau]
         .[(2, rand) <- key_nt_tau]
         .[(2, rand)])
 )
@@ -331,21 +332,21 @@ rewrite (hd_def<:Dkc.key*Dkc.key*Dkc.cipher>
 (
 
 (proj Map.empty.[(0,
-      t1 ^^ fst (snd (snd query1))) <- keyt1].[(0,
-      t1 ^^ fst (snd (snd query1)))],
+      t1 ^^ fst (snd (snd query{1}))) <- keyt1].[(0,
+      t1 ^^ fst (snd (snd query{1})))],
 
       proj Map.empty.[(0,
-        t1 ^^ fst (snd (snd query1))) <- keyt1].[(1,
-        eval (fst (snd query1)) (fst (snd (snd query1)),
-          !snd (snd (snd query1))))],
+        t1 ^^ fst (snd (snd query{1}))) <- keyt1].[(1,
+        eval (fst (snd query{1})) (fst (snd (snd query{1})),
+          !snd (snd (snd query{1}))))],
 
-        Dkc.encode (tweak 0 (!t1 ^^ fst (snd (snd query1))) tau1) (proj Map.empty.[(0,
-          t1 ^^ fst (snd (snd query1))) <- keyt1].[(0,
-          t1 ^^ fst (snd (snd query1)))]) keyTau1 (proj Map.empty.[(1,
-          eval (fst (snd query1)) (fst (snd (snd query1)),
-            !snd (snd (snd query1)))) <- key_t_tau].[(1,
-          eval (fst (snd query1)) (fst (snd (snd query1)),
-            !snd (snd (snd query1))))])) ::
+        Dkc.encode (tweak 0 (!t1 ^^ fst (snd (snd query{1}))) AdvGate.Adv.tau{1}) (proj Map.empty.[(0,
+          t1 ^^ fst (snd (snd query{1}))) <- keyt1].[(0,
+          t1 ^^ fst (snd (snd query{1})))]) Dkc.Dkc.ksec{1} (proj Map.empty.[(1,
+          eval (fst (snd query{1})) (fst (snd (snd query{1})),
+            !snd (snd (snd query{1})))) <- key_t_tau].[(1,
+          eval (fst (snd query{1})) (fst (snd (snd query{1})),
+            !snd (snd (snd query{1}))))])) ::
       __nil));
     (* END UGLY *)
     simplify;
@@ -353,23 +354,23 @@ rewrite (hd_def<:Dkc.key*Dkc.key*Dkc.cipher>
 
 rewrite (tl_def<:Dkc.key*Dkc.key*Dkc.cipher>
 (proj Map.empty.[(0,
-    t1 ^^ fst (snd (fst query1))) <- keyt1].[(0,
-    !t1 ^^ fst (snd (fst query1))) <- keynt1].[(0,
-    !t1 ^^ fst (snd (fst query1)))],
+    t1 ^^ fst (snd (fst query{1}))) <- keyt1].[(0,
+    !t1 ^^ fst (snd (fst query{1}))) <- keynt1].[(0,
+    !t1 ^^ fst (snd (fst query{1})))],
 
     proj Map.empty.[(0,
-      t1 ^^ fst (snd (fst query1))) <- keyt1].[(0,
-      !t1 ^^ fst (snd (fst query1))) <- keynt1].[(2, rand)],
+      t1 ^^ fst (snd (fst query{1}))) <- keyt1].[(0,
+      !t1 ^^ fst (snd (fst query{1}))) <- keynt1].[(2, rand)],
 
       Dkc.encode
-        (tweak 0 (!t1 ^^ fst (snd (fst query1))) tau1)
+        (tweak 0 (!t1 ^^ fst (snd (fst query{1}))) AdvGate.Adv.tau{1})
         (proj Map.empty
-          .[(0,t1 ^^ fst (snd (fst query1))) <- keyt1]
-          .[(0,!t1 ^^ fst (snd (fst query1))) <- keynt1]
-          .[(0,!t1 ^^ fst (snd (fst query1)))]) 
-        keyTau1
-        (proj Map.empty.[(1, eval (fst (fst query1)) (fst (snd (fst query1)),
-          !snd (snd (fst query1)))) <- key_t_tau]
+          .[(0,t1 ^^ fst (snd (fst query{1}))) <- keyt1]
+          .[(0,!t1 ^^ fst (snd (fst query{1}))) <- keynt1]
+          .[(0,!t1 ^^ fst (snd (fst query{1})))]) 
+        Dkc.Dkc.ksec{1}
+        (proj Map.empty.[(1, eval (fst (fst query{1})) (fst (snd (fst query{1})),
+          !snd (snd (fst query{1})))) <- key_t_tau]
         .[(2, rand) <- key_nt_tau]
         .[(2, rand)])
 )
@@ -377,40 +378,40 @@ rewrite (tl_def<:Dkc.key*Dkc.key*Dkc.cipher>
 (
 
 (proj Map.empty.[(0,
-      t1 ^^ fst (snd (fst query1))) <- keyt1].[(0,
-      t1 ^^ fst (snd (fst query1)))],
+      t1 ^^ fst (snd (fst query{1}))) <- keyt1].[(0,
+      t1 ^^ fst (snd (fst query{1})))],
 
       proj Map.empty.[(0,
-        t1 ^^ fst (snd (fst query1))) <- keyt1].[(1,
-        eval (fst (fst query1)) (fst (snd (fst query1)),
-          !snd (snd (fst query1))))],
+        t1 ^^ fst (snd (fst query{1}))) <- keyt1].[(1,
+        eval (fst (fst query{1})) (fst (snd (fst query{1})),
+          !snd (snd (fst query{1}))))],
 
-        Dkc.encode (tweak 0 (!t1 ^^ fst (snd (fst query1))) tau1) (proj Map.empty.[(0,
-          t1 ^^ fst (snd (fst query1))) <- keyt1].[(0,
-          t1 ^^ fst (snd (fst query1)))]) keyTau1 (proj Map.empty.[(1,
-          eval (fst (fst query1)) (fst (snd (fst query1)),
-            !snd (snd (fst query1)))) <- key_t_tau].[(1,
-          eval (fst (fst query1)) (fst (snd (fst query1)),
-            !snd (snd (fst query1))))])) ::
+        Dkc.encode (tweak 0 (!t1 ^^ fst (snd (fst query{1}))) AdvGate.Adv.tau{1}) (proj Map.empty.[(0,
+          t1 ^^ fst (snd (fst query{1}))) <- keyt1].[(0,
+          t1 ^^ fst (snd (fst query{1})))]) Dkc.Dkc.ksec{1} (proj Map.empty.[(1,
+          eval (fst (fst query{1})) (fst (snd (fst query{1})),
+            !snd (snd (fst query{1})))) <- key_t_tau].[(1,
+          eval (fst (fst query{1})) (fst (snd (fst query{1})),
+            !snd (snd (fst query{1}))))])) ::
       __nil));
 rewrite (hd_def<:Dkc.key*Dkc.key*Dkc.cipher>
 
 (proj Map.empty.[(0,
-      t1 ^^ fst (snd (fst query1))) <- keyt1].[(0,
-      t1 ^^ fst (snd (fst query1)))],
+      t1 ^^ fst (snd (fst query{1}))) <- keyt1].[(0,
+      t1 ^^ fst (snd (fst query{1})))],
 
       proj Map.empty.[(0,
-        t1 ^^ fst (snd (fst query1))) <- keyt1].[(1,
-        eval (fst (fst query1)) (fst (snd (fst query1)),
-          !snd (snd (fst query1))))],
+        t1 ^^ fst (snd (fst query{1}))) <- keyt1].[(1,
+        eval (fst (fst query{1})) (fst (snd (fst query{1})),
+          !snd (snd (fst query{1}))))],
 
-        Dkc.encode (tweak 0 (!t1 ^^ fst (snd (fst query1))) tau1) (proj Map.empty.[(0,
-          t1 ^^ fst (snd (fst query1))) <- keyt1].[(0,
-          t1 ^^ fst (snd (fst query1)))]) keyTau1 (proj Map.empty.[(1,
-          eval (fst (fst query1)) (fst (snd (fst query1)),
-            !snd (snd (fst query1)))) <- key_t_tau].[(1,
-          eval (fst (fst query1)) (fst (snd (fst query1)),
-            !snd (snd (fst query1))))])) 
+        Dkc.encode (tweak 0 (!t1 ^^ fst (snd (fst query{1}))) AdvGate.Adv.tau{1}) (proj Map.empty.[(0,
+          t1 ^^ fst (snd (fst query{1}))) <- keyt1].[(0,
+          t1 ^^ fst (snd (fst query{1})))]) Dkc.Dkc.ksec{1} (proj Map.empty.[(1,
+          eval (fst (fst query{1})) (fst (snd (fst query{1})),
+            !snd (snd (fst query{1})))) <- key_t_tau].[(1,
+          eval (fst (fst query{1})) (fst (snd (fst query{1})),
+            !snd (snd (fst query{1}))))])) 
       __nil);
 
 
@@ -420,23 +421,23 @@ rewrite (hd_def<:Dkc.key*Dkc.key*Dkc.cipher>
 
 rewrite (tl_def<:Dkc.key*Dkc.key*Dkc.cipher>
 (proj Map.empty.[(0,
-    t1 ^^ fst (snd (snd query1))) <- keyt1].[(0,
-    !t1 ^^ fst (snd (snd query1))) <- keynt1].[(0,
-    !t1 ^^ fst (snd (snd query1)))],
+    t1 ^^ fst (snd (snd query{1}))) <- keyt1].[(0,
+    !t1 ^^ fst (snd (snd query{1}))) <- keynt1].[(0,
+    !t1 ^^ fst (snd (snd query{1})))],
 
     proj Map.empty.[(0,
-      t1 ^^ fst (snd (snd query1))) <- keyt1].[(0,
-      !t1 ^^ fst (snd (snd query1))) <- keynt1].[(2, rand)],
+      t1 ^^ fst (snd (snd query{1}))) <- keyt1].[(0,
+      !t1 ^^ fst (snd (snd query{1}))) <- keynt1].[(2, rand)],
 
       Dkc.encode
-        (tweak 0 (!t1 ^^ fst (snd (snd query1))) tau1)
+        (tweak 0 (!t1 ^^ fst (snd (snd query{1}))) AdvGate.Adv.tau{1})
         (proj Map.empty
-          .[(0,t1 ^^ fst (snd (snd query1))) <- keyt1]
-          .[(0,!t1 ^^ fst (snd (snd query1))) <- keynt1]
-          .[(0,!t1 ^^ fst (snd (snd query1)))]) 
-        keyTau1
-        (proj Map.empty.[(1, eval (fst (snd query1)) (fst (snd (snd query1)),
-          !snd (snd (snd query1)))) <- key_t_tau]
+          .[(0,t1 ^^ fst (snd (snd query{1}))) <- keyt1]
+          .[(0,!t1 ^^ fst (snd (snd query{1}))) <- keynt1]
+          .[(0,!t1 ^^ fst (snd (snd query{1})))]) 
+        Dkc.Dkc.ksec{1}
+        (proj Map.empty.[(1, eval (fst (snd query{1})) (fst (snd (snd query{1})),
+          !snd (snd (snd query{1})))) <- key_t_tau]
         .[(2, rand) <- key_nt_tau]
         .[(2, rand)])
 )
@@ -444,56 +445,56 @@ rewrite (tl_def<:Dkc.key*Dkc.key*Dkc.cipher>
 (
 
 (proj Map.empty.[(0,
-      t1 ^^ fst (snd (snd query1))) <- keyt1].[(0,
-      t1 ^^ fst (snd (snd query1)))],
+      t1 ^^ fst (snd (snd query{1}))) <- keyt1].[(0,
+      t1 ^^ fst (snd (snd query{1})))],
 
       proj Map.empty.[(0,
-        t1 ^^ fst (snd (snd query1))) <- keyt1].[(1,
-        eval (fst (snd query1)) (fst (snd (snd query1)),
-          !snd (snd (snd query1))))],
+        t1 ^^ fst (snd (snd query{1}))) <- keyt1].[(1,
+        eval (fst (snd query{1})) (fst (snd (snd query{1})),
+          !snd (snd (snd query{1}))))],
 
-        Dkc.encode (tweak 0 (!t1 ^^ fst (snd (snd query1))) tau1) (proj Map.empty.[(0,
-          t1 ^^ fst (snd (snd query1))) <- keyt1].[(0,
-          t1 ^^ fst (snd (snd query1)))]) keyTau1 (proj Map.empty.[(1,
-          eval (fst (snd query1)) (fst (snd (snd query1)),
-            !snd (snd (snd query1)))) <- key_t_tau].[(1,
-          eval (fst (snd query1)) (fst (snd (snd query1)),
-            !snd (snd (snd query1))))])) ::
+        Dkc.encode (tweak 0 (!t1 ^^ fst (snd (snd query{1}))) AdvGate.Adv.tau{1}) (proj Map.empty.[(0,
+          t1 ^^ fst (snd (snd query{1}))) <- keyt1].[(0,
+          t1 ^^ fst (snd (snd query{1})))]) Dkc.Dkc.ksec{1} (proj Map.empty.[(1,
+          eval (fst (snd query{1})) (fst (snd (snd query{1})),
+            !snd (snd (snd query{1})))) <- key_t_tau].[(1,
+          eval (fst (snd query{1})) (fst (snd (snd query{1})),
+            !snd (snd (snd query{1}))))])) ::
       __nil));
 rewrite (hd_def<:Dkc.key*Dkc.key*Dkc.cipher>
 
 (proj Map.empty.[(0,
-      t1 ^^ fst (snd (snd query1))) <- keyt1].[(0,
-      t1 ^^ fst (snd (snd query1)))],
+      t1 ^^ fst (snd (snd query{1}))) <- keyt1].[(0,
+      t1 ^^ fst (snd (snd query{1})))],
 
       proj Map.empty.[(0,
-        t1 ^^ fst (snd (snd query1))) <- keyt1].[(1,
-        eval (fst (snd query1)) (fst (snd (snd query1)),
-          !snd (snd (snd query1))))],
+        t1 ^^ fst (snd (snd query{1}))) <- keyt1].[(1,
+        eval (fst (snd query{1})) (fst (snd (snd query{1})),
+          !snd (snd (snd query{1}))))],
 
-        Dkc.encode (tweak 0 (!t1 ^^ fst (snd (snd query1))) tau1) (proj Map.empty.[(0,
-          t1 ^^ fst (snd (snd query1))) <- keyt1].[(0,
-          t1 ^^ fst (snd (snd query1)))]) keyTau1 (proj Map.empty.[(1,
-          eval (fst (snd query1)) (fst (snd (snd query1)),
-            !snd (snd (snd query1)))) <- key_t_tau].[(1,
-          eval (fst (snd query1)) (fst (snd (snd query1)),
-            !snd (snd (snd query1))))])) 
+        Dkc.encode (tweak 0 (!t1 ^^ fst (snd (snd query{1}))) AdvGate.Adv.tau{1}) (proj Map.empty.[(0,
+          t1 ^^ fst (snd (snd query{1}))) <- keyt1].[(0,
+          t1 ^^ fst (snd (snd query{1})))]) Dkc.Dkc.ksec{1} (proj Map.empty.[(1,
+          eval (fst (snd query{1})) (fst (snd (snd query{1})),
+            !snd (snd (snd query{1})))) <- key_t_tau].[(1,
+          eval (fst (snd query{1})) (fst (snd (snd query{1})),
+            !snd (snd (snd query{1}))))])) 
       __nil);
     (* END UGLY *)
 
 simplify;
 
-    intros key_t_ntau1 key_t_ntau2. admit.
-split.
-split.
-trivial.
-intros h.
-(split;[trivial|]);intros eqkey_t_ntau inkey_t_ntau;
-    intros key_ntau inkey_ntau;
+    intros key_t_ntau1 key_t_ntau2;(split;[trivial|]);intros eqkey_t_ntau inkey_t_ntau;
+    intros key_ntau1 key_ntau2;(split;[trivial|]);intros eqkey_ntau inkey_ntau;
     intros key_nt_ntau inkey_nt_ntau;
-    split;
-    admit;
+    (split;[admit|]);
     intros h;
-    clear h.
+    clear h;
     trivial.
+
+(*case else : BAD*)
+rcondt {1} 1.
+
+  (rcondf {1} 1;[intros &m;skip;trivial|]).
+
 save.

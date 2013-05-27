@@ -154,7 +154,7 @@ module Adv(Adv:Gate.Adv) : Dkc.Adv = {
     query0 = fst query;
     query1 = snd query;
     tau = info;
-    if (Gate.eval (fst query0) (snd query0) = Gate.eval (fst query0) (snd query0))
+    if (Gate.eval (fst query0) (snd query0) = Gate.eval (fst query1) (snd query1))
     {
       if (c) {
         fc = fst (fst query);
@@ -165,11 +165,11 @@ module Adv(Adv:Gate.Adv) : Dkc.Adv = {
       }
       if (l=0) ret := gen_queries0();
       if (l=1) ret := gen_queries1();
-      good = false;
+      good = true;
     }
     else
     {
-      good = true;
+      good = false;
       ret = [];
     }
     return ret;
