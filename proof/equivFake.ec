@@ -96,7 +96,17 @@ module Fake(Adv:Gate.Adv) = {
   }
 }.
 
-lemma FakeEq :
+
+lemma fakePr :
+  forall &m,
+  forall (Adv <: Gate.Adv),
+      Pr[Fake(Adv).fake()@ &m: !res] = 1%r / 2%r
+proof.
+admit.
+save.
+
+
+lemma fakeEq :
   forall (ADV <: Gate.Adv),
     equiv [
       Dkc.Game(Dkc.Dkc, Adv(ADV)).work ~ Fake(ADV).fake :
