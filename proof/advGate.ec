@@ -32,12 +32,15 @@ module Adv(Adv:Gate.Adv) : Dkc.Adv = {
   var t : bool
 
   fun gen_queries0() : Dkc.query list = {
-    
+
+  (* tau = !t^^(fst xc) *)
+  (* !t^^(snd xc) = tau *)
+
     t = $Dbool.dbool;
 
     return [
-      ((0,  t), (1, Gate.eval fc (!(fst xc), false)), true, tweak 0 tau   t ) ;
-      ((0, !t), (1, Gate.eval fc (!(fst xc),  true)), true, tweak 0 tau (!t))
+      ((0,  t^^(snd xc)), (1, Gate.eval fc (!(fst xc),  (snd xc))), true, tweak 0 tau ( t^^(snd xc)));
+      ((0, !t^^(snd xc)), (1, Gate.eval fc (!(fst xc), !(snd xc))), true, tweak 0 tau (!t^^(snd xc)))
       ];
   }
 
@@ -46,41 +49,48 @@ module Adv(Adv:Gate.Adv) : Dkc.Adv = {
     var key : token;
     var inp : token*token;
     var out : token*token;
-    var ki0, ko0, r0 : token*token*token = hd answers;
-    var ki1, ko1, r1 : token*token*token = hd (tl answers);
+    var keyt : token;
+    var keynt : token;
+    var keyntau : token;
+    var key_ntau_nt : token;
+    var key_ntau_t : token;
+    var key_tau_nt : token;
+    var key_tau_t : token;
+    var r_tau_t : token;
+    var r_tau_nt : token;
 
-    if (Gate.eval fc (!(fst xc), false) = Gate.eval fc (!(fst xc), true))
-    {
-      key = $Dkc.genRandKeyLast(!(Gate.eval fc (!(fst xc), false)));
-      if (Gate.eval fc (!(fst xc), false))
-        out = (key, ko0);
-      else
-        out = (ko0, key);
-    }
+    ( keyt,  key_tau_t,  r_tau_t) = hd answers;
+    (keynt, key_tau_nt, r_tau_nt) = hd (tl answers);
+
+    if (Gate.eval fc xc=Gate.eval fc (!(fst xc), (snd xc)))
+      key_ntau_t = key_tau_t;
     else
     {
-      if (Gate.eval fc (!(fst xc), false))
-        out = (ko1, ko0);
+      if (Gate.eval fc xc=Gate.eval fc (!(fst xc), !(snd xc)))
+        key_ntau_t = key_tau_nt;
       else
-        out = (ko0, ko1);
+        key_ntau_t = $Dkc.genRandKeyLast(Gate.eval fc xc);
     }
-    
-    key = $Dkc.genRandKeyLast(!tau);
 
-    if (tau)
-      inp = (Bitstring.zeros 0, key);
+    if (Gate.eval fc (fst xc, !(snd xc))=Gate.eval fc (!(fst xc), (snd xc)))
+      key_ntau_nt = key_tau_t;
     else
-      inp = (key, Bitstring.zeros 0);
+    {
+      if (Gate.eval fc (fst xc, !(snd xc))=Gate.eval fc (!(fst xc), !(snd xc)))
+        key_ntau_nt = key_tau_nt;
+      else
+        key_ntau_nt = $Dkc.genRandKeyLast(Gate.eval fc xc);
+    }
 
-    x = Array.empty:::(ki0, ki1):::inp:::out;
+    keyntau = $Dkc.genRandKeyLast(!tau);
 
-    input = Gate.encrypt x xc;
+    input = (keyntau, keyt);
 
     g = Map.empty;
-    g.[(!tau, false)] = enc x fc 0 1 2 (!tau) false;
-    g.[(!tau,  true)] = enc x fc 0 1 2 (!tau)  true;
-    g.[( tau,    t)] = r0;
-    g.[( tau,   !t)] = r1;
+    g.[(!tau, !t^^(snd xc))] = Dkc.encode (tweak 2 (!tau) (!t^^(snd xc))) keyntau keynt key_ntau_nt;
+    g.[(!tau,  t^^(snd xc))] = Dkc.encode (tweak 2 (!tau) ( t^^(snd xc))) keyntau keyt  key_ntau_t;
+    g.[( tau,  t^^(snd xc))] = r_tau_t;
+    g.[( tau, !t^^(snd xc))] = r_tau_nt;
   }
   
   fun gen_queries1() : Dkc.query list = {
@@ -115,7 +125,7 @@ module Adv(Adv:Gate.Adv) : Dkc.Adv = {
       key_t_ntau = key_t_tau;
     else
     {
-      if (Gate.eval fc xc=Gate.eval fc (fst xc, !(snd xc)))
+      if (Gate.eval fc xc=Gate.eval fc (!(fst xc), !(snd xc)))
         key_t_ntau = key_nt_tau;
       else
         key_t_ntau = $Dkc.genRandKeyLast(Gate.eval fc xc);
@@ -151,18 +161,18 @@ module Adv(Adv:Gate.Adv) : Dkc.Adv = {
     var ret : Dkc.query list;
     c = $Dbool.dbool;
     query := A.gen_query();
+    if (c) {
+      fc = fst (fst query);
+      xc = snd (fst query);
+    } else {
+      fc = fst (snd query);
+      xc = snd (snd query);
+    }
     query0 = fst query;
     query1 = snd query;
-    tau = info;
     if (Gate.eval (fst query0) (snd query0) = Gate.eval (fst query1) (snd query1))
     {
-      if (c) {
-        fc = fst (fst query);
-        xc = snd (fst query);
-      } else {
-        fc = fst (snd query);
-        xc = snd (snd query);
-      }
+      tau = info;
       if (l=0) ret := gen_queries0();
       if (l=1) ret := gen_queries1();
       good = true;

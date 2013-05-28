@@ -128,7 +128,8 @@ proof.
     AdvGate.Adv.c{1} = c{2} /\
     Dkc.Dkc.b{1} = false /\
     Dkc.Dkc.r{1} = Map.empty /\
-    Dkc.Dkc.kpub{1} = Map.empty
+    Dkc.Dkc.kpub{1} = Map.empty /\
+    AdvGate.Adv.l{1}=1
   );wp.
     call true (res{1} = res{2});[admit|];wp. (* Call adv gen_queries *)
     rnd; wp. (* c *)
@@ -139,10 +140,12 @@ proof.
   case (Gate.eval (fst query0{2}) (snd query0{2}) = Gate.eval (fst query1{2}) (snd query1{2})).
 
   (rcondt {1} 1;[intros &m;skip;trivial|]);
+(*rcondf {1} 2.
+intros &m;*(wp;try rnd;wp;try (call true true;admit);wp;try (skip;trivial)).*)
 
-  (rcondf {1} 2;[admit|]); (* l condition *)
-  (rcondt {1} 2;[admit|]); (* l condition *)
-  (rcondt {1} 10;[admit|]); (* While *)
+  (rcondf {1} 2;[intros &m;wp;skip;trivial|]); (* l condition *)
+  (rcondt {1} 2;[intros &m;wp;skip;trivial|]); (* l condition *)
+  (rcondt {1} 10;[intros &m;wp;if;(rnd;rnd;wp;skip;admit)|]); (* While *)
   (rcondt {1} 17;[admit|]); (* While *)
   (rcondf {1} 24;[admit|]); (* While *)
  
@@ -199,12 +202,13 @@ proof.
   elim pre; clear pre; intros eqquery pre;
   elim pre; clear pre; intros eqc pre;
   elim pre; clear pre; intros bval pre;
-  elim pre; clear pre; intros rval kpubval;
+  elim pre; clear pre; intros rval pre;
+  elim pre; clear pre; intros kpubval lval;
   rewrite rval;
   rewrite kpubval;
   simplify;
   case (AdvGate.Adv.c{1});intros cVal;simplify;
-    intros t1 t2;(split;[trivial|]);intros eqt int;
+    intros t1 t2;(split;[admit(*trivial*)|]);intros eqt int;
     intros rand inrand;
 
     (* UGLY *)
@@ -488,10 +492,10 @@ rewrite (hd_def<:Dkc.key*Dkc.key*Dkc.cipher>
 
 simplify;
 
-    intros key_t_ntau1 key_t_ntau2;(split;[trivial|]);intros eqkey_t_ntau inkey_t_ntau;
+    intros key_t_ntau1 key_t_ntau2;(split;[(*trivial*)admit|]);intros eqkey_t_ntau inkey_t_ntau;
     intros key_ntau1 key_ntau2;(split;[trivial|]);intros eqkey_ntau inkey_ntau;
     intros key_nt_ntau inkey_nt_ntau;
-    (split;[admit|]);
+    (split;[admit(*TODO*)|]);
     intros h;
     clear h;
     trivial.
@@ -504,6 +508,7 @@ simplify;
   rnd.
   wp.
   skip.
+  intros _ _ _.
+  simplify.
   trivial.
-
 save.
