@@ -109,16 +109,16 @@ proof.
   inline {1} Dkc.Dkc.get_challenge.
   inline {1} Dkc.Dkc.initialize.
   inline {1} Dkc.Dkc.encrypt.
-  inline {1} AdvGate.Adv.gen_queries.
-  inline {1} AdvGate.Adv.get_challenge.
-  inline {1} AdvGate.Adv.compute1.
-  inline {1} AdvGate.Adv.gen_queries1.
+  inline {1} AdvGate.Adv(ADV).gen_queries.
+  inline {1} AdvGate.Adv(ADV).get_challenge.
+  inline {1} AdvGate.Adv(ADV).compute1.
+  inline {1} AdvGate.Adv(ADV).gen_queries1.
 
   wp.
   swap {2} 7 -4. (* Move c *)
  
   app 11 6 : (
-    AdvGate.Adv.tau{1} = tau{2} /\
+    info0{1} = tau{2} /\
     Dkc.Dkc.ksec{1} = keytau{2} /\
     fst query{1} = query0{1} /\
     snd query{1} = query1{1} /\
@@ -139,13 +139,11 @@ proof.
 
   case (Gate.eval (fst query0{2}) (snd query0{2}) = Gate.eval (fst query1{2}) (snd query1{2})).
 
-  (rcondt {1} 1;[intros &m;skip;trivial|]);
-(*rcondf {1} 2.
-intros &m;*(wp;try rnd;wp;try (call true true;admit);wp;try (skip;trivial)).*)
+  (rcondt {1} 1;[intros &m;skip;trivial|]); (* good *)
 
   (rcondf {1} 2;[intros &m;wp;skip;trivial|]); (* l condition *)
   (rcondt {1} 2;[intros &m;wp;skip;trivial|]); (* l condition *)
-  (rcondt {1} 10;[intros &m;wp;if;(rnd;rnd;wp;skip;admit)|]); (* While *)
+  (rcondt {1} 10;[intros &m;wp;rnd;rnd;wp;skip;intros _ _ _ _ _ _;admit|]); (* While *)
   (rcondt {1} 17;[admit|]); (* While *)
   (rcondf {1} 24;[admit|]); (* While *)
  
@@ -209,32 +207,32 @@ intros &m;*(wp;try rnd;wp;try (call true true;admit);wp;try (skip;trivial)).*)
   simplify;
   case (AdvGate.Adv.c{1});intros cVal;simplify;
     intros t1 t2;(split;[admit(*trivial*)|]);intros eqt int;
-    intros rand inrand;
+    intros rand inrand.
 
     (* UGLY *)
     rewrite (hd_def<:(int*bool)*(int*bool)*bool*(bool array)> ((0, t1 ^^ fst (snd (fst query{1}))),
     (1,
       eval (fst (fst query{1})) (fst (snd (fst query{1})),
         !snd (snd (fst query{1})))),
-      false, tweak 0 (!t1 ^^ (fst (snd (fst query{1})))) AdvGate.Adv.tau{1})
+      false, tweak 0 (!t1 ^^ (fst (snd (fst query{1})))) info0{1})
 (
     (((0, !t1 ^^ fst (snd (fst query{1}))),
-      (2, rand), false, tweak 0 (!t1 ^^ fst (snd (fst query{1}))) AdvGate.Adv.tau{1}) ::
+      (2, rand), false, tweak 0 (!t1 ^^ fst (snd (fst query{1}))) info0{1}) ::
       __nil)));
     rewrite (hd_def<:(int*bool)*(int*bool)*bool*(bool array)> ((0, t1 ^^ fst (snd (snd query{1}))),
     (1,
       eval (fst (snd query{1})) (fst (snd (snd query{1})),
         !snd (snd (snd query{1})))),
-      false, tweak 0 (!t1 ^^ (fst (snd (snd query{1})))) AdvGate.Adv.tau{1})
+      false, tweak 0 (!t1 ^^ (fst (snd (snd query{1})))) info0{1})
 (
     (((0, !t1 ^^ fst (snd (snd query{1}))),
-      (2, rand), false, tweak 0 (!t1 ^^ fst (snd (snd query{1}))) AdvGate.Adv.tau{1}) ::
+      (2, rand), false, tweak 0 (!t1 ^^ fst (snd (snd query{1}))) info0{1}) ::
       __nil)));
     (* END UGLY *)
 
-    simplify;
+    simplify.
     intros keyt1 keyt2;(split;[trivial|]);intros eqkeyt inkeyt;
-    intros key_t_tau inkey_t_tau;
+    intros key_t_tau inkey_t_tau.
 
     (* UGLY *)
     rewrite (tl_def<:(int*bool)*(int*bool)*bool*(bool array)> ((0, t1 ^^ fst (snd (fst query{1}))),
