@@ -12,7 +12,7 @@ require import Gate.
 require import GarbleTools.
 require import AdvGate.
 
-module Fake(Adv:Gate.Adv) = {
+module Fake(A:Gate.Adv) = {
   fun fake() : bool = {
     var c : bool;
     var query : Gate.query;
@@ -43,7 +43,7 @@ module Fake(Adv:Gate.Adv) = {
     tau = $Dbool.dbool;
     keytau = $Dkc.genRandKeyLast(tau);
 
-    query := AdvGate.A.gen_query();
+    query := A.gen_query();
     query0 = fst query;
     query1 = snd query;
     if (Gate.eval (fst query0) (snd query0) = Gate.eval (fst query1) (snd query1))
@@ -87,7 +87,7 @@ module Fake(Adv:Gate.Adv) = {
       key_nt_tau;
 
     gg = (proj g.[(false, false)], proj g.[(false, true)], proj g.[(true, false)], proj g.[(true, true)]);
-    challenge := AdvGate.A.get_challenge((gg, input, tt));
+    challenge := A.get_challenge((gg, input, tt));
     }
     else
       challenge = $Dbool.dbool;

@@ -11,13 +11,7 @@ require import Dkc.
 require import Gate.
 require import GarbleTools.
 
-
-  module A:Gate.Adv = {
-    fun gen_query() : query = { var x : query; return x;}
-    fun get_challenge(answer:answer) : bool = { var x : bool; return x;}
-  }.
-
-module Adv(Adv:Gate.Adv) : Dkc.Adv = {
+module Adv(A:Gate.Adv) : Dkc.Adv = {
   var c : bool
   var fc : Gate.funct
   var xc : Gate.input

@@ -66,7 +66,7 @@ theory Scheme.
 
       (* Phi test*)
       (* Input test *)
-      (* if ((eval f0 x0) != (eval f1 x1)) fail *)
+      (*if ((eval f0 x0) != (eval f1 x1)) fail *)
       (f0, x0) = fst query;
       (f1, x1) = snd query;
       b = $bsample;
