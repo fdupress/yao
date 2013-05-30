@@ -43,9 +43,14 @@ clone Scheme as Gate with
     let a = lsb (fst i) in
     let b = lsb (snd i) in
     let t = evalGate g (a, b) in
-    Dkc.decode (tweak 2 a b) (fst i) (snd i) t.
+    Dkc.decode (tweak 2 a b) (fst i) (snd i) t,
 
-export Gate.
+  op queryValid(query:query) =
+    let query0 = fst query in
+    let query1 = snd query in
+    Gate.eval (fst query0) (snd query0) = Gate.eval (fst query1) (snd query1).
+
+import Gate.
 
 lemma inverse :
   forall (f : funct) , functCorrect f =>
@@ -67,38 +72,30 @@ proof.
 save.
 
 module RandGate : Rand_t = {
-  fun genT() : bool*bool = {
+  fun gen() : random = {
+    var r : tokens;
     var t0 : bool;
     var t1 : bool;
-    t0 = $Dbool.dbool;
-    t1 = $Dbool.dbool;
-    return (t0, t1);
-  }
-    
-  fun genR(t:bool*bool) : random = {
-    var r : tokens;
     var r0f : token;
     var r0t : token;
     var r1f : token;
     var r1t : token;
     var r2f : token;
     var r2t : token;
-    var t0,t1 : bool*bool = t;
+    t0 = $Dbool.dbool;
     r0f = $Dkc.genRandKeyLast(t0);
-    r1t = $Dkc.genRandKeyLast(!t0);
+
+    t1 = $Dbool.dbool;
+
     r1f = $Dkc.genRandKeyLast(t1);
     r1t = $Dkc.genRandKeyLast(!t1);
+
+    r0t = $Dkc.genRandKeyLast(!t0);
+
     r2f = $Dkc.genRandKeyLast(false);
     r2t = $Dkc.genRandKeyLast(true);
-    r = Array.empty:::(r0f, r0t):::(r1f, r1t):::(r2f, r2t);
-    return r;
-  }
 
-  fun gen() : random = {
-    var r : tokens;
-    var t : bool*bool;
-    t := genT();
-    r := genR(t);
+    r = Array.empty:::(r0f, r0t):::(r1f, r1t):::(r2f, r2t);
     return r;
   }
 }.

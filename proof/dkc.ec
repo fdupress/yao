@@ -115,6 +115,7 @@ theory Dkc.
     fun work() : bool = {
       var queries : query list;
       var answers : answer list;
+      var a : answer array;
       var i : int;
       var info : bool;
       var advChallenge : bool;

@@ -11,7 +11,9 @@ require import Array.
 require import Dkc.
 require import GarbleTools.
 require AdvGate.
+
 require import Gate.
+
 
 op tuple = (true, false).
 
@@ -23,6 +25,8 @@ axiom elim_p :
 
 lemma test : let (l, r) = tuple in l proof.
 elimT elim_p tuple. admit. save.
+
+
 
 lemma realEq :
   forall (ADV <: Gate.Adv{AdvGate.Adv}),
@@ -46,10 +50,25 @@ proof.
   inline {1} AdvGate.Adv(ADV).gen_queries0.
   inline {2} Gate.PrvInd(RandGate).garb.
   inline {2} Gate.PrvInd(RandGate).get_challenge.
+  inline {2} RandGate.gen.
 
-  rcondt {1} 20. admit.
+  swap{1} 8 -7.
+  
+  print query{1}.
+
+  app 1 1 : (query{1} = query{2}).
+  call ((glob ADV){1} = (glob ADV){2}) (res{1}=res{2} /\ (glob ADV){1} = (glob ADV){2}).
+    fun true;trivial.
+  skip;trivial.
+  
+  rcondt {1} 11. admit.
+  rcondt {1} 19. admit.
+  rcondt {2} 1. admit.
   wp.
   call (answer{1}=answer{2} /\ (glob ADV){1} = (glob ADV){2}) (res{1}=res{2}).
     fun true;trivial.
-  app 30 11 : ((gg{1}, AdvGate.Adv.input{1}, tt) = answer{2}).
+  
+  case (Gate.eval AdvGate.Adv.fc AdvGate.Adv.xc).
+    case (Gate.eval AdvGate.Adv.fc (fst AdvGate.Adv.xc, ! snd AdvGate.Adv.xc)).
+  
 save.

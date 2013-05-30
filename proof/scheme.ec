@@ -1,5 +1,6 @@
 require import Real.
 require import Pair.
+require import Bool.
 
 theory Scheme.
   type funct.
@@ -14,6 +15,9 @@ theory Scheme.
   
   type random.
 
+  type query = (funct*input)*(funct*input).
+  type answer = functG*inputG*keyOutput.
+
   pred functCorrect : funct.
   pred randomCorrect : (funct, random).
   pred inputCorrect : (funct, input).
@@ -25,6 +29,7 @@ theory Scheme.
   op evalG : functG -> inputG -> outputG.
   op phi : funct -> tPhi.
   op phiG : functG -> tPhi.
+  op queryValid : query -> bool.
 
   axiom inverse :
     forall (f : funct) , functCorrect f =>
@@ -32,11 +37,6 @@ theory Scheme.
     forall (i : input) , inputCorrect f i =>
       let (g, ki, ko) = garble x f in
       eval f i = decrypt ko (evalG g (encrypt ki i)).
-
-  type query = (funct*input)*(funct*input).
-  type answer = functG*inputG*keyOutput.
-
-  op bsample : bool distr.
 
   op k : int.
 
@@ -64,12 +64,9 @@ theory Scheme.
       var y : inputG;
       var r : random;
 
-      (* Phi test*)
-      (* Input test *)
-      (*if ((eval f0 x0) != (eval f1 x1)) fail *)
       (f0, x0) = fst query;
       (f1, x1) = snd query;
-      b = $bsample;
+      b = $Dbool.dbool;
       if (b) { x = x1;f = f1; } else {x=x0;f=f0;}
       r := Rand.gen();
       (g, e, d) = garble r f;
@@ -82,7 +79,6 @@ theory Scheme.
     }
   }.
 
-
   module Game(Garble:GARBLE, ADV:Adv) = {
     fun main() : bool = {
       var query : query;
@@ -90,10 +86,14 @@ theory Scheme.
       var adv, real : bool*bool;
     
       query := ADV.gen_query();
-      answer := Garble.garb(query);
-      real := Garble.get_challenge();
-      adv := ADV.get_challenge(answer);
-
+      if (queryValid query)
+      {
+        answer := Garble.garb(query);
+        real := Garble.get_challenge();
+        adv := ADV.get_challenge(answer);
+      }
+      else
+        real = $Dbool.dbool;
       return (adv = real);
     }
   }.

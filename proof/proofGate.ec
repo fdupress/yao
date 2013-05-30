@@ -14,9 +14,9 @@ require import GarbleTools.
 require AdvGate.
 require import Rand.
 
-require import EquivReal.
+(*require import EquivReal.
 require import EquivHybrid.
-require import EquivFake.
+require import EquivFake.*)
 
 (*lemma test : (1%r > 0%r).*)
 
@@ -57,6 +57,58 @@ module DkcWorkAdv(Adv:Gate.Adv) : RandBool.Worker = {
     return r;
   }
 }.
+
+
+  axiom Rand :
+    forall &m,
+      forall (W<:RandBool.Worker),
+        Pr[RandBool.RandBit(W).randAndWork()@ &m:res] = 
+          (Pr[W.work(false)@ &m:res] + Pr[W.work(true)@ &m:res]) / 2%r.
+
+lemma DkcAdvantage :
+  forall (ADVDKC<:Dkc.Adv),
+  forall &mDKC,
+  exists &mDKC1,
+  exists &mDKC0,
+    Dkc.Dkc.b{mDKC1} /\
+    !Dkc.Dkc.b{mDKC0} /\
+    Pr[Dkc.Game(Dkc.Dkc, ADVDKC).main()@ &mDKC:res] =
+    (Pr[Dkc.Game(Dkc.Dkc, ADVDKC).work()@ &mDKC1: res] + 1%r -
+    Pr[Dkc.Game(Dkc.Dkc, ADVDKC).work()@ &mDKC0: !res]) / 2%r
+proof.
+intros ADV &m.
+cut lem : (equiv[
+  Dkc.Game(Dkc.Dkc, ADV).main ~ RandBool.RandBit(DkcWork(ADV)).randAndWork :
+     true ==> res{1} = res{2}]).
+fun.
+inline{1} Dkc.Game(Dkc.Dkc, ADV).preInit.
+inline{1} Dkc.Dkc.preInit.
+inline{2} DkcWork(ADV).work.
+
+APPARTION D'UN TOP ICI
+
+exists
+simplify.
+intros x.
+
+admit.
+save.
+
+lemma DkcEspTrue :
+  forall (Adv <: Gate.Adv),
+  forall &mDKCb,
+    exists &mDKC0,
+    exists &mDKC1,
+      Dkc.Dkc.b{mDKC0} /\
+      Dkc.Dkc.b{mDKC1}  /\
+      AdvGate.Adv.l{mDKC0} = 0 /\
+      AdvGate.Adv.l{mDKC1} = 1 /\ 
+    Pr[Dkc.Game(Dkc.Dkc, AdvGate.Adv(Adv)).work()@ &mDKCb:res] =
+     (Pr[Dkc.Game(Dkc.Dkc, AdvGate.Adv(Adv)).work()@ &mDKC0:res] +
+     Pr[Dkc.Game(Dkc.Dkc, AdvGate.Adv(Adv)).work()@ &mDKC1:res]) / 2%r
+proof.
+admit.
+save.
 
 lemma real :
   forall &mDkc,
@@ -100,36 +152,6 @@ proof.
 intros &m Adv _ _.
 rewrite <- (fakePr &m (<:Adv)).
 equiv_deno (fakeEq (<:Adv));trivial.
-save.
-
-lemma DkcAdvantage :
-  forall (ADVDKC<:Dkc.Adv),
-  forall &mDKC,
-  exists &mDKC1,
-  exists &mDKC0,
-    Dkc.Dkc.b{mDKC1} /\
-    !Dkc.Dkc.b{mDKC0} /\
-    Pr[Dkc.Game(Dkc.Dkc, ADVDKC).main()@ &mDKC:res] =
-    (Pr[Dkc.Game(Dkc.Dkc, ADVDKC).work()@ &mDKC1: res] + 1%r -
-    Pr[Dkc.Game(Dkc.Dkc, ADVDKC).work()@ &mDKC0: !res]) / 2%r
-proof.
-admit.
-save.
-
-lemma DkcEspTrue :
-  forall (Adv <: Gate.Adv),
-  forall &mDKCb,
-    exists &mDKC0,
-    exists &mDKC1,
-      Dkc.Dkc.b{mDKC0} /\
-      Dkc.Dkc.b{mDKC1}  /\
-      AdvGate.Adv.l{mDKC0} = 0 /\
-      AdvGate.Adv.l{mDKC1} = 1 /\ 
-    Pr[Dkc.Game(Dkc.Dkc, AdvGate.Adv(Adv)).work()@ &mDKCb:res] =
-     (Pr[Dkc.Game(Dkc.Dkc, AdvGate.Adv(Adv)).work()@ &mDKC0:res] +
-     Pr[Dkc.Game(Dkc.Dkc, AdvGate.Adv(Adv)).work()@ &mDKC1:res]) / 2%r
-proof.
-admit.
 save.
 
 lemma DkcEspFalse :

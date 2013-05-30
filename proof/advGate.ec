@@ -52,29 +52,19 @@ module Adv(A:Gate.Adv) : Dkc.Adv = {
     var key_tau_t : token;
     var r_tau_t : token;
     var r_tau_nt : token;
+    var outTok : (bool, token) map;
 
     ( keyt,  key_tau_t,  r_tau_t) = hd answers;
     (keynt, key_tau_nt, r_tau_nt) = hd (tl answers);
 
-    if (Gate.eval fc xc=Gate.eval fc (!(fst xc), (snd xc)))
-      key_ntau_t = key_tau_t;
+    outTok.[Gate.eval fc (!(fst xc), (snd xc))] = key_tau_t;
+    if (Gate.eval fc (!(fst xc), (snd xc)) = Gate.eval fc (!(fst xc), !(snd xc)))
+      outTok.[Gate.eval fc (!(fst xc), !(snd xc))] = $Dkc.genRandKeyLast(Gate.eval fc (!(fst xc), !(snd xc)));
     else
-    {
-      if (Gate.eval fc xc=Gate.eval fc (!(fst xc), !(snd xc)))
-        key_ntau_t = key_tau_nt;
-      else
-        key_ntau_t = $Dkc.genRandKeyLast(Gate.eval fc xc);
-    }
+      outTok.[Gate.eval fc (!(fst xc), !(snd xc))] = key_tau_nt;
 
-    if (Gate.eval fc (fst xc, !(snd xc))=Gate.eval fc (!(fst xc), (snd xc)))
-      key_ntau_nt = key_tau_t;
-    else
-    {
-      if (Gate.eval fc (fst xc, !(snd xc))=Gate.eval fc (!(fst xc), !(snd xc)))
-        key_ntau_nt = key_tau_nt;
-      else
-        key_ntau_nt = $Dkc.genRandKeyLast(Gate.eval fc xc);
-    }
+    outTok.[Gate.eval fc ((fst xc), !(snd xc))] = key_ntau_nt;
+    outTok.[Gate.eval fc ((fst xc),  (snd xc))] = key_ntau_t;
 
     keyntau = $Dkc.genRandKeyLast(!tau);
 
@@ -118,12 +108,7 @@ module Adv(A:Gate.Adv) : Dkc.Adv = {
     if (Gate.eval fc xc=Gate.eval fc (fst xc, !(snd xc)))
       key_t_ntau = key_t_tau;
     else
-    {
-      if (Gate.eval fc xc=Gate.eval fc (!(fst xc), !(snd xc)))
-        key_t_ntau = key_nt_tau;
-      else
-        key_t_ntau = $Dkc.genRandKeyLast(Gate.eval fc xc);
-    }
+      key_t_ntau = $Dkc.genRandKeyLast(Gate.eval fc xc);
     
     keyntau = $Dkc.genRandKeyLast(!tau);
 
@@ -164,7 +149,7 @@ module Adv(A:Gate.Adv) : Dkc.Adv = {
     }
     query0 = fst query;
     query1 = snd query;
-    if (Gate.eval (fst query0) (snd query0) = Gate.eval (fst query1) (snd query1))
+    if (Gate.queryValid query)
     {
       tau = info;
       if (l=0) ret := gen_queries0();

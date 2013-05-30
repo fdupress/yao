@@ -46,7 +46,7 @@ module Fake(A:Gate.Adv) = {
     query := A.gen_query();
     query0 = fst query;
     query1 = snd query;
-    if (Gate.eval (fst query0) (snd query0) = Gate.eval (fst query1) (snd query1))
+    if (Gate.queryValid query)
     {
     v = Gate.eval (fst query0) (snd query0);
     
