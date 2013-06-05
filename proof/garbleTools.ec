@@ -19,6 +19,9 @@ op lsb(b:bitstring) : bool = b.[0].
 op getTok(x:tokens, a:int, i:bool) : token =
   if i then snd x.[a] else fst x.[a].
 
+op setTok(x:tokens, a:int, i:bool, t:token) : tokens =
+  if i then x.[a <- (fst x.[a], t)] else x.[a <- (t, snd x.[a])].
+
 op intToBitstring : int -> bitstring.
 
 op tweak(g:int, a:bool, b:bool) : bitstring = a::(b::(intToBitstring g)).
@@ -30,6 +33,14 @@ op evalGate(f:'a gate, i:bool*bool) : 'a =
   if !i1 && i2 then ft else
   if  i1 && !i2 then tf else
   tt.
+
+op setGateVal(f:'a gate, i:bool*bool, v:'a) : 'a gate =
+  let (ff, ft, tf, tt) = f in
+  let (i1, i2) = i in
+  if !i1 && !i2 then ( v, ft, tf, tt) else
+  if !i1 &&  i2 then (ff,  v, tf, tt) else
+  if  i1 && !i2 then (ff, ft,  v, tt) else
+  (ff, ft, tf,  v).
 
 pred tokenCorrect(n:int, q:int, m:int, x:tokens) =
   Array.length x = (n+q) /\
@@ -46,6 +57,7 @@ op enc(x:tokens, f:fGate, a:int, b:int, g:int, x1:bool, x2:bool) : token =
     (getTok x a xx1)
     (getTok x b xx2)
     (getTok x g (evalGate f (xx1,xx2))).
+
 
 op garbleGate(x:tokens, f:fGate, a:int, b:int, g:int) : gGate =
   (

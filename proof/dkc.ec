@@ -1,11 +1,11 @@
 require import Bitstring.
-require import List.
 require import Map.
 require import Set.
 require import Pair.
 require import Int.
 require import Real.
 require import Bool.
+require import Array.
 
 theory Dkc.
   type number = bitstring.
@@ -34,7 +34,6 @@ theory Dkc.
   type query = (int*bool)*(int*bool)*bool*tweak.
   type answer = key*key*cipher.
 
-  op bsample : bool distr.
   op bad : answer.
 
   module type Dkc_t = {
@@ -46,8 +45,13 @@ theory Dkc.
 
   module type Adv = {
     fun preInit() : unit
-    fun gen_queries(info:bool) : (query list)
-    fun get_challenge(answers: (answer list)) : bool
+    fun gen_queries(info:bool) : (query array)
+    fun get_challenge(answers: (answer array)) : bool
+  }.
+
+  module type Adv2(DKC:Dkc_t) = {
+    fun preInit() : unit {}
+    fun work(info:bool) : bool {DKC.encrypt}
   }.
 
   module Dkc : Dkc_t = {
@@ -58,7 +62,7 @@ theory Dkc.
     var used : tweak set
 
     fun preInit() : unit = {
-      b = $bsample;
+      b = $Dbool.dbool;
     }
       
     fun initialize() : bool = {
@@ -105,7 +109,13 @@ theory Dkc.
     }
   }.
 
-  module Game(D:Dkc_t, A:Adv) = {
+  module type Exp = {
+    fun preInit() : unit
+    fun work() : bool
+    fun main() : bool
+  }.
+
+  module Game(D:Dkc_t, A:Adv) : Exp = {
 
     fun preInit() : unit = {
       D.preInit();
@@ -113,8 +123,8 @@ theory Dkc.
     }
 
     fun work() : bool = {
-      var queries : query list;
-      var answers : answer list;
+      var queries : query array;
+      var answers : answer array;
       var a : answer array;
       var i : int;
       var info : bool;
@@ -124,17 +134,43 @@ theory Dkc.
       var answer : answer;
       info := D.initialize();
       queries := A.gen_queries(info);
-      nquery = List.length queries;
-      answers = [];
+      nquery = Array.length queries;
+      answers = Array.init nquery bad;
       i = 0;
       while (i < nquery)
       {
-        answer := D.encrypt (List.hd queries);
-        answers = answer::answers;
-        queries = List.tl queries;
+        answers.[i] := D.encrypt (queries.[i]);
+        i = i + 1;
       }
-      realChallenge := D.get_challenge();
       advChallenge := A.get_challenge(answers);
+      realChallenge := D.get_challenge();
+      return advChallenge = realChallenge;
+    }
+    
+    fun main() : bool = {
+      var r : bool;
+      preInit();
+      r := work();
+      return r;
+    }
+  }.
+
+  module Game2(D:Dkc_t, Adv:Adv2) = {
+
+    module A = Adv(Dkc)
+
+    fun preInit() : unit = {
+      D.preInit();
+      A.preInit();
+    }
+
+    fun work() : bool = {
+      var info : bool;
+      var advChallenge : bool;
+      var realChallenge : bool;
+      info := D.initialize();
+      advChallenge := A.work(info);
+      realChallenge := D.get_challenge();
       return advChallenge = realChallenge;
     }
     
