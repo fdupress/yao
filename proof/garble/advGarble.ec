@@ -14,7 +14,7 @@ require import GarbleTools.
 op eval(f:funct, i:input, k:int) = (evalComplete f i extract).[k].
 op void = (Bitstring.zeros 0).
 
-module Adv(A:Garble.Adv) : Dkc.Adv = {
+module Adv(A:Garble.Adv) (*: Dkc.Adv*) = {
   var c : bool
   var fc : Garble.funct
   var xc : Garble.input

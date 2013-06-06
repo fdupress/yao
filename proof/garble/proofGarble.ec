@@ -55,7 +55,7 @@ clone Mean as MeanBool with
   op support = Set.add false (Set.add true Set.empty).
 clone Mean as MeanInt with
   type base = int,
-  op d = Dinter.dinter 0 (borne-1).
+  op d = Dinter.dinter 0 (borne).
 
 module AdvWork(Adv:Garble.Adv) : MeanInt.Worker = {
   module Game = Dkc.Game(Dkc.Dkc, AdvGarble.Adv(Adv))
@@ -101,52 +101,42 @@ lemma AdvEsp :
   forall &m,
     forall (Adv<:Garble.Adv),
       Pr[DkcWorkAdv(AdvGarble.Adv(Adv)).work()@ &m:res] =
-        (fold_right (lambda l x, x + (1%r / (borne-1)%r) * Pr[AdvWork(Adv).work(l)@ &m:res]) (0%r) MeanInt.support)
+        (fold_right (lambda l x, x + (1%r / (borne + 1)%r) * Pr[AdvWork(Adv).work(l)@ &m:res]) (0%r) MeanInt.support)
 proof.
   intros &m Adv.
-  cut prelem : (forall (M<:Dkc.Exp), equiv[M.work~M.work:(glob M){1}=(glob M){2}==>res{1}=res{2}]);[intros M;fun true;trivial|].
-  cut lem : equiv[
+  cut pr : (Pr[MeanInt.Rand(AdvWork(Adv)).randAndWork()@ &m:res] = Pr[DkcWorkAdv(AdvGarble.Adv(Adv)).work()@ &m:res]).
+    cut eq : equiv[
       MeanInt.Rand(AdvWork(Adv)).randAndWork ~
       DkcWorkAdv(AdvGarble.Adv(Adv)).work: ((glob Dkc.Game(Dkc.Dkc, AdvGarble.Adv(Adv))){1}=(glob Dkc.Game(Dkc.Dkc, AdvGarble.Adv(Adv))){2})
       ==>res{1}=res{2}].
-    fun.
-    inline AdvGarble.Adv(Adv).preInit.
-    inline AdvWork(Adv).work.
-    wp.
-    call ((glob Dkc.Game(Dkc.Dkc, AdvGarble.Adv(Adv))){1}=(glob Dkc.Game(Dkc.Dkc, AdvGarble.Adv(Adv))){2}) (res{1}=res{2}).
+      fun.
+      inline AdvGarble.Adv(Adv).preInit.
+      inline AdvWork(Adv).work.
+      wp.
+      cut prelem : (forall (M<:Dkc.Exp), equiv[M.work~M.work:(glob M){1}=(glob M){2}==>res{1}=res{2}]);[intros M;fun true;trivial|].
+      call ((glob Dkc.Game(Dkc.Dkc, AdvGarble.Adv(Adv))){1}=(glob Dkc.Game(Dkc.Dkc, AdvGarble.Adv(Adv))){2}) (res{1}=res{2}).
       apply (prelem (<:Dkc.Game(Dkc.Dkc, AdvGarble.Adv(Adv)))).
-    wp.
-    rnd.
-    skip.
-    simplify.
-    intros &1 &2 h xL lR. split. clear h. trivial. intros heq hin.
-    (*elim h;clear h;intros h1 h2 h3.
-    split.
-    clear h3.
-    trivial.
-    clear h3.
-    apply h2.
+      wp.
+      rnd.
+      skip;progress.
+    equiv_deno eq;clear eq;progress.
+  rewrite <- pr.
 
-    elim h3;clear h3;intros h31 h32.
-    split.
-    split.
-    admit.
-    clear h31.
-    apply h32.
-    trivial.
-    apply h31.
+cut lem : (forall (f:int -> real -> real) (s:int set),
+fold_right f 0%r s =
+fold_right (lambda (l : int) (x : real), if in_supp l MeanInt.d then (f l x) else x) 0%r s).
+intros f s;elimT Set_ind s;trivial.
 
-    apply h.*)
+rewrite (lem (lambda (l : int) (x : real),
+     x + (1%r / (borne + 1)%r) * Pr[AdvWork(Adv).work(l) @ &m : res{hr}])
+MeanInt.support).
+clear lem.
+simplify.
 
-    admit.
-
-  cut lem2 : (Pr[MeanInt.Rand(AdvWork(Adv)).randAndWork()@ &m:res] = Pr[DkcWorkAdv(AdvGarble.Adv(Adv)).work()@ &m:res]);[equiv_deno lem;trivial|].
-  rewrite <- lem2.
   rewrite (_:
 (lambda (l : int) (x : real),
-     x +
-     (if in_supp l MeanInt.d then 1%r / (borne-1)%r else 0%r) *
-     Pr[AdvWork(Adv).work(l) @ &m : res])
+     (if in_supp l MeanInt.d then x + (1%r / (borne + 1)%r) *
+     Pr[AdvWork(Adv).work(l) @ &m : res] else x))
 =
 (lambda (l : int) (x : real),
      x +
@@ -154,12 +144,10 @@ proof.
      Pr[AdvWork(Adv).work(l) @ &m : res])
 
 ).
-
   apply (Fun.extentionality<:real -> real, int>
 (lambda (l : int), lambda (x : real),
-     x +
-     (if in_supp l MeanInt.d then 1%r / (borne-1)%r else 0%r) *
-     Pr[AdvWork(Adv).work(l) @ &m : res])
+     (if in_supp l MeanInt.d then x + (1%r / (borne + 1)%r)  *
+     Pr[AdvWork(Adv).work(l) @ &m : res] else x))
 
 (lambda (l : int) (x : real),
      x +
@@ -168,12 +156,10 @@ proof.
 _
 ).
 intros l.
-
   apply (Fun.extentionality<:real, real>
 (lambda (x : real),
-     x +
-     (if in_supp l MeanInt.d then 1%r / (borne-1)%r else 0%r) *
-     Pr[AdvWork(Adv).work(l) @ &m : res])
+     (if in_supp l MeanInt.d then x + (1%r / (borne + 1)%r)  *
+     Pr[AdvWork(Adv).work(l) @ &m : res] else x))
 
 (lambda (x : real),
      x +
@@ -182,15 +168,16 @@ intros l.
 _
 ).
 intros x.
-rewrite (_:(mu_x MeanInt.d l=if in_supp l MeanInt.d then 1%r / (borne - 0 + 1)%r else 0%r)).
-case (in_supp l MeanInt.d).
-delta MeanInt.d.
-apply (Dinter.mu_x_def_in 0 borne l).
-trivial.
-delta MeanInt.d. delta mu_x.
-delta cPeq.
 simplify.
+rewrite (_:(x + (mu_x MeanInt.d l)*Pr[AdvWork(Adv).work(l) @ &m : res{hr}]=if in_supp l MeanInt.d then x + 1%r / (borne + 1)%r * Pr[AdvWork(Adv).work(l) @ &m : res{hr}] else x)).
+case (in_supp l MeanInt.d).
+intros h.
+delta MeanInt.d.
+rewrite (Dinter.mu_x_def_in 0 borne l _);[trivial|].
+rewrite (_:borne - 0 + 1 = borne + 1). trivial.
+split.
 trivial.
+split.
 apply (MeanInt.Mean &m (<:AdvWork(Adv))).
 save.
 
