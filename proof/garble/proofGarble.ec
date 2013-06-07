@@ -118,21 +118,19 @@ proof.
       apply (prelem (<:Dkc.Game(Dkc.Dkc, AdvGarble.Adv(Adv)))).
       wp.
       rnd.
-      skip;progress.
-    equiv_deno eq;clear eq;progress.
+      skip;admit (*progress*).
+    equiv_deno eq;clear eq; admit (*progress*).
   rewrite <- pr.
 
 cut lem : (forall (f:int -> real -> real) (s:int set),
 fold_right f 0%r s =
 fold_right (lambda (l : int) (x : real), if in_supp l MeanInt.d then (f l x) else x) 0%r s).
-intros f s;elimT Set_ind s;trivial.
+intros l s;elimT Set_ind s;trivial.
 
 rewrite (lem (lambda (l : int) (x : real),
      x + (1%r / (borne + 1)%r) * Pr[AdvWork(Adv).work(l) @ &m : res{hr}])
 MeanInt.support).
-clear lem.
 simplify.
-
   rewrite (_:
 (lambda (l : int) (x : real),
      (if in_supp l MeanInt.d then x + (1%r / (borne + 1)%r) *

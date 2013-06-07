@@ -181,10 +181,4 @@ theory Dkc.
       return r;
     }
   }.
-
-  axiom DKCSec :
-    forall (epsilon:real),
-    forall (ADV<:Adv),
-    forall &m,
-      (epsilon > 0%r) => (Pr[Game(Dkc, ADV).main()@ &m:res] < epsilon).
 end Dkc.
