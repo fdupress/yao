@@ -5,7 +5,7 @@ require import Logic.
 lemma strongInduction:
   forall (p:int -> bool),
     (forall j, 0 <= j => (forall k, k >= 0 => k < j => p k) => p j) =>
-      (forall i, 0 <= i => p i)
+      (forall i, 0 <= i => p i).
 proof.
   intros p hyp i iVal.
   cut temp : (forall k, k > 0 => k <= i => p k);[|trivial].
@@ -46,7 +46,7 @@ op appendInit(ar:'a array, size:int, extract:int -> 'a array -> 'a) : 'a array =
 lemma appendInit_length :
   forall (ar:'a array) (n:int) (extract:int -> 'a array -> 'a),
     n >= 0 =>
-    Array.length (appendInit ar n extract) = (Array.length ar) + n
+    Array.length (appendInit ar n extract) = (Array.length ar) + n.
 proof.
   intros ar n extract hypN.
   apply (
@@ -69,7 +69,7 @@ lemma appendInit_ind :
     forall (k:int),
       0 <= k /\ k < (Array.length ar) + n - 1 =>
       n > 0 =>
-      (appendInit ar n extract).[k] = (appendInit ar (n-1) extract).[k]
+      (appendInit ar n extract).[k] = (appendInit ar (n-1) extract).[k].
 proof.
   intros ar n extract k hypK hypN.
   cut introVar : (
@@ -92,7 +92,7 @@ lemma appendInit_get1 :
     forall (k:int),
       0 <= k /\ k < Array.length ar =>
       n >= 0 =>
-      (appendInit ar n extract).[k] = ar.[k]
+      (appendInit ar n extract).[k] = ar.[k].
 proof.
   intros ar n extract k hypK hypN.
   apply (
@@ -107,7 +107,7 @@ lemma appendInit_get2 :
     forall (k:int),
       Array.length ar <= k /\ k < (Array.length ar) + n - 1 =>
       n > 0 =>
-      (appendInit ar n extract).[k] = (extract k (appendInit ar (k-length ar) extract))
+      (appendInit ar n extract).[k] = (extract k (appendInit ar (k-length ar) extract)).
 proof.
   intros ar n extract k hypK hypN.
   rewrite (_: n = ((k-length ar)+1+(n-(k-length ar)-1)));[trivial|].
@@ -127,7 +127,7 @@ lemma appendInit_getFinal :
       Array.length ar <= k /\ k < (Array.length ar) + n - 1 =>
       n > 0 =>
       extract k (appendInit ar n extract) = extract k (sub (appendInit ar n extract) 0 k) =>
-      (appendInit ar n extract).[k] = (extract k (appendInit ar n extract))
+      (appendInit ar n extract).[k] = (extract k (appendInit ar n extract)).
 proof.
   intros ar n extract k hypK hypN hypExtract.
   cut temp : ((appendInit ar n extract).[k] = (extract k (appendInit ar (k-length ar) extract)));[trivial|].
@@ -143,5 +143,5 @@ proof.
           (appendInit ar (j+((-) k (length ar))) extract).[i]
       ) _ _ (n - ((-) k (length ar))) _ _
     );trivial.
-  apply (extentionality<:'a> (sub (appendInit ar n extract) 0 k) (appendInit ar ((-) k (length ar)) extract) _ );trivial.
+  apply (extensionality<:'a> (sub (appendInit ar n extract) 0 k) (appendInit ar ((-) k (length ar)) extract) _ );trivial.
 save.

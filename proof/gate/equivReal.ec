@@ -23,7 +23,7 @@ axiom elim_p :
     (forall (a:'a, b:'b), (t = (a,b)) => p (a, b)) =>
     p t.
 
-lemma test : let (l, r) = tuple in l proof.
+lemma test : let (l, r) = tuple in l. proof.
 elimT elim_p tuple. admit. save.
 
 
@@ -35,7 +35,7 @@ lemma realEq :
       Gate.Game(Gate.PrvInd(RandGate), ADV).main
       : (glob ADV){1} = (glob ADV){2} /\
       (Dkc.Dkc.b{1}) /\ (AdvGate.Adv.l{1}=0) ==> res{1} = res{2}
-    ]
+    ].
 proof.
 
   intros ADV.

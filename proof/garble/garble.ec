@@ -121,7 +121,7 @@ export Garble.
 lemma encrypt_len :
   forall (k:keyInput, i:input),
     Array.length i > 0 =>
-    Array.length (encrypt k i) = Array.length i
+    Array.length (encrypt k i) = Array.length i.
 proof.
   intros k i hyp.
   delta encrypt.
@@ -139,7 +139,7 @@ lemma extract :
       0 <= (getB f).[k] /\
       (getA f).[k] < k /\
       (getB f).[k] < k =>
-      extract f k ar = extract f k (sub ar 0 k)
+      extract f k ar = extract f k (sub ar 0 k).
 proof.
   intros ar f k h.
   trivial.
@@ -154,7 +154,7 @@ lemma extractG :
       0 <= (getB f).[k] /\
       (getA f).[k] < k /\
       (getB f).[k] < k =>
-      extractG f k ar = extractG f k (sub ar 0 k)
+      extractG f k ar = extractG f k (sub ar 0 k).
 proof.
   intros ar f k h.
   delta extractG.
@@ -167,7 +167,7 @@ lemma inverse :
   forall (x : random) , randomCorrect f x =>
   forall (i : input) , inputCorrect f i =>
     let (g, ki, ko) = garble x f in
-    eval f i = decrypt ko (evalG g (encrypt ki i))
+    eval f i = decrypt ko (evalG g (encrypt ki i)).
 proof. admit. save.
 (*
   intros f fC x xC i iC.

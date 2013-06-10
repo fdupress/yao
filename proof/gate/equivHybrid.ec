@@ -21,7 +21,7 @@ lemma hybridEq :
           (!Dkc.Dkc.b{1}) /\ (AdvGate.Adv.l{1}=0) /\
           (Dkc.Dkc.b{2}) /\ (AdvGate.Adv.l{2}=1)
           ==> !res{1} = res{2}
-        ]
+        ].
 proof.
   intros Adv.
   fun.

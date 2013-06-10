@@ -57,7 +57,7 @@ lemma inverse :
   forall (x : random) , randomCorrect f x =>
   forall (i : input) , inputCorrect f i =>
     let (g, ki, ko) = garble x f in
-    eval f i = decrypt ko (evalG g (encrypt ki i))
+    eval f i = decrypt ko (evalG g (encrypt ki i)).
 proof.
   intros f fC x xC i iC.
   cut main : (

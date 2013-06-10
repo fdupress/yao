@@ -86,7 +86,7 @@ lemma inverse_base :
         (evalGate
           (garbleGate x f a b g)
           (lsb gi1, lsb gi2)
-        ) = getTok x g (evalGate f i)
+        ) = getTok x g (evalGate f i).
 proof.
   intros i n q m a b g f x.
   intros npos qpos mpos avalid bvalid gvalid tokCor.

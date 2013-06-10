@@ -34,6 +34,7 @@ theory Dkc.
   type query = (int*bool)*(int*bool)*bool*tweak.
   type answer = key*key*cipher.
 
+  op defaultQ : query.
   op bad : answer.
 
   module type Dkc_t = {

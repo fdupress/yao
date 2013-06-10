@@ -82,9 +82,9 @@ module Adv(A:Gate.Adv) : Dkc.Adv = {
 
     rand = $Dbool.dbool;
 
-    return (Array.empty):::
-      ((0,  t^^(fst xc)), (1, Gate.eval fc (  fst xc , !(snd xc))), false, tweak 0 (!t^^(fst xc)) tau):::
-      ((0, !t^^(fst xc)), (2, rand), false, tweak 0 (!t^^(fst xc)) tau);
+    return (Array.init 2 Dkc.defaultQ)
+      .[0 <- ((0,  t^^(fst xc)), (1, Gate.eval fc (  fst xc , !(snd xc))), false, tweak 0 (!t^^(fst xc)) tau)]
+      .[1 <- ((0, !t^^(fst xc)), (2, rand), false, tweak 0 (!t^^(fst xc)) tau)];
   }
   
 

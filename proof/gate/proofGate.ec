@@ -75,7 +75,7 @@ lemma DkcAdvantage :
     !Dkc.Dkc.b{mDKC0} /\
     Pr[Dkc.Game(Dkc.Dkc, ADVDKC).main()@ &mDKC:res] =
     (Pr[Dkc.Game(Dkc.Dkc, ADVDKC).work()@ &mDKC1: res] + 1%r -
-    Pr[Dkc.Game(Dkc.Dkc, ADVDKC).work()@ &mDKC0: !res]) / 2%r
+    Pr[Dkc.Game(Dkc.Dkc, ADVDKC).work()@ &mDKC0: !res]) / 2%r.
 proof.
 intros ADV &m.
 cut lem : (equiv[
@@ -128,7 +128,7 @@ lemma DkcEspTrue :
       AdvGate.Adv.l{mDKC1} = 1 /\ 
     Pr[Dkc.Game(Dkc.Dkc, AdvGate.Adv(Adv)).work()@ &mDKCb:res] =
      (Pr[Dkc.Game(Dkc.Dkc, AdvGate.Adv(Adv)).work()@ &mDKC0:res] +
-     Pr[Dkc.Game(Dkc.Dkc, AdvGate.Adv(Adv)).work()@ &mDKC1:res]) / 2%r
+     Pr[Dkc.Game(Dkc.Dkc, AdvGate.Adv(Adv)).work()@ &mDKC1:res]) / 2%r.
 proof.
 admit.
 save.
@@ -140,7 +140,7 @@ lemma real :
         AdvGate.Adv.l{mDkc} = 0 => 
         Dkc.Dkc.b{mDkc} => 
         Pr[Dkc.Game(Dkc.Dkc, AdvGate.Adv(Adv)).work()@ &mDkc:res] =
-          Pr[Gate.Game(Gate.PrvInd(RandGate), Adv).main()@ &mGate:res]
+          Pr[Gate.Game(Gate.PrvInd(RandGate), Adv).main()@ &mGate:res].
 proof.
 intros _ _ ADV _ _.
 equiv_deno (realEq (<:ADV));trivial.
@@ -156,7 +156,7 @@ lemma middle :
         Dkc.Dkc.b{mDkc2} => 
         AdvGate.Adv.l{mDkc2} = 1 => 
         Pr[Dkc.Game(Dkc.Dkc, AdvGate.Adv(Adv)).work()@ &mDkc1: !res] =
-        Pr[Dkc.Game(Dkc.Dkc, AdvGate.Adv(Adv)).work()@ &mDkc2:  res]
+        Pr[Dkc.Game(Dkc.Dkc, AdvGate.Adv(Adv)).work()@ &mDkc2:  res].
 proof.
 intros _ _ ADV _ _ _ _.
 equiv_deno (hybridEq (<:ADV)).
@@ -170,7 +170,7 @@ lemma fake :
   forall (Adv <: Gate.Adv),
         !Dkc.Dkc.b{m} => 
         AdvGate.Adv.l{m} = 1 => 
-      Pr[Dkc.Game(Dkc.Dkc, AdvGate.Adv(Adv)).work()@ &m: !res] = 1%r / 2%r
+      Pr[Dkc.Game(Dkc.Dkc, AdvGate.Adv(Adv)).work()@ &m: !res] = 1%r / 2%r.
 proof.
 intros &m Adv _ _.
 rewrite <- (fakePr &m (<:Adv)).
@@ -188,7 +188,7 @@ lemma DkcEspFalse :
       AdvGate.Adv.l{mDKC1} = 1 /\ 
     Pr[Dkc.Game(Dkc.Dkc, AdvGate.Adv(Adv)).work()@ &mDKCb: !res] =
      (Pr[Dkc.Game(Dkc.Dkc, AdvGate.Adv(Adv)).work()@ &mDKC0: !res] +
-     Pr[Dkc.Game(Dkc.Dkc, AdvGate.Adv(Adv)).work()@ &mDKC1: !res]) / 2%r
+     Pr[Dkc.Game(Dkc.Dkc, AdvGate.Adv(Adv)).work()@ &mDKC1: !res]) / 2%r.
 proof.
 admit.
 save.
@@ -198,7 +198,7 @@ lemma DkcGateRelation :
     forall (Adv<:Gate.Adv),
     forall &mGAR,
       Pr[Gate.Game(Gate.PrvInd(RandGate), Adv).main()@ &mGAR:res] =
-        4%r * Pr[Dkc.Game(Dkc.Dkc, AdvGate.Adv(Adv)).main()@ &mDKC:res] - 3%r / 2%r
+        4%r * Pr[Dkc.Game(Dkc.Dkc, AdvGate.Adv(Adv)).main()@ &mDKC:res] - 3%r / 2%r.
 proof.
 intros &mDKC Adv &mGAR.
 
@@ -236,7 +236,7 @@ save.
 lemma PrvIndGarble :
   forall (epsilon:real),
     forall (Adv<:Gate.Adv), forall &m,
-      epsilon > 0%r => Pr[Gate.Game(Gate.PrvInd(RandGate), Adv).main()@ &m:res] < epsilon
+      epsilon > 0%r => Pr[Gate.Game(Gate.PrvInd(RandGate), Adv).main()@ &m:res] < epsilon.
 proof.
 intros epsilon Adv &m.
 intros epPos.

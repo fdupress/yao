@@ -104,7 +104,7 @@ module Fake(A:Gate.Adv) = {
 lemma fakePr :
   forall &m,
   forall (Adv <: Gate.Adv),
-      Pr[Fake(Adv).fake()@ &m: !res] = 1%r / 2%r
+      Pr[Fake(Adv).fake()@ &m: !res] = 1%r / 2%r.
 proof.
 admit.
 save.
@@ -115,7 +115,7 @@ lemma fakeEq :
     equiv [
       Dkc.Game(Dkc.Dkc, Adv(ADV)).work ~ Fake(ADV).fake :
       (! Dkc.Dkc.b{1}) /\ (AdvGate.Adv.l{1}=1 /\ (glob ADV){1} = (glob ADV){2}) ==> res{1} = res{2}
-    ]
+    ].
 proof.
   intros ADV.
   fun.
@@ -151,21 +151,20 @@ proof.
     ].
 
   case (Gate.queryValid query{1}).
-rcondt {1} 1.
-kill 0.
+
   (rcondt {1} 1;[intros &m;skip;trivial|]). (* good *)
   (rcondt {2} 1;[intros &m;skip;trivial|]). (* good *)
 
   (rcondf {1} 2;[intros &m;wp;skip;trivial|]). (* l condition *)
   (rcondt {1} 2;[intros &m;wp;skip;trivial|]). (* l condition *)
-  (rcondt {1} 10;[intros &m;wp;rnd;rnd;wp;skip;intros _ _ _ _ _ _;admit|]). (* While *)
-  (rcondt {1} 17;[admit|]). (* While *)
-  (rcondf {1} 24;[admit|]). (* While *)
+  (rcondt {1} 10;[intros &m;wp;rnd;rnd;wp;skip;intros &1 b c d e f;admit|]). (* While *)
+  (rcondt {1} 16;[admit|]). (* While *)
+  (rcondf {1} 22;[admit|]). (* While *)
  
-  (rcondt {1} 26;[admit|]). (* good *)
+  (rcondt {1} 23;[admit|]). (* good *)
 
-  (rcondf {1} 26;[admit|]). (* l condition *)
-  (rcondt {1} 26;[admit|]). (* l condition *)
+  (rcondf {1} 23;[admit|]). (* l condition *)
+  (rcondt {1} 23;[admit|]). (* l condition *)
   
   (call (answer{1}=answer{2}/\(glob ADV){1} = (glob ADV){2}) (res{1} = res{2});[fun true;trivial|]). (* Call Adv get_challenge *)
   wp.
@@ -173,17 +172,17 @@ kill 0.
   rnd. (* keyntau *)
   wp.
   case ((Gate.eval AdvGate.Adv.fc{1} Adv.xc{1}) = (Gate.eval AdvGate.Adv.fc{1} (fst AdvGate.Adv.xc{1}, ! (snd AdvGate.Adv.xc{1})))).
-  (rcondf {1} 29;[admit|]).
+  (rcondf {1} 26;[admit|]).
   rnd. (* key_t_ntau *)
   wp.
 
   (*BEGIN DKC*)
   (*LOOP 1*)
-  (rcondt {1} 20;[admit|]). (* Dkc used *)
+  (rcondt {1} 19;[admit|]). (* Dkc used *)
   wp.
+  (rcondt {1} 20;[admit|]). (* Dkc not reusing *)
+  (rcondf {1} 21;[admit|]). (* Dkc not reusing *)
   (rcondt {1} 21;[admit|]). (* Dkc not reusing *)
-  (rcondf {1} 22;[admit|]). (* Dkc not reusing *)
-  (rcondt {1} 22;[admit|]). (* Dkc not reusing *)
   rnd. (* key_nt_tau *)
   rnd. (* keynt *)
   wp.
@@ -202,6 +201,46 @@ kill 0.
   wp.
 
   skip.
+  progress.
+  trivial.
+  trivial.
+  trivial.
+  trivial.
+  cut test : ((x1, x2, x3, x4) = ((0, tL ^^ fst Adv.xc{1}),
+             (1, Gate.eval Adv.fc{1} (fst Adv.xc{1}, !(snd Adv.xc{1}))),
+             false, tweak 0 (!(tL ^^ fst Adv.xc{1})) tau{2})).
+  generalize H7.
+  generalize ((0, tL ^^ fst Adv.xc{1}),
+             (1, Gate.eval Adv.fc{1} (fst Adv.xc{1}, !(snd Adv.xc{1}))),
+             false, tweak 0 (!(tL ^^ fst Adv.xc{1})) tau{2}).
+  generalize ((0, !(tL ^^ fst Adv.xc{1})), (2, rand), false,
+        tweak 0 (!(tL ^^ fst Adv.xc{1})) tau{2}).
+  generalize (x1, x2, x3, x4).
+intros x.
+intros y.
+intros z.
+intros hhh.
+  trivial.
+trivial.
+import Array.
+  cut test : ((tL ^^ fst Adv.xc{1}) = snd x1).
+  
+  trivial.
+
+idtac.
+  trivial.
+  admit.
+  admit.
+  trivial.
+  admit.
+  admit.
+  admit.
+  admit.
+  admit.
+  admit.
+  trivial.
+  trivial.
+  trivial.
 
   intros &1 &2 pre.
   elim pre; clear pre; intros pre eqeval.
