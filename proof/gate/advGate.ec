@@ -136,7 +136,7 @@ module Adv(A:Gate.Adv) : Dkc.Adv = {
     var query1 : Gate.funct*Gate.input;
     var ret : Dkc.query array;
     c = $Dbool.dbool;
-    query := A.gen_query();
+    query = A.gen_query();
     if (c) {
       fc = fst (fst query);
       xc = snd (fst query);
@@ -149,8 +149,8 @@ module Adv(A:Gate.Adv) : Dkc.Adv = {
     if (Gate.queryValid query)
     {
       tau = info;
-      if (l=0) ret := gen_queries0();
-      if (l=1) ret := gen_queries1();
+      if (l=0) ret = gen_queries0();
+      if (l=1) ret = gen_queries1();
       good = true;
     }
     else
@@ -169,7 +169,7 @@ module Adv(A:Gate.Adv) : Dkc.Adv = {
       if (l=0) compute0(answers);
       if (l=1) compute1(answers);
       gg = (proj g.[(false, false)], proj g.[(false, true)], proj g.[(true, false)], proj g.[(true, true)]);
-      challenge := A.get_challenge((gg, input, tt));
+      challenge = A.get_challenge((gg, input, tt));
     }
     else
       challenge = $Dbool.dbool;

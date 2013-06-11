@@ -47,7 +47,7 @@ module Fake(A:Gate.Adv) = {
     tau = $Dbool.dbool;
     keytau = $Dkc.genRandKeyLast(tau);
 
-    query := A.gen_query();
+    query = A.gen_query();
     query0 = fst query;
     query1 = snd query;
     if (Gate.queryValid query)
@@ -91,7 +91,7 @@ module Fake(A:Gate.Adv) = {
       key_nt_tau;
 
     gg = (proj g.[(false, false)], proj g.[(false, true)], proj g.[(true, false)], proj g.[(true, true)]);
-    challenge := A.get_challenge((gg, input, tt));
+    challenge = A.get_challenge((gg, input, tt));
     }
     else
       challenge = $Dbool.dbool;
@@ -223,6 +223,7 @@ intros hhh.
   trivial.
 trivial.
 import Array.
+trivial.
   cut test : ((tL ^^ fst Adv.xc{1}) = snd x1).
   
   trivial.

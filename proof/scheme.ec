@@ -50,7 +50,7 @@ theory Scheme.
     fun get_challenge(answer:answer) : bool
   }.
 
-  module type Rand_t = { fun gen(f:funct) : random }.
+  module type Rand_t = { fun gen(f:funct, x:input) : random }.
 
   module PrvInd(Rand:Rand_t) : GARBLE = {
     var b : bool
@@ -68,7 +68,7 @@ theory Scheme.
       (f1, x1) = snd query;
       b = $Dbool.dbool;
       if (b) { x = x1;f = f1; } else {x=x0;f=f0;}
-      r := Rand.gen(f);
+      r = Rand.gen(f, x);
       (g, e, d) = garble r f;
       y = encrypt e x;
       return (g, y, d);
@@ -84,17 +84,19 @@ theory Scheme.
       var query : query;
       var answer : answer;
       var adv, real : bool*bool;
+      var ret : bool;
     
-      query := ADV.gen_query();
+      query = ADV.gen_query();
       if (queryValid query)
       {
-        answer := Garble.garb(query);
-        real := Garble.get_challenge();
-        adv := ADV.get_challenge(answer);
+        answer = Garble.garb(query);
+        real = Garble.get_challenge();
+        adv = ADV.get_challenge(answer);
+        ret = (adv = real);
       }
       else
-        real = $Dbool.dbool;
-      return (adv = real);
+        ret = $Dbool.dbool;
+      return ret;
     }
   }.
 

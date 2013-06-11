@@ -7,14 +7,14 @@ require import Distr.
 require import List.
 require import Array.
 
-require import Dkc.
+require import MyDkc.
 require import Garble.
 require import GarbleTools.
 
 op eval(f:funct, i:input, k:int) = (evalComplete f i extract).[k].
 op void = (Bitstring.zeros 0).
 
-module Inter(A:Garble.Adv, DKC:Dkc.Dkc_t) (*: Dkc.Adv2*) = {
+module AdvAda(A:Garble.Adv, Dkc:DKC.Dkc_t) (*: DKC.AdvAda*) = {
 
   var c : bool
   var fc : Garble.funct
@@ -22,8 +22,8 @@ module Inter(A:Garble.Adv, DKC:Dkc.Dkc_t) (*: Dkc.Adv2*) = {
   var good : bool
   var tau : bool
   var l : int
-  var queries : Dkc.query array
-  var ans : Dkc.answer array
+  var queries : DKC.query array
+  var ans : DKC.answer array
   var answer : Garble.functG*Garble.inputG*Garble.keyOutput
   var query : Garble.query
 
@@ -67,7 +67,7 @@ module Inter(A:Garble.Adv, DKC:Dkc.Dkc_t) (*: Dkc.Adv2*) = {
       output = (g + n + q, ra);
     } else
       output = (g, (t.[g]^^gamma));
-    (ki, ko, zz) := DKC.encrypt((input, output, pos, ttt));
+    (ki, ko, zz) = Dkc.encrypt((input, output, pos, ttt));
     ans = sub ans 0 ((length ans) - 1);
     pp.[g] = setGateVal pp.[g] ((t.[a]^^alpha), (t.[b]^^bet)) zz;
     if (a=l)
@@ -80,7 +80,7 @@ module Inter(A:Garble.Adv, DKC:Dkc.Dkc_t) (*: Dkc.Adv2*) = {
   }
 
   fun garb(yy:token, alpha:bool, bet:bool) : unit = {
-    pp.[g] = setGateVal pp.[g] ((t.[a]^^alpha), (t.[b]^^bet)) (Dkc.encode
+    pp.[g] = setGateVal pp.[g] ((t.[a]^^alpha), (t.[b]^^bet)) (DKC.encode
       (tweak g (t.[a]^^alpha) (t.[b]^^bet))
       (getTok xx a (v.[a]^^alpha))
       (getTok xx b (v.[b]^^alpha))
@@ -90,7 +90,7 @@ module Inter(A:Garble.Adv, DKC:Dkc.Dkc_t) (*: Dkc.Adv2*) = {
   fun garbD(rand:bool, alpha:bool, bet:bool) : token = {
     var yy : token;
     if (rand)
-      yy = $Dkc.genRandKey;
+      yy = $DKC.genRandKey;
     else
       yy = getTok xx g (evalGate gg.[g] ((v.[a]^^alpha),(v.[b]^^alpha)));
     garb(yy, alpha, bet);
@@ -120,25 +120,25 @@ module Inter(A:Garble.Adv, DKC:Dkc.Dkc_t) (*: Dkc.Adv2*) = {
       a = aa.[g];
       b = bb.[g];
       if (a = l) {
-        tok := query(false, true, false);
-        tok := query(false, true, true);
+        tok = query(false, true, false);
+        tok = query(false, true, true);
       }
       if (b = l) {
-        tok := query(false, false, true);
-        yy.[g] := query(true, true, true);
+        tok = query(false, false, true);
+        yy.[g] = query(true, true, true);
       }
       g = g + 1;
     }
 
     i = 0;
     while (i < n+q-1) {
-      if (getTok xx i (!v.[i]) = void /\ i <> l) {
-        tok = $Dkc.genRandKeyLast (! t.[i]);
-        xx = setTok xx i (!v.[i]) tok;
+      if (getTok xx i true = void /\ i <> 0) {
+        tok = $DKC.genRandKeyLast (! t.[i]);
+        xx = setTok xx i true tok;
       }
-      if (getTok xx i (v.[i]) = void) {
-        tok = $Dkc.genRandKeyLast (t.[i]);
-        xx = setTok xx i (v.[i]) tok;
+      if (getTok xx i false = void) {
+        tok = $DKC.genRandKeyLast (t.[i]);
+        xx = setTok xx i false tok;
       }
       i = i + 1;
     }
@@ -149,23 +149,23 @@ module Inter(A:Garble.Adv, DKC:Dkc.Dkc_t) (*: Dkc.Adv2*) = {
       b = bb.[g];
       garb(getTok xx g v.[g], false, false);
       if (a <> l /\ b <> l) {
-        tok := garbD(a <= l, true, false);
-        tok := garbD(b <= l, false, true);
-        yyt := garbD(a <= l, true, true);
+        tok = garbD(a <= l, true, false);
+        tok = garbD(b <= l, false, true);
+        yyt = garbD(a <= l, true, true);
         if (a <= l /\ l <= b /\ evalGate gg.[g] ((!v.[a]), false) = evalGate gg.[g] ((!v.[a]), true))
           garb(yyt, true, false);
       } else {
         if (a = l) {
-          tok := garbD(false, false, true);
+          tok = garbD(false, false, true);
         } else {
-          tok := garbD(true, true, false);
+          tok = garbD(true, true, false);
           if (evalGate gg.[g] ((!v.[a]), false) = evalGate gg.[g] ((!v.[a]), true))
             garb(yy.[g], true, false);
         }
       }
       g = g + 1;
     }
-    
+    answer = ((getN fc, getM fc, getQ fc, getA fc, getB fc, pp), encrypt (Array.sub xx 0 (getN fc)) xc,tt);
   }
 
   
@@ -176,7 +176,7 @@ module Inter(A:Garble.Adv, DKC:Dkc.Dkc_t) (*: Dkc.Adv2*) = {
   fun work(info:bool) : bool = {
     var challenge : bool;
     var ret : bool;
-    query := A.gen_query();
+    query = A.gen_query();
     c = $Dbool.dbool;
     if (c) {
       fc = fst (fst query);
@@ -197,7 +197,7 @@ module Inter(A:Garble.Adv, DKC:Dkc.Dkc_t) (*: Dkc.Adv2*) = {
     if (Garble.queryValid query)
     {
       garble();
-      challenge := A.get_challenge(answer);
+      challenge = A.get_challenge(answer);
       ret = (c = challenge);
     }
     else
@@ -207,10 +207,9 @@ module Inter(A:Garble.Adv, DKC:Dkc.Dkc_t) (*: Dkc.Adv2*) = {
 }.
 
 
+  module GameAda(D:DKC.Dkc_t, Adv:Garble.Adv) = {
 
-  module Game2(D:Dkc.Dkc_t, Adv:Garble.Adv) = {
-
-    module A = Inter(Adv, Dkc.Dkc)
+    module A = AdvAda(Adv, DKC.Dkc)
 
     fun preInit() : unit = {
       D.preInit();
@@ -221,16 +220,16 @@ module Inter(A:Garble.Adv, DKC:Dkc.Dkc_t) (*: Dkc.Adv2*) = {
       var info : bool;
       var advChallenge : bool;
       var realChallenge : bool;
-      info := D.initialize();
-      advChallenge := A.work(info);
-      realChallenge := D.get_challenge();
+      info = D.initialize();
+      advChallenge = A.work(info);
+      realChallenge = D.get_challenge();
       return advChallenge = realChallenge;
     }
     
     fun main() : bool = {
       var r : bool;
       preInit();
-      r := work();
+      r = work();
       return r;
     }
   }.

@@ -7,7 +7,7 @@ require import Distr.
 require import List.
 require import Array.
 
-require import Dkc.
+require import MyDkc.
 require import Garble.
 require import GarbleTools.
 
@@ -21,8 +21,8 @@ module Adv(A:Garble.Adv) (*: Dkc.Adv*) = {
   var good : bool
   var tau : bool
   var l : int
-  var queries : Dkc.query array
-  var ans : Dkc.answer array
+  var queries : DKC.query array
+  var ans : DKC.answer array
   var answer : Garble.functG*Garble.inputG*Garble.keyOutput
   var query : Garble.query
 
@@ -42,7 +42,7 @@ module Adv(A:Garble.Adv) (*: Dkc.Adv*) = {
   var i : int
   var g : int
 
-  fun _query1(rand:bool, alpha:bool, bet:bool) : Dkc.query = {
+  fun qquery1(rand:bool, alpha:bool, bet:bool) : DKC.query = {
     var ttt : token;
     var gamma : bool;
     var pos : bool;
@@ -66,7 +66,7 @@ module Adv(A:Garble.Adv) (*: Dkc.Adv*) = {
     return (input, output, pos, ttt);
   }
 
-  fun _query2(rand:bool, alpha:bool, bet:bool, answer:Dkc.answer) : token = {
+  fun qquery2(rand:bool, alpha:bool, bet:bool, answer:DKC.answer) : token = {
     var gamma : bool;
     var ki : token;
     var ko : token;
@@ -84,32 +84,32 @@ module Adv(A:Garble.Adv) (*: Dkc.Adv*) = {
   }
 
   fun query1(rand:bool, alpha:bool, bet:bool) : unit = {
-    var query:Dkc.query;
-    query := _query1(rand, alpha, bet);
+    var query:DKC.query;
+    query = qquery1(rand, alpha, bet);
     queries = query::queries;
   }   
 
   fun query2(rand:bool, alpha:bool, bet:bool) : token = {
-    var a:Dkc.answer;
+    var a:DKC.answer;
     var r:token;
     a = ans.[(length ans) - 1];
     ans = sub ans 0 ((length ans) - 1);
-    r := _query2(rand, alpha, bet, a);
+    r = qquery2(rand, alpha, bet, a);
     return r;
   }
 
   fun query(rand:bool, alpha:bool, bet:bool) : token = {
-    var q:Dkc.query;
-    var a:Dkc.answer;
+    var q:DKC.query;
+    var a:DKC.answer;
     var r:token;
-    q := _query1(rand, alpha, bet);
-    (*a := DKC.encrypt(q);*)
-    r := _query2(rand, alpha, bet, a);
+    q = qquery1(rand, alpha, bet);
+    (*a = DKC.encrypt(q);*)
+    r = qquery2(rand, alpha, bet, a);
     return r;
   }
 
   fun garb(yy:token, alpha:bool, bet:bool) : unit = {
-    pp.[g] = setGateVal pp.[g] ((t.[a]^^alpha), (t.[b]^^bet)) (Dkc.encode
+    pp.[g] = setGateVal pp.[g] ((t.[a]^^alpha), (t.[b]^^bet)) (DKC.encode
       (tweak g (t.[a]^^alpha) (t.[b]^^bet))
       (getTok xx a (v.[a]^^alpha))
       (getTok xx b (v.[b]^^alpha))
@@ -119,7 +119,7 @@ module Adv(A:Garble.Adv) (*: Dkc.Adv*) = {
   fun garbD(rand:bool, alpha:bool, bet:bool) : token = {
     var yy : token;
     if (rand)
-      yy = $Dkc.genRandKey;
+      yy = $DKC.genRandKey;
     else
       yy = getTok xx g (evalGate gg.[g] ((v.[a]^^alpha),(v.[b]^^alpha)));
     garb(yy, alpha, bet);
@@ -167,12 +167,12 @@ module Adv(A:Garble.Adv) (*: Dkc.Adv*) = {
       a = aa.[g];
       b = bb.[g];
       if (a = l) {
-        tok := query2(false, true, false);
-        tok := query2(false, true, true);
+        tok = query2(false, true, false);
+        tok = query2(false, true, true);
       }
       if (b = l) {
-        tok := query2(false, false, true);
-        yy.[g] := query2(true, true, true);
+        tok = query2(false, false, true);
+        yy.[g] = query2(true, true, true);
       }
       g = g + 1;
     }
@@ -180,11 +180,11 @@ module Adv(A:Garble.Adv) (*: Dkc.Adv*) = {
     i = 0;
     while (i < n+q-1) {
       if (getTok xx i (!v.[i]) = void /\ i <> l) {
-        tok = $Dkc.genRandKeyLast (! t.[i]);
+        tok = $DKC.genRandKeyLast (! t.[i]);
         xx = setTok xx i (!v.[i]) tok;
       }
       if (getTok xx i (v.[i]) = void) {
-        tok = $Dkc.genRandKeyLast (t.[i]);
+        tok = $DKC.genRandKeyLast (t.[i]);
         xx = setTok xx i (v.[i]) tok;
       }
       i = i + 1;
@@ -196,23 +196,23 @@ module Adv(A:Garble.Adv) (*: Dkc.Adv*) = {
       b = bb.[g];
       garb(getTok xx g v.[g], false, false);
       if (a <> l /\ b <> l) {
-        tok := garbD(a <= l, true, false);
-        tok := garbD(b <= l, false, true);
-        yyt := garbD(a <= l, true, true);
+        tok = garbD(a <= l, true, false);
+        tok = garbD(b <= l, false, true);
+        yyt = garbD(a <= l, true, true);
         if (a <= l /\ l <= b /\ evalGate gg.[g] ((!v.[a]), false) = evalGate gg.[g] ((!v.[a]), true))
           garb(yyt, true, false);
       } else {
         if (a = l) {
-          tok := garbD(false, false, true);
+          tok = garbD(false, false, true);
         } else {
-          tok := garbD(true, true, false);
+          tok = garbD(true, true, false);
           if (evalGate gg.[g] ((!v.[a]), false) = evalGate gg.[g] ((!v.[a]), true))
             garb(yy.[g], true, false);
         }
       }
       g = g + 1;
     }
-    
+    answer = ((n, m, q, aa, bb, pp), encrypt xx xc,tt);
   }
 
   
@@ -220,8 +220,8 @@ module Adv(A:Garble.Adv) (*: Dkc.Adv*) = {
     l = $Dinter.dinter 0 borne;
   }
 
-  fun gen_queries(info:bool) : Dkc.query array = {
-    query := A.gen_query();
+  fun gen_queries(info:bool) : DKC.query array = {
+    query = A.gen_query();
     c = $Dbool.dbool;
     if (c) {
       fc = fst (fst query);
@@ -249,14 +249,14 @@ module Adv(A:Garble.Adv) (*: Dkc.Adv*) = {
     return queries;
   }
   
-  fun get_challenge(answers:Dkc.answer array) : bool = {
+  fun get_challenge(answers:DKC.answer array) : bool = {
     var challenge : bool;
     var ret : bool;
     answers = answers;
     if (good)
     {
       garble_answer();
-      challenge := A.get_challenge(answer);
+      challenge = A.get_challenge(answer);
       ret = (c = challenge);
     }
     else

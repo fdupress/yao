@@ -8,13 +8,13 @@ require import Bool.
 require Array.
 
 
-type token = Dkc.number.
+type token = bitstring.
 type tokens = (token*token) array.
 type 'a gate = 'a*'a*'a*'a.
 type fGate = bool gate.
 type gGate = token gate.
 
-op lsb(b:bitstring) : bool = b.[0].
+op lsb(b:token) : bool = b.[0].
 
 op getTok(x:tokens, a:int, i:bool) : token =
   if i then snd x.[a] else fst x.[a].
@@ -52,7 +52,7 @@ pred tokenCorrect(n:int, q:int, m:int, x:tokens) =
 op enc(x:tokens, f:fGate, a:int, b:int, g:int, x1:bool, x2:bool) : token =
   let xx1 = (lsb (getTok x a true) = x1) in
   let xx2 = (lsb (getTok x b true) = x2) in
-  Dkc.encode
+  DKC.encode
     (tweak g x1 x2)
     (getTok x a xx1)
     (getTok x b xx2)
@@ -81,7 +81,7 @@ lemma inverse_base :
       tokenCorrect n q m x =>
       let gi1 = getTok x a (fst i) in
       let gi2 = getTok x b (snd i) in
-      Dkc.decode
+      DKC.decode
         (tweak g (lsb gi1) (lsb gi2)) gi1 gi2 
         (evalGate
           (garbleGate x f a b g)
@@ -93,7 +93,7 @@ proof.
   intros gi1 gi2.
   cut main : (forall (inter:bool),
     (evalGate f (fst i, snd i) = inter) =>
-      Dkc.decode
+      DKC.decode
         (tweak g (lsb gi1) (lsb gi2))
         gi1
         gi2

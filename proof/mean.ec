@@ -21,7 +21,7 @@ theory Mean.
       var r : bool;
       var x : base;
       x = $d;
-      r := W.work(x);
+      r = W.work(x);
       return r;
     }
   }.

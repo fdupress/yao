@@ -3,7 +3,7 @@ require import Array.
 require import Pair.
 require import Bool.
 
-require import Dkc.
+require import MyDkc.
 require import Scheme.
 require import GarbleTools.
 require import MyTools.
@@ -47,7 +47,7 @@ op extractG(ff:token functGen, g:int, x:token array) =
   let a = lsb aA in
   let b = lsb bB in
   let t = tweak g a b in
-  Dkc.decode t aA bB (evalGate ((getG ff).[g]) (a, b)).
+  DKC.decode t aA bB (evalGate ((getG ff).[g]) (a, b)).
 
 
 op garbMap(x:tokens, f:bool functGen, g:int) : token*token*token*token =
@@ -84,6 +84,8 @@ clone Scheme as Garble with
     tokenCorrect (getN f) (getQ f) (getM f) x,
   pred inputCorrect(f:funct, i:input) =
     (getN f) = Array.length i,
+
+  op k = DKC.k,
 
   (*Operator*)
   op phi(f:funct) =
@@ -123,10 +125,9 @@ lemma encrypt_len :
     Array.length i > 0 =>
     Array.length (encrypt k i) = Array.length i.
 proof.
-  intros k i hyp.
   delta encrypt.
-  simplify.
-  apply (init2_length<:token> (length i) (choose k i) _).
+  progress.
+  apply init2_length.
   assumption.
 save.
 
@@ -139,11 +140,7 @@ lemma extract :
       0 <= (getB f).[k] /\
       (getA f).[k] < k /\
       (getB f).[k] < k =>
-      extract f k ar = extract f k (sub ar 0 k).
-proof.
-  intros ar f k h.
-  trivial.
-save.
+      extract f k ar = extract f k (sub ar 0 k) by [].
   
 lemma extractG :
   forall (ar:token array),
@@ -154,13 +151,7 @@ lemma extractG :
       0 <= (getB f).[k] /\
       (getA f).[k] < k /\
       (getB f).[k] < k =>
-      extractG f k ar = extractG f k (sub ar 0 k).
-proof.
-  intros ar f k h.
-  delta extractG.
-  simplify.
-  trivial.
-save.
+      extractG f k ar = extractG f k (sub ar 0 k) by (delta extractG;progress;trivial).
 
 lemma inverse :
   forall (f : funct) , functCorrect f =>
@@ -168,9 +159,8 @@ lemma inverse :
   forall (i : input) , inputCorrect f i =>
     let (g, ki, ko) = garble x f in
     eval f i = decrypt ko (evalG g (encrypt ki i)).
-proof. admit. save.
-(*
-  intros f fC x xC i iC.
+proof.
+  intros f hypF x hypX i hypI.
 
   cut introVar : (forall (nn n m q:int) (g:functG) (ig:inputG),
     nn = (getN f) + 1 =>
@@ -180,7 +170,7 @@ proof. admit. save.
     g  = (getN f, getM f, getQ f, getA f, getB f, init2 ((getN f)+(getQ f)) (garbMap x f)) =>
     ig = encrypt (sub x 0 (getN f)) i =>
     let (g, ki, ko) = garble x f in eval f i = decrypt ko (evalG g (encrypt ki i)));
-  [|apply (introVar
+  [|apply (introVar (*BUG*)
     ((getN f)+1)
     (getN f)
     (getM f)
@@ -219,7 +209,7 @@ proof. admit. save.
     rewrite <- valG.
     rewrite <- valIG.
 
-
+ (*BUG*)
     apply (strongInduction
       (lambda j, j < n+q =>
         (appendInit ig ((+) n q) (extractG g)).[j]
@@ -237,7 +227,7 @@ proof. admit. save.
       simplify.
       cut temp : ((appendInit i (n+q) (extract f)).[j] = i.[j]);[trivial|].
       cut tempG : ((appendInit ig (n+q) (extractG g)).[j] = ig.[j]);
-      [apply (appendInit_get1<:token> ig (n+q) (extractG g) j _ _);trivial|].
+      [apply appendInit_get1;trivial|].
       rewrite temp.
       rewrite tempG.
       rewrite valIG.
@@ -253,7 +243,7 @@ proof. admit. save.
       cut test2 : (lsb (fst x.[j]) <> (lsb (snd x.[j])));[|trivial].
       cut pre : (forall (i:int), 0 <= i => i < n + q =>
         (lsb (getTok x i false)) <> (lsb (getTok x i true)));[trivial|].
-    apply (pre j _ _);trivial.
+    apply (pre j _ _);trivial. (*BUG*)
     (*End cas de base*)
     
     (*Induction*)
@@ -277,7 +267,7 @@ proof. admit. save.
           rewrite ar1Val.
           rewrite ar2Val.
           intros k h1 h2.
-        apply (hypRec k _ _ _);trivial.
+        apply hypRec;trivial.
 
         cut aVal2 : (a = (getA g).[j]);[trivial|].
         cut bVal2 : (b = (getB g).[j]);[trivial|].
@@ -289,11 +279,11 @@ proof. admit. save.
         cut ar2aVal : (ar2.[a] = (getTok x a (fst (ar1.[a], ar1.[b])))).
           rewrite ar2Val.
           rewrite ar1Val.
-          apply (hypRec a _ _ _);trivial.
+          apply (hypRec a _ _ _);trivial. (*BUG*)
         cut ar2bVal : (ar2.[b] = (getTok x b (snd (ar1.[a], ar1.[b])))).
           rewrite ar2Val.
           rewrite ar1Val.
-          apply (hypRec b _ _ _);trivial.
+          apply (hypRec b _ _ _);trivial. (*BUG*)
         cut getGVal : ((getG g).[j] = garbleGate x (getG f).[j] a b j);[trivial|].
 
         rewrite ar2aVal.
@@ -305,38 +295,39 @@ proof. admit. save.
             0 <= (getA f).[i] /\ (getA f).[i] < i /\
             0 <= (getB f).[i] /\ (getB f).[i] < i);[trivial|].
 
+(*GROS BUG*) admit. (*
       apply (inverse_base (ar1.[a], ar1.[b]) n q m a b j (getG f).[j] x _ _ _ _ _ _ _);
-        try split;trivial.
+        try split;trivial.*)
 
       cut app1 : (forall ex, ex = extract f =>
         (appendInit i (n+q) ex).[j] = ex j (appendInit i (n+q) ex)).
         intros ex exVal.
-        apply (appendInit_getFinal<:bool> i (n+q) ex j _ _ _);[trivial|trivial|].
+        apply appendInit_getFinal;[trivial|trivial|].
         cut intro : (
           forall ar, ar = appendInit i ((+) n q) ex =>
             ex j ar = ex j (sub ar 0 j)
         ).
           intros ar arVal.
           rewrite exVal.
-        apply (extract ar f j _);trivial.
+        apply extract;trivial.
       trivial.
       rewrite (app1 (extract f) _);[trivial|].
 
       cut app2 : (forall ex, ex = extractG g =>
         (appendInit ig (n+q) ex).[j] = ex j (appendInit ig (n+q) ex)).
         intros ex exVal.
-        apply (appendInit_getFinal<:token> ig (n+q) ex j _ _ _);[trivial|trivial|].
+        apply appendInit_getFinal;[trivial|trivial|].
         cut intro : (
           forall ar, ar = appendInit ig ((+) n q) ex =>
           ex j ar = ex j (sub ar 0 j)
         ).
           intros ar arVal.
           rewrite exVal.
-        apply (extractG ar g j _);trivial.
+        apply extractG;trivial.
       trivial.
       rewrite (app2 (extractG g) _);[trivial|].
 
-      apply (extr
+      apply (extr (*BUG*)
         (appendInit i ((+) n q) (extract f))
         (appendInit ig ((+) n q) (extractG g))
         (getA f).[j]
@@ -376,21 +367,23 @@ proof. admit. save.
     ar1 = ar2
   ).
     intros ar1 ar2 len h.
-  apply (extentionality<:bool> ar1 ar2 _);trivial.
+  apply extensionality;trivial.
+  apply indices;[trivial|]. (*STRANGE
   apply (indices
     (sub (appendInit i (n+q) (extract f)) (n+q-m) m)
     (map lsb (sub (appendInit ig (n+q) (extractG g)) (n+q-m) m)) _ _
-  );[trivial|].
+  );[trivial|].*)
   intros w hypW.
   rewrite (lValue w _);[trivial|].
   rewrite (rValue w _);[trivial|].
-  apply (main2 (n+q-m+w) _ _);trivial.
+  admit.
+(*GROS BUG
+  apply (main2 (n+q-m+w) _ _);trivial.*)
   save.
-*)
 
 
 module RandGarble : Rand_t = {
-  fun gen(f:funct) : random = {
+  fun gen(f:funct, x:input) : random = {
     var i:int;
     var t:bool array;
     var xx : tokens;
@@ -399,17 +392,20 @@ module RandGarble : Rand_t = {
     i = 0;
     while (i < (getN f)+(getQ f)-(getM f)-1) {
       t.[i] = $Dbool.dbool;
+      i = i + 1;
     }
     while (i < (getN f)+(getQ f)-1) {
       t.[i] = false;
+      i = i + 1;
     }
 
     i = 0;
     while (i < (getN f)+(getQ f)-1) {
-      tok = $Dkc.genRandKeyLast (! t.[i]);
+      tok = $DKC.genRandKeyLast (! t.[i]);
       xx = setTok xx i true tok;
-      tok = $Dkc.genRandKeyLast (t.[i]);
+      tok = $DKC.genRandKeyLast (t.[i]);
       xx = setTok xx i false tok;
+      i = i + 1;
     }
     return xx;
   }

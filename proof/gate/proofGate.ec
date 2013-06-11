@@ -31,7 +31,7 @@ module AdvWork(Adv:Gate.Adv) : RandInt.Worker = {
   fun work(x:int) : bool = {
     var r : bool;
     AdvGate.Adv.l = x;
-    r := Game.work();
+    r = Game.work();
     return r;
   }
 }.
@@ -42,7 +42,7 @@ module DkcWork(Adv:Dkc.Adv) : RandBool.Worker = {
     var r : bool;
     Dkc.Dkc.b = x;
     Adv.preInit();
-    r := Game.work();
+    r = Game.work();
     return r;
   }
 }.
@@ -54,7 +54,7 @@ module DkcWorkAdv(Adv:Gate.Adv) : RandBool.Worker = {
     var l : int;
     Dkc.Dkc.b = x;
     l = $Dinter.dinter 0 1;
-    r := Game.work(l);
+    r = Game.work(l);
     return r;
   }
 }.

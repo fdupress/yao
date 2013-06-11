@@ -6,8 +6,10 @@ require import Int.
 require import Real.
 require import Bool.
 require import Array.
+require import Distr.
+require import MyRand.
 
-theory Dkc.
+theory DKC.
   type number = bitstring.
 
   type key = number.
@@ -19,8 +21,8 @@ theory Dkc.
   op tau : int.
   op sb : int.
 
-  op genRandKey : key distr.
-  op genRandKeyLast : bool -> key distr.
+  op genRandKey = Dbitstring.dbitstring k.
+  op genRandKeyLast = Dbitstringlast.dbitstringlast k.
 
   op encode : tweak -> key -> key -> msg -> cipher.
   op decode : tweak -> key -> key -> cipher -> msg.
@@ -50,7 +52,7 @@ theory Dkc.
     fun get_challenge(answers: (answer array)) : bool
   }.
 
-  module type Adv2(DKC:Dkc_t) = {
+  module type AdvAda(DKC:Dkc_t) = {
     fun preInit() : unit {}
     fun work(info:bool) : bool {DKC.encrypt}
   }.
@@ -133,30 +135,30 @@ theory Dkc.
       var realChallenge : bool;
       var nquery : int;
       var answer : answer;
-      info := D.initialize();
-      queries := A.gen_queries(info);
+      info = D.initialize();
+      queries = A.gen_queries(info);
       nquery = Array.length queries;
       answers = Array.init nquery bad;
       i = 0;
       while (i < nquery)
       {
-        answers.[i] := D.encrypt (queries.[i]);
+        answers.[i] = D.encrypt (queries.[i]);
         i = i + 1;
       }
-      advChallenge := A.get_challenge(answers);
-      realChallenge := D.get_challenge();
+      advChallenge = A.get_challenge(answers);
+      realChallenge = D.get_challenge();
       return advChallenge = realChallenge;
     }
     
     fun main() : bool = {
       var r : bool;
       preInit();
-      r := work();
+      r = work();
       return r;
     }
   }.
 
-  module Game2(D:Dkc_t, Adv:Adv2) = {
+  module GameAda(D:Dkc_t, Adv:AdvAda) = {
 
     module A = Adv(Dkc)
 
@@ -169,17 +171,26 @@ theory Dkc.
       var info : bool;
       var advChallenge : bool;
       var realChallenge : bool;
-      info := D.initialize();
-      advChallenge := A.work(info);
-      realChallenge := D.get_challenge();
+      info = D.initialize();
+      advChallenge = A.work(info);
+      realChallenge = D.get_challenge();
       return advChallenge = realChallenge;
     }
     
     fun main() : bool = {
       var r : bool;
       preInit();
-      r := work();
+      r = work();
       return r;
     }
   }.
-end Dkc.
+
+
+
+  axiom Security :
+    exists (epsilon:real), epsilon > 0%r /\
+      forall (A<:Adv), forall &m,
+        `|2%r * Pr[Game(Dkc, A).main()@ &m:res] - 1%r| <
+          epsilon.
+
+end DKC.
