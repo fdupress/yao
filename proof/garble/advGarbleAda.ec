@@ -100,23 +100,24 @@ module AdvAda(A:Garble.Adv, Dkc:DKC.Dkc_t) (*: DKC.AdvAda*) = {
   fun garble() : unit = {
     var tok : token;
     var yyt : token;
-    i = 0;
-    while (i < n+q-1) {
-      t.[i] = eval fc xc i;
-      v.[i] = eval fc xc i;
-      i = i + 1;
-    }
 
     i = 0;
-    while (i < n+q-m-1) {
+    while (i < n+q-m) {
+      v.[i] = eval fc xc i;
       t.[i] = $Dbool.dbool;
       i = i + 1;
     }
+    while (i < n+q) {
+      v.[i] = eval fc xc i;
+      t.[i] = false;
+      i = i + 1;
+    }
+
 
     t.[l] = !tau;
 
     g = n;
-    while (g < n+q-1) {
+    while (g < n+q) {
       a = aa.[g];
       b = bb.[g];
       if (a = l) {
@@ -131,7 +132,7 @@ module AdvAda(A:Garble.Adv, Dkc:DKC.Dkc_t) (*: DKC.AdvAda*) = {
     }
 
     i = 0;
-    while (i < n+q-1) {
+    while (i < n+q) {
       if (getTok xx i true = void /\ i <> 0) {
         tok = $DKC.genRandKeyLast (! t.[i]);
         xx = setTok xx i true tok;
@@ -144,7 +145,7 @@ module AdvAda(A:Garble.Adv, Dkc:DKC.Dkc_t) (*: DKC.AdvAda*) = {
     }
 
     g = n;
-    while (g < n+q-1) {
+    while (g < n+q) {
       a = aa.[g];
       b = bb.[g];
       garb(getTok xx g v.[g], false, false);
