@@ -61,16 +61,17 @@ op validfx(qu:(bool functGen)*(bool array)) =
   n > 0 /\ m > 0 /\ q > 0 /\
   length aa = n + q /\ length bb = n + q /\ length gg = n + q /\
   length (snd qu) = n /\
-  (range n (n+q-1) true (lambda i b, b /\ aa.[i] >= 0 /\ bb.[i] < n + q - m /\ aa.[i] < bb.[i])).
+  (range n (n+q-1) true (lambda i b, b /\ aa.[i] >= 0 /\ bb.[i] < i /\ aa.[i] < bb.[i])).
 
 lemma valid_wireinput :
   forall (qu:(bool functGen)*(bool array)),
     validfx qu =>
+      let (n, m, q, aa, bb, gg) = fst qu in
       (forall i,
-         i >= (getN (fst qu))  => i < (getN (fst qu)) + (getQ (fst qu)) =>
-           (getA (fst qu)).[i] >= 0 /\
-           (getB (fst qu)).[i] < (getN (fst qu)) + (getQ (fst qu)) - (getM (fst qu)) /\
-           (getA (fst qu)).[i] < (getB (fst qu)).[i]).
+         i >= n  => i < n + q =>
+           aa.[i] >= 0 /\
+           bb.[i] < i /\
+           aa.[i] < bb.[i]).
 admit.
 save.
 
