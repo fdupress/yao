@@ -1,10 +1,13 @@
+require import Int.
+require import Real.
+
+lemma simpl : (forall (x y z:real), y>0%r=> x < z  => x * y < y * z) by [].
+
 require import Bitstring.
 require import List.
 require import Map.
 require import Set.
 require import Pair.
-require import Real.
-require import Int.
 require import Bool.
 require import Distr.
 require import Fun.
@@ -54,6 +57,7 @@ clone Mean as MeanBool with
   type base = bool,
   op d = Dbool.dbool,
   op support = Set.add false (Set.add true Set.empty).
+
 clone Mean as MeanInt with
   type base = int,
   op d = Dinter.dinter 0 (borne).
@@ -212,10 +216,10 @@ proof.
       wp.
       rnd.
       skip. progress assumption.
-    equiv_deno eq;progress (try assumption);trivial.
+    equiv_deno eq;progress assumption;trivial.
   rewrite pr.
   rewrite (MeanBool.Mean &m (<:DkcWork(Adv))).
-  trivial.
+  admit.
 save.
 
 lemma RelDkcGarble :
@@ -246,16 +250,22 @@ lemma PrvIndGarble :
 proof.
   elim DKC.Security.
   intros epDkc hDkc.
-  exists (2%r*borne%r*epDkc).
-  progress.
+  elim hDkc. clear hDkc.
+  intros hPos hDkc.
+  exists (borne%r*epDkc).
   cut bPos : (borne%r > 0%r).
-  import Real.
   trivial.
-  admit.
+  progress.
+  trivial.
   rewrite (RelDkcGarble &m (<:Adv)).
-  trivial.
-  elim.
-  admit.
+  cut remPr : (forall (x:real), `|2%r * x - 1%r| < epDkc => `|2%r * borne%r * x +
+  1%r / 2%r - borne%r - 1%r / 2%r| < borne%r * epDkc).
+    intros x h.
+    rewrite (_:`|2%r * borne%r * x + 1%r / 2%r - borne%r - 1%r / 2%r| = `|2%r * x - 1%r| * `| borne%r|);first trivial.
+  rewrite (_:(`|borne%r| = borne%r));first trivial.
+  apply (simpl (`|2%r * x - 1%r|) (borne%r) epDkc);assumption.
+  apply (remPr Pr[DKC.Game(DKC.Dkc, AdvGarble.Adv(Adv)).main() @ &m :res{hr}] _).
+  apply (hDkc (<:AdvGarble.Adv(Adv)) &m).
 save.
 
 

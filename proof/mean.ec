@@ -9,7 +9,7 @@ theory Mean.
   op d : base distr.
   op support : base set.
   axiom in_support :
-    forall (x:base, d:base distr),
+    forall (x:base),
       in_supp x d <=> mem x support.
   
   module type Worker = {

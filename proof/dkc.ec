@@ -92,7 +92,7 @@ theory DKC.
       var out : answer;
       (i, j, pos, t) = q;
       out = bad;
-      if (! ((mem t used) || ((fst j) <= (fst i))))
+      if ((!(mem t used)) /\ ((fst j) > (fst i)))
       {
         used = add t used;
         if (! (in_dom i kpub)) kpub.[i] = $genRandKeyLast (snd i);
