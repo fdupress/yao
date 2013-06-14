@@ -64,10 +64,14 @@ theory Scheme.
       var y : inputG;
       var r : random;
 
-      (f0, x0) = fst query;
-      (f1, x1) = snd query;
       b = $Dbool.dbool;
-      if (b) { x = x1;f = f1; } else {x=x0;f=f0;}
+      if (b) {
+        f = fst (fst query);
+        x = snd (fst query);
+      } else {
+        f = fst (snd query);
+        x = snd (snd query);
+      }
       r = Rand.gen(f, x);
       (g, e, d) = garble r f;
       y = encrypt e x;

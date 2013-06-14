@@ -55,6 +55,25 @@ op garbMap(x:tokens, f:bool functGen, g:int) : token*token*token*token =
 
 op choose(k:(token*token) array, i:bool array, j:int) : token = getTok k j i.[j].
 
+
+op validfx(qu:(bool functGen)*(bool array)) =
+  let (n, m, q, aa, bb, gg) = fst qu in
+  n > 0 /\ m > 0 /\ q > 0 /\
+  length aa = n + q /\ length bb = n + q /\ length gg = n + q /\
+  length (snd qu) = n /\
+  (range n (n+q-1) true (lambda i b, b /\ aa.[i] >= 0 /\ bb.[i] < n + q - m /\ aa.[i] < bb.[i])).
+
+lemma valid_wireinput :
+  forall (qu:(bool functGen)*(bool array)),
+    validfx qu =>
+      (forall i,
+         i >= (getN (fst qu))  => i < (getN (fst qu)) + (getQ (fst qu)) =>
+           (getA (fst qu)).[i] >= 0 /\
+           (getB (fst qu)).[i] < (getN (fst qu)) + (getQ (fst qu)) - (getM (fst qu)) /\
+           (getA (fst qu)).[i] < (getB (fst qu)).[i]).
+admit.
+save.
+
 clone Scheme as Garble with
 
   (*Types*)
@@ -112,11 +131,12 @@ clone Scheme as Garble with
   op queryValid(query:query) =
     let query0 = fst query in
     let query1 = snd query in
+    validfx query0 /\ validfx query1 /\
     Garble.eval (fst query0) (snd query0) = Garble.eval (fst query1) (snd query1) /\
     phi (fst query0) = phi (fst query1) /\
-    Array.length (snd query0) = Array.length (snd query1) /\
-    Array.length (snd query0) = (getN (fst query1)) /\
-    (getN (fst query0)) + (getQ (fst query0)) <= borne.
+    (getN (fst query0)) + (getQ (fst query0)) <= borne /\
+    (getN (fst query1)) + (getQ (fst query1)) <= borne.
+
 
 export Garble.
 
@@ -167,7 +187,7 @@ proof.
     n  = getN f =>
     m  = getM f =>
     q  = getQ f =>
-    g  = (getN f, getM f, getQ f, getA f, getB f, init2 ((getN f)+(getQ f)) (garbMap x f)) =>
+    g  = (getNyes f, getM f, getQ f, getA f, getB f, init2 ((getN f)+(getQ f)) (garbMap x f)) =>
     ig = encrypt (sub x 0 (getN f)) i =>
     let (g, ki, ko) = garble x f in eval f i = decrypt ko (evalG g (encrypt ki i)));
   [|apply (introVar (*BUG*)
