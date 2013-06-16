@@ -24,7 +24,23 @@ op setTok(x:tokens, a:int, i:bool, t:token) : tokens =
 
 op intToBitstring : int -> bitstring.
 
-op tweak(g:int, a:bool, b:bool) : bitstring = a::(b::(intToBitstring g)).
+axiom intToBitstring_inj : forall g gg,
+intToBitstring g = intToBitstring gg =>
+g = gg.
+
+op tweak(g:int, a:bool, b:bool) : bitstring = (a::(b::Bits.empty)) || (intToBitstring g).
+
+lemma tweak_inj :
+  forall g a b gg aa bb,
+     tweak g a b = tweak gg aa bb => (g, a, b) = (gg, aa, bb).
+intros g a b gg aa bb.
+simplify.
+intros h.
+cut eqA : ( (a::(b::Bits.empty)).[0] = (aa::(bb::Bits.empty)).[0] );first trivial.
+cut eqB : ( (a::(b::Bits.empty)).[1] = (aa::(bb::Bits.empty)).[1] );first trivial.
+trivial.
+save.  
+
 
 op evalGate(f:'a gate, i:bool*bool) : 'a =
   let (ff, ft, tf, tt) = f in

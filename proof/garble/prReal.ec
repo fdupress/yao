@@ -40,6 +40,14 @@ inline M(T.X,T.X).f.
 inline G(T.X, T.X).C.f.
 *)
 
+lemma absurd : forall (x:bool), (x => false) => !x by [].
+
+lemma add_mem_2: forall (x y:'a) X,
+  x <> y =>
+  mem x (add y X) <=> mem x X by [].
+
+lemma equ : forall a b, (a <=> b) => !b => !a by [].
+
 module RandGarble2 : Rand_t = {
   fun gen(f:funct, x:input) : random = {
     var i : int;
@@ -150,7 +158,7 @@ proof.
   inline {2} Garble.PrvInd(RandGarble2).get_challenge.
   inline {2} RandGarble2.gen.
 
-  swap{1} 7 -6.
+  swap{1} 8 -7.
 
   seq 1 1 : ((glob ADV){1} = (glob ADV){2}/\AdvAda.query{1} = query{2}/\DKC.Dkc.b{1} /\ (AdvAda.l{1}=0)).
     call ((glob ADV){1} = (glob ADV){2}) (res{1}=res{2} /\ (glob ADV){1} = (glob ADV){2});first (fun true;by progress).
@@ -159,12 +167,12 @@ proof.
   case (Garble.queryValid query{2}).
 
   (*VALID*)
-  rcondt {1} 18;first (intros _;wp;rnd;wp;rnd;rnd;skip;progress assumption).
+  rcondt {1} 19;first (intros _;wp;rnd;wp;rnd;rnd;skip;progress assumption).
   rcondt {2} 1;first (intros &m;skip;by progress).
   wp.
   call ((glob ADV){1} = (glob ADV){2}/\answer{1}=answer{2}) (res{1}=res{2});first (fun true;by progress).
   wp.
-  seq 26 19 : (
+  seq 27 19 : (
     (glob ADV){1} = (glob ADV){2} /\
     length AdvAda.xx{1} = AdvAda.n{1}+AdvAda.q{1} /\
     length AdvAda.t{1} = AdvAda.n{1}+AdvAda.q{1} /\
@@ -183,7 +191,7 @@ proof.
 
   wp.
 
-  seq 23 17 : (
+  seq 24 17 : (
     (glob ADV){1} = (glob ADV){2} /\
     length AdvAda.xx{1} = AdvAda.n{1}+AdvAda.q{1} /\
     length AdvAda.t{1} = AdvAda.n{1}+AdvAda.q{1} /\
@@ -240,7 +248,7 @@ proof.
 
   skip;progress assumption;trivial.
 
-  seq 21 15 : (
+  seq 22 15 : (
     (glob ADV){1} = (glob ADV){2} /\
     length AdvAda.xx{1} = AdvAda.n{1}+AdvAda.q{1} /\
     length AdvAda.t{1} = AdvAda.n{1}+AdvAda.q{1} /\
@@ -258,7 +266,8 @@ proof.
     f{2} = (n{2}, m{2}, q{2}, aa{2}, bb{2}, gg{2}) /\
     (forall i, i >= n{2} => i < n{2}+q{2} => aa{2}.[i] >= 0 /\
            bb{2}.[i] < i /\ aa{2}.[i] < bb{2}.[i]) /\
-    validfx (f{2},x{2})
+    validfx (f{2},x{2}) /\
+    DKC.Dkc.used{1} = Set.empty
   );first last.
 
 
@@ -350,24 +359,28 @@ proof.
   wp.
   rcondt{1} 11;first (intros _;rcondt 6;last (rcondf 8);wp;skip;trivial).
   rcondt{1} 34.
-  intros _.
-  wp.
-  kill 12!12;first admit.
-  rcondt 6;last (rcondf 8);[wp;skip;trivial|wp;skip;trivial|].
-  rcondt 18;last (rcondf 20);wp;skip.
-  trivial.
-  trivial.
-  progress.
-  trivial.
-  admit.
+    intros &m.
+    wp.
+    kill 12!12;first admit(*terminate*).
+    rcondt 6;last (rcondf 8);[wp;skip;trivial|wp;skip;trivial|].
+    rcondt 18;last (rcondf 20);[wp;skip;trivial|wp;skip;trivial|wp;skip].
+    progress;last trivial.
+    apply (equ _ ((mem (tweak g0{m} (t{m}.[0] ^^ true) (t{m}.[b{m}] ^^ true)) DKC.Dkc.used{hr})));last trivial.
+    apply add_mem_2.
+    apply absurd.
+    intros _.
+    apply (_: ((g0{m},t{m}.[0] ^^ true,t{m}.[b{m}] ^^ true) = (g0{m},t{m}.[0] ^^ true,t{m}.[b{m}] ^^ false) => false));first trivial.
+    apply (tweak_inj g0{m} (t{m}.[0] ^^ true) (t{m}.[b{m}] ^^ true) g0{m} (t{m}.[0] ^^ true) (t{m}.[b{m}] ^^ false) _).
+    assumption.
+
   skip;progress assumption;trivial.
 
   wp.
-  skip;progress assumption;trivial.
+  skip;progress assumption;try trivial.
 
   wp.
 
-  seq 17 11 : (
+  seq 18 11 : (
     (glob ADV){1} = (glob ADV){2} /\
     length AdvAda.xx{1} = AdvAda.n{1}+AdvAda.q{1} /\
     length AdvAda.t{1} = AdvAda.n{1}+AdvAda.q{1} /\
@@ -384,9 +397,10 @@ proof.
     AdvAda.l{1} = 0 /\
     f{2} = (n{2}, m{2}, q{2}, aa{2}, bb{2}, gg{2}) /\
     (forall i, i >= n{2} => i < n{2}+q{2} => aa{2}.[i] >= 0 /\
-           bb{2}.[i] < n{2} + q{2} - m{2} /\ aa{2}.[i] < bb{2}.[i]) /\
+           bb{2}.[i] < i /\ aa{2}.[i] < bb{2}.[i]) /\
     validfx (f{2},x{2}) /\
-    AdvAda.tau{1} = t0{2}
+    AdvAda.tau{1} = t0{2} /\
+    DKC.Dkc.used{1} = Set.empty
   );first last.    
 
   while (
@@ -406,10 +420,11 @@ proof.
     AdvAda.l{1} = 0 /\
     f{2} = (n{2}, m{2}, q{2}, aa{2}, bb{2}, gg{2}) /\
     (forall i, i >= n{2} => i < n{2}+q{2} => aa{2}.[i] >= 0 /\
-           bb{2}.[i] < n{2} + q{2} - m{2} /\ aa{2}.[i] < bb{2}.[i]) /\
+           bb{2}.[i] < i /\ aa{2}.[i] < bb{2}.[i]) /\
     validfx (f{2},x{2}) /\
     AdvAda.i{1} = i{2} /\
-    0 <= i{2}
+    0 <= i{2} /\
+    DKC.Dkc.used{1} = Set.empty
   );first (wp;skip;progress assumption;trivial).
 
   while (
@@ -429,17 +444,17 @@ proof.
     AdvAda.l{1} = 0 /\
     f{2} = (n{2}, m{2}, q{2}, aa{2}, bb{2}, gg{2}) /\
     (forall i, i >= n{2} => i < n{2}+q{2} => aa{2}.[i] >= 0 /\
-           bb{2}.[i] < n{2} + q{2} - m{2} /\ aa{2}.[i] < bb{2}.[i]) /\
+           bb{2}.[i] < i /\ aa{2}.[i] < bb{2}.[i]) /\
     validfx (f{2},x{2}) /\
     AdvAda.i{1} = i{2} /\
-    0 <= i{2}
+    0 <= i{2} /\
+    DKC.Dkc.used{1} = Set.empty
   );first (wp;rnd;wp;skip;progress assumption;trivial).
 
   wp.
-
   skip;progress assumption;trivial.
 
-  swap{1} 7 -6.
+  swap{1} 8 -7.
   wp.
   rnd.
   wp.
@@ -475,7 +490,7 @@ proof.
     split;first trivial.
     split;first trivial.
     cut lem : (forall i, i >= n{2} => i < n{2}+q{2} => aa{2}.[i] >= 0 /\
-           bb{2}.[i] < n{2} + q{2} - m{2} /\ aa{2}.[i] < bb{2}.[i]).
+           bb{2}.[i] < i /\ aa{2}.[i] < bb{2}.[i]).
       apply (valid_wireinput ((n{2},m{2},q{2},aa{2},bb{2},gg{2}), snd (fst query{2})) _);trivial.
     split;[assumption|trivial].
 
@@ -496,15 +511,15 @@ proof.
     split;first trivial.
     split;first trivial.
     cut lem : (forall i, i >= n{2} => i < n{2}+q{2} => aa{2}.[i] >= 0 /\
-           bb{2}.[i] < n{2} + q{2} - m{2} /\ aa{2}.[i] < bb{2}.[i]).
+           bb{2}.[i] < i /\ aa{2}.[i] < bb{2}.[i]).
       apply (valid_wireinput ((n{2},m{2},q{2},aa{2},bb{2},gg{2}), snd (snd query{2})) _);trivial.
     split;[assumption|trivial].
 
   (*INVALID*)
-  rcondf {1} 18;first (intros _;wp;rnd;wp;rnd;rnd;skip;trivial).
+  rcondf {1} 19;first (intros _;wp;rnd;wp;rnd;rnd;skip;trivial).
   rcondf {2} 1;[intros &m;skip;trivial|].
   wp.
   rnd.
-  kill{1} 1!17;first (wp;rnd 1%r cPtrue;wp;rnd 1%r cPtrue;rnd 1%r cPtrue;skip;progress;trivial).
+  kill{1} 1!18;first (wp;rnd 1%r cPtrue;wp;rnd 1%r cPtrue;rnd 1%r cPtrue;skip;progress;trivial).
   skip;trivial.
 save.

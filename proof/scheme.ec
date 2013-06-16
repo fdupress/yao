@@ -56,8 +56,8 @@ theory Scheme.
     var b : bool
   
     fun garb(query:query) : answer = {
-      var f, f0, f1 : funct*funct*funct;
-      var x, x0, x1 : input*input*input;
+      var f, f0, f1 : funct;
+      var x, x0, x1 : input;
       var e : keyInput;
       var d : keyOutput;
       var g : functG;
@@ -87,7 +87,7 @@ theory Scheme.
     fun main() : bool = {
       var query : query;
       var answer : answer;
-      var adv, real : bool*bool;
+      var adv, real : bool;
       var ret : bool;
     
       query = ADV.gen_query();

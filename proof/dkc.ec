@@ -73,6 +73,7 @@ theory DKC.
       t = $Dbool.dbool;
       ksec = $genRandKeyLast t;
       kpub = Map.empty;
+      used = Set.empty;
       r = Map.empty;
       return t;
     }
