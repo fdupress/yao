@@ -324,7 +324,10 @@ proof.
     (b{2} < g0{2}) /\
     validfx (f{2},x{2}) /\
     (forall g a b, g >= g0{2} => !(mem (tweak g a b) DKC.Dkc.used{1}))
-  );first (wp;skip;progress assumption;trivial).
+  ).
+wp.
+skip.
+first (wp;skip;progress assumption;trivial).
   seq 1 1 : (
     (glob ADV){1} = (glob ADV){2} /\
     length AdvAda.xx{1} = AdvAda.n{1}+AdvAda.q{1} /\
