@@ -12,7 +12,7 @@ theory Scheme.
   type inputG.
   type outputG.
   type tPhi.
-  
+   
   type random.
 
   type query = (funct*input)*(funct*input).
