@@ -1,7 +1,7 @@
 require import Real.
 require import Pair.
 require import Bool.
-
+ 
 theory Scheme.
   type funct.
   type functG.
