@@ -36,9 +36,9 @@ lemma tweak_inj :
 intros g a b gg aa bb.
 simplify.
 intros h.
-cut eqA : ( (a::(b::Bits.empty)).[0] = (aa::(bb::Bits.empty)).[0] );first trivial.
-cut eqB : ( (a::(b::Bits.empty)).[1] = (aa::(bb::Bits.empty)).[1] );first trivial.
-trivial.
+cut eqA : ( (a::(b::Bits.empty)).[0] = (aa::(bb::Bits.empty)).[0] );first smt.
+cut eqB : ( (a::(b::Bits.empty)).[1] = (aa::(bb::Bits.empty)).[1] );first smt.
+smt.
 save.  
 
 
@@ -115,7 +115,7 @@ proof.
         gi2
         (evalGate (garbleGate x f a b g) (lsb gi1,lsb gi2))
       = getTok x g inter
-  );[|trivial].
+  );[|smt].
   intros inter h1.
   delta evalGate garbleGate.
   simplify.
@@ -123,12 +123,12 @@ proof.
     if !lsb gi1 && !lsb gi2 then enc x f a b g false false else
     if !lsb gi1 &&  lsb gi2 then enc x f a b g false  true else
     if  lsb gi1 && !lsb gi2 then enc x f a b g  true false else
-    enc x f a b g true true) = enc x f a b g (lsb gi1) (lsb gi2));[trivial|].
+    enc x f a b g true true) = enc x f a b g (lsb gi1) (lsb gi2));[smt|].
   rewrite removeIf.
   delta enc gi1 gi2.
   simplify.
-  rewrite (_:(lsb (getTok x a true) = lsb (getTok x a (fst i))) = (fst i));[trivial|].
-  rewrite (_:(lsb (getTok x b true) = lsb (getTok x b (snd i))) = (snd i));[trivial|].
+  rewrite (_:(lsb (getTok x a true) = lsb (getTok x a (fst i))) = (fst i));[smt|].
+  rewrite (_:(lsb (getTok x b true) = lsb (getTok x b (snd i))) = (snd i));[smt|].
   rewrite h1.
-  trivial.
+  smt.
 save.

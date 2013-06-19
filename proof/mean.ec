@@ -1,7 +1,8 @@
 require import Set.
 require import Real.
 require import Distr.
-require import Myset.
+
+require import MySum.
 
 theory Mean.
   type base.

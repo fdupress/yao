@@ -2,16 +2,6 @@ require import Int.
 require import Array.
 require import Logic.
 
-lemma strongInduction:
-  forall (p:int -> bool),
-    (forall j, 0 <= j => (forall k, k >= 0 => k < j => p k) => p j) =>
-      (forall i, 0 <= i => p i).
-proof.
-  intros p hyp i iVal.
-  cut temp : (forall k, k > 0 => k <= i => p k);[|trivial].
-  apply (Induction.induction (lambda i, forall k, k > 0 => k <= i => p k) _ _ i _);trivial.
-save.
-
 op init2: int -> (int -> 'a) -> 'a array.
 
 axiom init2_length: forall (n:int, f:int -> 'a), n > 0 =>
@@ -53,14 +43,14 @@ proof.
     Induction.induction
     (lambda (l:int), l <= n =>
       (Array.length (appendInit ar l extract) = (Array.length ar) + l))
-    _ _ n _ _);[trivial| |trivial|trivial].
+    _ _ n _ _);[smt| |smt|smt].
     intros j hypj hypRec hypJ2.
-    cut hyp : ((length ar) + j = length (appendInit ar (j-1) extract) + 1);[trivial|].
+    cut hyp : ((length ar) + j = length (appendInit ar (j-1) extract) + 1);[smt|].
     rewrite hyp.
     delta appendInit.
     simplify.
     cut temp : (
-      (range (length ar) ((+) (length ar) j) ar (appender extract)) = appender extract ((+) (length ar) j) (range (length ar) ((+) (length ar) ((-) j 1)) ar (appender extract)));trivial.
+      (range (length ar) ((+) (length ar) j) ar (appender extract)) = appender extract ((+) (length ar) j) (range (length ar) ((+) (length ar) ((-) j 1)) ar (appender extract)));smt.
 save.
 
 
@@ -76,15 +66,15 @@ proof.
      forall s,
        s = (length ar)=>
          (appendInit ar n extract).[k] = (appendInit ar ((-) n 1) extract).[k]
-  );[|trivial].
+  );[|smt].
   intros s valS.
   delta appendInit.
   simplify.
-  rewrite <- valS.
+  rewrite - valS.
   cut lem : (
     (range s (s+n) ar (appender extract)) =
     (appender extract (s+n) (range s ((s+n)-1) ar (appender extract)))
-  );trivial.
+  );smt.
 save.
 
 lemma appendInit_get1 :
@@ -98,7 +88,7 @@ proof.
   apply (
     Induction.induction
     (lambda (l:int), l <= n => (appendInit ar l extract).[k] = ar.[k])
-    _ _ n _ _);trivial.
+    _ _ n _ _);smt.
 save.
 
 
@@ -110,15 +100,15 @@ lemma appendInit_get2 :
       (appendInit ar n extract).[k] = (extract k (appendInit ar (k-length ar) extract)).
 proof.
   intros ar n extract k hypK hypN.
-  rewrite (_: n = ((k-length ar)+1+(n-(k-length ar)-1)));[trivial|].
+  rewrite (_: n = ((k-length ar)+1+(n-(k-length ar)-1)));[smt|].
   apply (Induction.induction
     (lambda i, (appendInit ar ((k-length ar)+1+i) extract).[k] = (extract k (appendInit ar (k-length ar) extract)))
     _ _ (n-(k-length ar)-1) _
-  );[|trivial|trivial].
+  );[|smt|smt].
   simplify.
   cut lem : ((appendInit ar (k-(length ar)+1) extract)
     = appender extract (k+1) (appendInit ar (k-(length ar)) extract)
-  );trivial.
+  );smt.
 save.
 
 lemma appendInit_getFinal :
@@ -130,18 +120,18 @@ lemma appendInit_getFinal :
       (appendInit ar n extract).[k] = (extract k (appendInit ar n extract)).
 proof.
   intros ar n extract k hypK hypN hypExtract.
-  cut temp : ((appendInit ar n extract).[k] = (extract k (appendInit ar (k-length ar) extract)));[trivial|].
+  cut temp : ((appendInit ar n extract).[k] = (extract k (appendInit ar (k-length ar) extract)));[smt|].
   rewrite temp.
-  cut temp2 : (sub (appendInit ar n extract) 0 k = appendInit ar (k-(length ar)) extract);[|trivial].
+  cut temp2 : (sub (appendInit ar n extract) 0 k = appendInit ar (k-(length ar)) extract);[|smt].
   cut temp3 : (forall i, 0 <= i /\ i < k => (appendInit ar (k-(length ar)) extract).[i] = (appendInit ar n extract).[i]).
     intros i hypI.
-    rewrite (_: n = ((+) ((-) n ((-) k (length ar))) ((-) k (length ar))) );[trivial|].
+    rewrite (_: n = ((+) ((-) n ((-) k (length ar))) ((-) k (length ar))) );[smt|].
     apply (Induction.induction
       (lambda j,
         j <= n - ((-) k (length ar)) =>
         (appendInit ar ((-) k (length ar)) extract).[i] =
           (appendInit ar (j+((-) k (length ar))) extract).[i]
       ) _ _ (n - ((-) k (length ar))) _ _
-    );trivial.
-  apply (extensionality<:'a> (sub (appendInit ar n extract) 0 k) (appendInit ar ((-) k (length ar)) extract) _ );trivial.
+    );smt.
+  apply (extensionality<:'a> (sub (appendInit ar n extract) 0 k) (appendInit ar ((-) k (length ar)) extract) _ );smt.
 save.

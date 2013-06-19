@@ -46,13 +46,13 @@ theory DKC.
     fun get_challenge() : bool
   }.
 
-  module type Adv = {
+  module type Adv_t = {
     fun preInit() : unit
     fun gen_queries(info:bool) : (query array)
     fun get_challenge(answers: (answer array)) : bool
   }.
 
-  module type AdvAda(DKC:Dkc_t) = {
+  module type AdvAda_t(DKC:Dkc_t) = {
     fun preInit() : unit {}
     fun work(info:bool) : bool {DKC.encrypt}
   }.
@@ -98,7 +98,7 @@ theory DKC.
         used = add t used;
         if (! (in_dom i kpub)) kpub.[i] = $genRandKeyLast (snd i);
         if (! (in_dom j kpub)) kpub.[j] = $genRandKeyLast (snd j);
-        if (! (in_dom i r)) r.[j] = $genRandKey;
+        if (! (in_dom j r)) r.[j] = $genRandKey;
         if (pos) {
           keya = ksec;
           keyb = proj kpub.[i];
@@ -119,7 +119,7 @@ theory DKC.
     fun main() : bool
   }.
 
-  module Game(D:Dkc_t, A:Adv) : Exp = {
+  module Game(D:Dkc_t, A:Adv_t) : Exp = {
 
     fun preInit() : unit = {
       D.preInit();
@@ -159,7 +159,7 @@ theory DKC.
     }
   }.
 
-  module GameAda(D:Dkc_t, Adv:AdvAda) = {
+  module GameAda(D:Dkc_t, Adv:AdvAda_t) = {
 
     module A = Adv(Dkc)
 
@@ -186,11 +186,9 @@ theory DKC.
     }
   }.
 
-
-
   axiom Security :
     exists (epsilon:real), epsilon > 0%r /\
-      forall (A<:Adv), forall &m,
+      forall (A<:Adv_t), forall &m,
         `|2%r * Pr[Game(Dkc, A).main()@ &m:res] - 1%r| <
           epsilon.
 

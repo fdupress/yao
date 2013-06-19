@@ -61,7 +61,7 @@ proof.
     rcondt{2} 21. admit.
     wp.
     call (answer{1}=answer{2} /\ (glob ADV){1} = (glob ADV){2}) (res{1}=res{2}).
-      fun true;trivial.
+      fun true;smt.
     wp.
     while (
       AdvGarble.Adv.l{1} = AdvGarble_inter.Inter.l{2} /\
@@ -89,9 +89,9 @@ proof.
       AdvGarble.Adv.a{1}=AdvGarble_inter.Inter.a{2} /\
       AdvGarble.Adv.b{1}=AdvGarble_inter.Inter.b{2} /\
       rand7{1} = rand3{2}
-    ). wp. skip. trivial.
+    ). wp. skip. smt.
     if.
-    trivial.
+    smt.
     wp.
     app 3 3 : (
       AdvGarble.Adv.l{1} = AdvGarble_inter.Inter.l{2} /\
@@ -105,8 +105,8 @@ proof.
       AdvGarble.Adv.a{1}=AdvGarble_inter.Inter.a{2} /\
       AdvGarble.Adv.b{1}=AdvGarble_inter.Inter.b{2} /\
       rand7{1} = rand3{2}
-    ). wp. skip. intros &1 &2 h. trivial.
-    if. trivial.
+    ). wp. skip. intros &1 &2 h. smt.
+    if. smt.
 
     app 3 3 : (
       AdvGarble.Adv.l{1} = AdvGarble_inter.Inter.l{2} /\
@@ -129,13 +129,13 @@ proof.
 
   app 1 1 : (AdvGarble.Adv.query{1} = query{2}).
   call ((glob ADV){1} = (glob ADV){2}) (res{1}=res{2} /\ (glob ADV){1} = (glob ADV){2}).
-    fun true;trivial.
-  skip;trivial.
+    fun true;smt.
+  skip;smt.
   
   case (Garble.queryValid query{2}).
 
   rcondt {1} 27;[admit|].
   rcondt {1} 18;[admit|].
-  rcondt {2} 1;[intros &m;skip;trivial|].
+  rcondt {2} 1;[intros &m;skip;smt|].
   
 save.

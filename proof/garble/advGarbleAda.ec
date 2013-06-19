@@ -7,14 +7,21 @@ require import Distr.
 require import List.
 require import Array.
 
-require import MyDkc.
+require import CloneDkc.
 require import Garble.
 require import GarbleTools.
 
 op eval(f:funct, i:input, k:int) = (evalComplete f i extract).[k].
 op void = (Bitstring.zeros 0).
 
-module AdvAda(A:Garble.Adv, Dkc:DKC.Dkc_t) (*: DKC.AdvAda*) = {
+op qu : Garble.query.
+
+module type AdvAda_t = {
+    fun preInit() : unit {}
+    fun work(info:bool) : bool
+}.
+
+module AdvAda(A:Garble.Adv, Dkc:DKC.Dkc_t) : AdvAda_t = {
 
   var c : bool
   var fc : Garble.funct
@@ -54,7 +61,7 @@ module AdvAda(A:Garble.Adv, Dkc:DKC.Dkc_t) (*: DKC.AdvAda*) = {
     var ko : token;
     var zz : token;
     ttt = tweak g (t.[a]^^alpha) (t.[b]^^bet);
-    gamma = v.[g]^^(evalGate gg.[g] ((v.[a]^^alpha),(v.[b]^^alpha)));
+    gamma = v.[g]^^(evalGate gg.[g] ((v.[a]^^alpha),(v.[b]^^bet)));
     if (a = l) {
       pos = true;
       input = (b, (t.[b]^^bet));
@@ -192,7 +199,6 @@ module AdvAda(A:Garble.Adv, Dkc:DKC.Dkc_t) (*: DKC.AdvAda*) = {
     v = Array.init (n+q) false;
     xx = Array.init (n+q) (void, void);
     yy = Array.init (n+q) void;
-    gg = Array.init (n+q) (false, false, false, false);
     pp = Array.init (n+q) (void, void, void, void);
     tau = info;
     if (Garble.queryValid query)

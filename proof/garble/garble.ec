@@ -3,7 +3,7 @@ require import Array.
 require import Pair.
 require import Bool.
 
-require import MyDkc.
+require import CloneDkc.
 require import Scheme.
 require import GarbleTools.
 require import MyTools.
@@ -172,7 +172,7 @@ lemma extractG :
       0 <= (getB f).[k] /\
       (getA f).[k] < k /\
       (getB f).[k] < k =>
-      extractG f k ar = extractG f k (sub ar 0 k) by (delta extractG;progress;trivial).
+      extractG f k ar = extractG f k (sub ar 0 k) by (delta extractG;progress;smt).
 
 lemma inverse :
   forall (f : funct) , functCorrect f =>
@@ -188,7 +188,7 @@ proof.
     n  = getN f =>
     m  = getM f =>
     q  = getQ f =>
-    g  = (getNyes f, getM f, getQ f, getA f, getB f, init2 ((getN f)+(getQ f)) (garbMap x f)) =>
+    g  = (getN f, getM f, getQ f, getA f, getB f, init2 ((getN f)+(getQ f)) (garbMap x f)) =>
     ig = encrypt (sub x 0 (getN f)) i =>
     let (g, ki, ko) = garble x f in eval f i = decrypt ko (evalG g (encrypt ki i)));
   [|apply (introVar (*BUG*)
@@ -203,19 +203,19 @@ proof.
 
   delta eval evalG evalGen garble.
   simplify.
-  rewrite <- valG.
-  rewrite <- valIG.
-  rewrite <- valNN.
-  rewrite <- valN.
-  rewrite <- valM.
-  rewrite <- valQ.
+  rewrite - valG.
+  rewrite - valIG.
+  rewrite - valNN.
+  rewrite - valN.
+  rewrite - valM.
+  rewrite - valQ.
 
-  cut valN2 : (n = (getN g));[trivial|].
-  cut valM2 : (m = (getM g));[trivial|].
-  cut valQ2 : (q = (getQ g));[trivial|].
-  rewrite <- valN2.
-  rewrite <- valM2.
-  rewrite <- valQ2.
+  cut valN2 : (n = (getN g));[smt|].
+  cut valM2 : (m = (getM g));[smt|].
+  cut valQ2 : (q = (getQ g));[smt|].
+  rewrite - valN2.
+  rewrite - valM2.
+  rewrite - valQ2.
   
   cut main :(forall (j:int), j >= 0 => j < n+q =>
     (appendInit ig (n+q) (extractG g)).[j]
@@ -227,16 +227,16 @@ proof.
 
     delta garble.
     simplify.
-    rewrite <- valG.
-    rewrite <- valIG.
+    rewrite - valG.
+    rewrite - valIG.
 
  (*BUG*)
-    apply (strongInduction
+    apply (Induction.strongInduction
       (lambda j, j < n+q =>
         (appendInit ig ((+) n q) (extractG g)).[j]
         = getTok x j (appendInit i ((+) n q) (extract f)).[j])
       _ jj _ _
-    );[|trivial|trivial].
+    );[|smt|smt].
 
     intros j hypJ hypRec hypJ2.
     simplify.
@@ -246,25 +246,25 @@ proof.
       intros valJ.
       delta evalGen.
       simplify.
-      cut temp : ((appendInit i (n+q) (extract f)).[j] = i.[j]);[trivial|].
+      cut temp : ((appendInit i (n+q) (extract f)).[j] = i.[j]);[smt|].
       cut tempG : ((appendInit ig (n+q) (extractG g)).[j] = ig.[j]);
-      [apply appendInit_get1;trivial|].
+      [apply appendInit_get1;smt|].
       rewrite temp.
       rewrite tempG.
       rewrite valIG.
       delta encrypt.
       simplify.
-      cut cre : ((init2 (length i) (choose (sub x 0 (getN f)) i)).[j] = choose (sub x 0 n) i j);[trivial|].
+      cut cre : ((init2 (length i) (choose (sub x 0 (getN f)) i)).[j] = choose (sub x 0 n) i j);[smt|].
       rewrite cre.
       delta choose getTok.
       simplify.
-      cut sub : ((sub x 0 n).[j] = x.[j]);[trivial|].
+      cut sub : ((sub x 0 n).[j] = x.[j]);[smt|].
       rewrite sub.
-      cut test : (j >= 0 /\ j<n+q);[trivial|].
-      cut test2 : (lsb (fst x.[j]) <> (lsb (snd x.[j])));[|trivial].
+      cut test : (j >= 0 /\ j<n+q);[smt|].
+      cut test2 : (lsb (fst x.[j]) <> (lsb (snd x.[j])));[|smt].
       cut pre : (forall (i:int), 0 <= i => i < n + q =>
-        (lsb (getTok x i false)) <> (lsb (getTok x i true)));[trivial|].
-    apply (pre j _ _);trivial. (*BUG*)
+        (lsb (getTok x i false)) <> (lsb (getTok x i true)));[smt|].
+    apply (pre j _ _);smt. (*BUG*)
     (*End cas de base*)
     
     (*Induction*)
@@ -288,24 +288,24 @@ proof.
           rewrite ar1Val.
           rewrite ar2Val.
           intros k h1 h2.
-        apply hypRec;trivial.
+        apply hypRec;smt.
 
-        cut aVal2 : (a = (getA g).[j]);[trivial|].
-        cut bVal2 : (b = (getB g).[j]);[trivial|].
-        rewrite <- aVal.
-        rewrite <- bVal.
-        rewrite <- aVal2.
-        rewrite <- bVal2.
+        cut aVal2 : (a = (getA g).[j]);[smt|].
+        cut bVal2 : (b = (getB g).[j]);[smt|].
+        rewrite - aVal.
+        rewrite - bVal.
+        rewrite - aVal2.
+        rewrite - bVal2.
   
         cut ar2aVal : (ar2.[a] = (getTok x a (fst (ar1.[a], ar1.[b])))).
           rewrite ar2Val.
           rewrite ar1Val.
-          apply (hypRec a _ _ _);trivial. (*BUG*)
+          apply (hypRec a _ _ _);smt. (*BUG*)
         cut ar2bVal : (ar2.[b] = (getTok x b (snd (ar1.[a], ar1.[b])))).
           rewrite ar2Val.
           rewrite ar1Val.
-          apply (hypRec b _ _ _);trivial. (*BUG*)
-        cut getGVal : ((getG g).[j] = garbleGate x (getG f).[j] a b j);[trivial|].
+          apply (hypRec b _ _ _);smt. (*BUG*)
+        cut getGVal : ((getG g).[j] = garbleGate x (getG f).[j] a b j);[smt|].
 
         rewrite ar2aVal.
         rewrite ar2bVal.
@@ -314,39 +314,39 @@ proof.
         cut fCor : (forall (i:int),
           (getN f) <= i /\ i < (getQ f)+(getN f) =>
             0 <= (getA f).[i] /\ (getA f).[i] < i /\
-            0 <= (getB f).[i] /\ (getB f).[i] < i);[trivial|].
+            0 <= (getB f).[i] /\ (getB f).[i] < i);[smt|].
 
 (*GROS BUG*) admit. (*
       apply (inverse_base (ar1.[a], ar1.[b]) n q m a b j (getG f).[j] x _ _ _ _ _ _ _);
-        try split;trivial.*)
+        try split;smt.*)
 
       cut app1 : (forall ex, ex = extract f =>
         (appendInit i (n+q) ex).[j] = ex j (appendInit i (n+q) ex)).
         intros ex exVal.
-        apply appendInit_getFinal;[trivial|trivial|].
+        apply appendInit_getFinal;[smt|smt|].
         cut intro : (
           forall ar, ar = appendInit i ((+) n q) ex =>
             ex j ar = ex j (sub ar 0 j)
         ).
           intros ar arVal.
           rewrite exVal.
-        apply extract;trivial.
-      trivial.
-      rewrite (app1 (extract f) _);[trivial|].
+        apply extract;smt.
+      smt.
+      rewrite (app1 (extract f) _);[smt|].
 
       cut app2 : (forall ex, ex = extractG g =>
         (appendInit ig (n+q) ex).[j] = ex j (appendInit ig (n+q) ex)).
         intros ex exVal.
-        apply appendInit_getFinal;[trivial|trivial|].
+        apply appendInit_getFinal;[smt|smt|].
         cut intro : (
           forall ar, ar = appendInit ig ((+) n q) ex =>
           ex j ar = ex j (sub ar 0 j)
         ).
           intros ar arVal.
           rewrite exVal.
-        apply extractG;trivial.
-      trivial.
-      rewrite (app2 (extractG g) _);[trivial|].
+        apply extractG;smt.
+      smt.
+      rewrite (app2 (extractG g) _);[smt|].
 
       apply (extr (*BUG*)
         (appendInit i ((+) n q) (extract f))
@@ -359,7 +359,7 @@ proof.
   cut lValue : (forall w, 0 <= w /\ w < m =>
     (sub (appendInit i ((+) n q) (extract f)) (n+q-m) m).[w]
      = (appendInit i ((+) n q) (extract f)).[n+q-m+w]
-  );[trivial|].
+  );[smt|].
   cut rValue : (forall w, 0 <= w /\ w < m =>
     (map lsb (sub (appendInit ig ((+) n q) (extractG g)) (n+q-m) m)).[w]
     = lsb (appendInit ig ((+) n q) (extractG g)).[n+q-m+w]
@@ -368,15 +368,15 @@ proof.
     cut rValue_lem : (
       (sub (appendInit ig ((+) n q) (extractG g)) (n+q-m) m).[w]
       = (appendInit ig ((+) n q) (extractG g)).[n+q-m+w]
-    );[trivial|].
-  trivial.
+    );[smt|].
+  smt.
 
   cut main2 :(forall (j:int), j >= n+q-m => j < n+q =>
     (appendInit i (n+q) (extract f)).[j] =
     lsb (appendInit ig (n+q) (extractG g)).[j]).
     intros j hypJ1 hypJ2.
-    cut output : (!(lsb (getTok x j false)));[trivial|].
-  trivial.
+    cut output : (!(lsb (getTok x j false)));[smt|].
+  smt.
 
   cut indices : (
     forall (ar1:bool array),
@@ -388,18 +388,18 @@ proof.
     ar1 = ar2
   ).
     intros ar1 ar2 len h.
-  apply extensionality;trivial.
-  apply indices;[trivial|]. (*STRANGE
+  apply extensionality;smt.
+  apply indices;[smt|]. (*STRANGE
   apply (indices
     (sub (appendInit i (n+q) (extract f)) (n+q-m) m)
     (map lsb (sub (appendInit ig (n+q) (extractG g)) (n+q-m) m)) _ _
-  );[trivial|].*)
+  );[smt|].*)
   intros w hypW.
-  rewrite (lValue w _);[trivial|].
-  rewrite (rValue w _);[trivial|].
+  rewrite (lValue w _);[smt|].
+  rewrite (rValue w _);[smt|].
   admit.
 (*GROS BUG
-  apply (main2 (n+q-m+w) _ _);trivial.*)
+  apply (main2 (n+q-m+w) _ _);smt.*)
   save.
 
 

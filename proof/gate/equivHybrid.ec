@@ -54,11 +54,11 @@ proof.
     Dkc.Dkc.b{2} = true
   );
 [wp;call ((glob Adv){1} = (glob Adv){2}) ((glob Adv){1} = (glob Adv){2}/\res{1}=res{2});
-[fun true|rnd;skip];trivial|]. (* Call adv gen_queries *)
+[fun true|rnd;skip];smt|]. (* Call adv gen_queries *)
 
   case (Gate.queryValid query{1}). (*good*)
 
-  rcondt {1} 9;[intros &m;wp;rnd;wp;rnd;skip;trivial|]. (*good*)
+  rcondt {1} 9;[intros &m;wp;rnd;wp;rnd;skip;smt|]. (*good*)
   rcondf {1} 11;[admit|]. (* l condition *)
   rcondt {1} 10;[admit|]. (* l condition *)
   rcondt {1} 17;[intros &m;wp;rnd;wp;rnd;rnd;skip;admit|]. (* While *)
@@ -68,7 +68,7 @@ proof.
   rcondf {1} 26;[admit|]. (* l *)
   rcondt {1} 25;[admit|]. (* l *)
 
-  rcondt {2} 9;[intros &m;wp;rnd;wp;rnd;skip;trivial|]. (*good*)
+  rcondt {2} 9;[intros &m;wp;rnd;wp;rnd;skip;smt|]. (*good*)
   rcondf {2} 10;[admit|]. (* l condition *)
   rcondt {2} 10;[admit|]. (* l condition *)
   rcondt {2} 18;[admit|]. (* While *)
@@ -104,7 +104,7 @@ proof.
 
   wp.
   call ((glob Adv){1} = (glob Adv){2}/\answer{1}=answer{2}) (res{1}=res{2}).
-    fun true;trivial.
+    fun true;smt.
   wp.
   (*
   alias {1} 1 with _tau.

@@ -7,7 +7,7 @@ require import Distr.
 require import List.
 require import Array.
 
-require import CloneDkc.
+require import MyDkc.
 require import Garble.
 require import GarbleTools.
 
@@ -42,7 +42,7 @@ module Adv(A:Garble.Adv) (*: Dkc.Adv*) = {
   var i : int
   var g : int
 
-  fun qquery1(rand:bool, alpha:bool, bet:bool) : DKC.query = {
+  fun _query1(rand:bool, alpha:bool, bet:bool) : DKC.query = {
     var ttt : token;
     var gamma : bool;
     var pos : bool;
@@ -66,7 +66,7 @@ module Adv(A:Garble.Adv) (*: Dkc.Adv*) = {
     return (input, output, pos, ttt);
   }
 
-  fun qquery2(rand:bool, alpha:bool, bet:bool, answer:DKC.answer) : token = {
+  fun _query2(rand:bool, alpha:bool, bet:bool, answer:DKC.answer) : token = {
     var gamma : bool;
     var ki : token;
     var ko : token;
@@ -85,7 +85,7 @@ module Adv(A:Garble.Adv) (*: Dkc.Adv*) = {
 
   fun query1(rand:bool, alpha:bool, bet:bool) : unit = {
     var query:DKC.query;
-    query = qquery1(rand, alpha, bet);
+    query = _query1(rand, alpha, bet);
     queries = query::queries;
   }   
 
@@ -94,7 +94,7 @@ module Adv(A:Garble.Adv) (*: Dkc.Adv*) = {
     var r:token;
     a = ans.[(length ans) - 1];
     ans = sub ans 0 ((length ans) - 1);
-    r = qquery2(rand, alpha, bet, a);
+    r = _query2(rand, alpha, bet, a);
     return r;
   }
 
@@ -102,9 +102,9 @@ module Adv(A:Garble.Adv) (*: Dkc.Adv*) = {
     var q:DKC.query;
     var a:DKC.answer;
     var r:token;
-    q = qquery1(rand, alpha, bet);
+    q = _query1(rand, alpha, bet);
     (*a = DKC.encrypt(q);*)
-    r = qquery2(rand, alpha, bet, a);
+    r = _query2(rand, alpha, bet, a);
     return r;
   }
 
@@ -194,30 +194,90 @@ module Adv(A:Garble.Adv) (*: Dkc.Adv*) = {
     while (g < n+q-1) {
       a = aa.[g];
       b = bb.[g];
-      garb(getTok xx g v.[g], false, false);
-      if (a <> l /\ b <> l) {
-        tok = garbD(a <= l, true, false);
-        tok = garbD(b <= l, false, true);
-        yyt = garbD(a <= l, true, true);
+      if (a < l)
+      {
+        tok = $DKC.genRandKey;
+        garb(tok, true, false);
+        tok = $DKC.genRandKey;
+        garb(tok, true, true);
         if (a <= l /\ l <= b /\ evalGate gg.[g] ((!v.[a]), false) = evalGate gg.[g] ((!v.[a]), true))
-          garb(yyt, true, false);
-      } else {
-        if (a = l) {
-          tok = garbD(false, false, true);
-        } else {
-          tok = garbD(true, true, false);
-          if (evalGate gg.[g] ((!v.[a]), false) = evalGate gg.[g] ((!v.[a]), true))
-            garb(yy.[g], true, false);
-        }
+          garb(tok, true, false);
       }
       g = g + 1;
     }
-    answer = ((n, m, q, aa, bb, pp), encrypt xx xc,tt);
+    g = n;
+    while (g < n+q-1) {
+      a = aa.[g];
+      b = bb.[g];
+      if (b < l)
+      {
+        tok = $DKC.genRandKey;
+        garb(tok, false, true);
+      }
+      g = g + 1;
+    }
+    g = n;
+    while (g < n+q-1) {
+      a = aa.[g];
+      b = bb.[g];
+      if (a = l)
+      {
+        tok = getTok xx g (evalGate gg.[g] ((v.[a]),(!v.[b])));
+        garb(tok, false, true);
+      }
+      g = g + 1;
+    }
+    g = n;
+    while (g < n+q-1) {
+      a = aa.[g];
+      b = bb.[g];
+      if (b = l)
+      {
+        tok = $DKC.genRandKey;
+        garb(tok, true, false);
+      }
+      g = g + 1;
+    }
+    g = n;
+    while (g < n+q-1) {
+      a = aa.[g];
+      b = bb.[g];
+      if (b = l)
+      {
+        if (evalGate gg.[g] ((!v.[a]), false) = evalGate gg.[g] ((!v.[a]), true))
+          garb(yy.[g], true, false);
+      }
+      g = g + 1;
+    }
+    g = n;
+    while (g < n+q-1) {
+      a = aa.[g];
+      b = bb.[g];
+      if (a > l)
+      {
+        tok = getTok xx g (evalGate gg.[g] ((!v.[a]),( v.[b])));
+        garb(tok, true, false);
+        tok = getTok xx g (evalGate gg.[g] ((!v.[a]),(!v.[b])));
+        garb(tok, true, true);
+      }
+      g = g + 1;
+    }
+    g = n;
+    while (g < n+q-1) {
+      a = aa.[g];
+      b = bb.[g];
+      if (b > l)
+      {
+        tok = getTok xx g (evalGate gg.[g] ((v.[a]),(!v.[b])));
+        garb(tok, false, true);
+      }
+      g = g + 1;
+    }
   }
 
   
   fun preInit() : unit = {
-    l = $Dinter.dinter 0 (borne-1);
+    l = $Dinter.dinter 0 borne;
   }
 
   fun gen_queries(info:bool) : DKC.query array = {
