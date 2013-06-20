@@ -45,6 +45,7 @@ module AdvAda(A:Garble.Adv, Dkc:DKC.Dkc_t) : AdvAda_t = {
   var v : bool array
   var yy : token array
   var xx : tokens
+  var randG : (int*bool*bool, token) map
   var a : int
   var b : int
   var i : int
@@ -94,10 +95,15 @@ module AdvAda(A:Garble.Adv, Dkc:DKC.Dkc_t) : AdvAda_t = {
       yy);
   }
 
+  fun preGarbD(rand:bool, alpha:bool, bet:bool) : unit = {
+    var yy : token;
+    if (rand) randG.[(g,alpha,bet)] = $DKC.genRandKey;
+  }
+
   fun garbD(rand:bool, alpha:bool, bet:bool) : token = {
     var yy : token;
     if (rand)
-      yy = $DKC.genRandKey;
+      yy = proj randG.[(g,alpha,bet)];
     else
       yy = getTok xx g (evalGate gg.[g] ((v.[a]^^alpha),(v.[b]^^alpha)));
     garb(yy, alpha, bet);
@@ -135,17 +141,29 @@ module AdvAda(A:Garble.Adv, Dkc:DKC.Dkc_t) : AdvAda_t = {
         tok = query(false, false, true);
         yy.[g] = query(true, true, true);
       }
+      if (a <> l /\ b <> l) {
+        preGarbD(a <= l, true, false);
+        preGarbD(b <= l, false, true);
+        preGarbD(a <= l, true, true);
+      } else {
+        if (a = l) {
+          preGarbD(false, false, true);
+        } else {
+          preGarbD(true, true, false);
+        }
+      }
+      
       g = g + 1;
     }
 
     i = 0;
     while (i < n+q) {
+      tok = $DKC.genRandKeyLast (! t.[i]);
       if (getTok xx i true = void /\ i <> 0) {
-        tok = $DKC.genRandKeyLast (! t.[i]);
         xx = setTok xx i true tok;
       }
+      tok = $DKC.genRandKeyLast (t.[i]);
       if (getTok xx i false = void) {
-        tok = $DKC.genRandKeyLast (t.[i]);
         xx = setTok xx i false tok;
       }
       i = i + 1;
@@ -157,18 +175,20 @@ module AdvAda(A:Garble.Adv, Dkc:DKC.Dkc_t) : AdvAda_t = {
       b = bb.[g];
       garb(getTok xx g v.[g], false, false);
       if (a <> l /\ b <> l) {
-        tok = garbD(a <= l, true, false);
         tok = garbD(b <= l, false, true);
         yyt = garbD(a <= l, true, true);
-        if (a <= l /\ l <= b /\ evalGate gg.[g] ((!v.[a]), false) = evalGate gg.[g] ((!v.[a]), true))
+        if (a < l /\ l < b /\ evalGate gg.[g] ((!v.[a]), false) = evalGate gg.[g] ((!v.[a]), true))
           garb(yyt, true, false);
+        else
+          tok = garbD(a <= l, true, false);
       } else {
         if (a = l) {
           tok = garbD(false, false, true);
         } else {
-          tok = garbD(true, true, false);
           if (evalGate gg.[g] ((!v.[a]), false) = evalGate gg.[g] ((!v.[a]), true))
             garb(yy.[g], true, false);
+          else
+            tok = garbD(true, true, false);
         }
       }
       g = g + 1;
