@@ -58,7 +58,7 @@ op choose(k:(token*token) array, i:bool array, j:int) : token = getTok k j i.[j]
 
 op validfx(qu:(bool functGen)*(bool array)) =
   let (n, m, q, aa, bb, gg) = fst qu in
-  n > 0 /\ m > 0 /\ q > 0 /\
+  n > 1 /\ m > 0 /\ q > 0 /\
   length aa = n + q /\ length bb = n + q /\ length gg = n + q /\
   length (snd qu) = n /\
   (range n (n+q-1) true (lambda i b, b /\ aa.[i] >= 0 /\ bb.[i] < i /\ aa.[i] < bb.[i])).

@@ -190,6 +190,7 @@ module Fake(A:Garble.Adv) = {
       v = Array.init (n+q) false;
       xx = Array.init (n+q) (void, void);
       pp = Array.init (n+q) (void, void, void, void);
+      randG = Map.empty;
       garble();
       challenge = A.get_challenge(answer);
       c = $Dbool.dbool;
@@ -241,11 +242,11 @@ proof strict.
   case (Garble.queryValid Fake.query{2}).
 
   (*VALID*)
-  rcondt {1} 18;first (intros _;wp;rnd;wp;rnd;rnd;skip;progress assumption).
+  rcondt {1} 19;first (intros _;wp;rnd;wp;rnd;rnd;skip;progress assumption).
   rcondt {2} 1;first (intros &m;skip;by progress).
 
   swap{1} 8 -7.
-  swap{2} 24 -23.
+  swap{2} 25 -24.
 
   wp.
   call ((glob ADV){1} = (glob ADV){2}/\answer{1}=answer{2}) (res{1}=res{2});first (fun true;by progress).
@@ -266,7 +267,6 @@ proof strict.
       AdvAda.randG{1} = Fake.randG{2}/\
       AdvAda.pp{1} = Fake.pp{2}/\
       AdvAda.fc{1} = Fake.f1{2}/\
-      (AdvAda.c{1} = DKC.Dkc.b{1}) = PrvInd.b{2}/\
       AdvAda.xc{1} = Fake.x1{2}/\
       Fake.n{2} > 1/\
       Fake.m{2} > 0/\
@@ -281,7 +281,7 @@ proof strict.
         AdvAda.yy{1}.[g]=proj Fake.randG{2}.[(g, true, false)] else true)/\
 
     AdvAda.g{1} = Fake.g{2} /\
-      Fake.g{2} > Fake.n{2} /\
+      Fake.g{2} >= Fake.n{2} /\
     true
   ).
     seq 6 6 : (
@@ -299,7 +299,6 @@ proof strict.
       AdvAda.randG{1} = Fake.randG{2}/\
       AdvAda.pp{1} = Fake.pp{2}/\
       AdvAda.fc{1} = Fake.f1{2}/\
-      (AdvAda.c{1} = DKC.Dkc.b{1}) = PrvInd.b{2}/\
       AdvAda.xc{1} = Fake.x1{2}/\
       Fake.n{2} > 1/\
       Fake.m{2} > 0/\
@@ -318,7 +317,7 @@ proof strict.
       ((!AdvAda.v{1}.[AdvAda.a{1}]), false) = evalGate AdvAda.gg{1}.[Fake.g{2}] ((!AdvAda.v{1}.[AdvAda.a{1}]), true)) then
         AdvAda.yy{1}.[Fake.g{2}]=proj Fake.randG{2}.[(Fake.g{2}, true, false)] else true)/\
       AdvAda.g{1} = Fake.g{2} /\
-      Fake.g{2} > Fake.n{2} /\
+      Fake.g{2} >= Fake.n{2} /\
       AdvAda.a{1} = Fake.a{2} /\
       AdvAda.b{1} = Fake.b{2} /\
       AdvAda.a{1} < borne-1 /\
@@ -357,7 +356,6 @@ proof strict.
       AdvAda.randG{1} = Fake.randG{2}/\
       AdvAda.pp{1} = Fake.pp{2}/\
       AdvAda.fc{1} = Fake.f1{2}/\
-      (AdvAda.c{1} = DKC.Dkc.b{1}) = PrvInd.b{2}/\
       AdvAda.xc{1} = Fake.x1{2}/\
       Fake.n{2} > 1/\
       Fake.m{2} > 0/\
@@ -416,7 +414,7 @@ proof strict.
         AdvAda.yy{1}.[g]=proj Fake.randG{2}.[(g, true, false)] else true)/\
 
     AdvAda.g{1} = Fake.g{2} /\
-      Fake.g{2} > Fake.n{2} /\
+      Fake.g{2} >= Fake.n{2} /\
     true
   ).
     admit.
@@ -437,7 +435,6 @@ proof strict.
       AdvAda.randG{1} = Fake.randG{2}/\
       AdvAda.pp{1} = Fake.pp{2}/\
       AdvAda.fc{1} = Fake.f1{2}/\
-      (AdvAda.c{1} = DKC.Dkc.b{1}) = PrvInd.b{2}/\
       AdvAda.xc{1} = Fake.x1{2}/\
       Fake.n{2} > 1/\
       Fake.m{2} > 0/\
@@ -449,7 +446,7 @@ proof strict.
            Fake.bb{2}.[i] < borne /\ Fake.bb{2}.[i] < i /\ Fake.aa{2}.[i] < Fake.bb{2}.[i]) /\
 
     AdvAda.i{1} = Fake.i{2} /\
-      Fake.i{2} > 0 /\
+      Fake.i{2} >= 0 /\
     true
   );first (wp;skip;progress assumption;first (rewrite ! set_length;try assumption));smt.
 
@@ -468,7 +465,6 @@ proof strict.
       AdvAda.randG{1} = Fake.randG{2}/\
       AdvAda.pp{1} = Fake.pp{2}/\
       AdvAda.fc{1} = Fake.f1{2}/\
-      (AdvAda.c{1} = DKC.Dkc.b{1}) = PrvInd.b{2}/\
       AdvAda.xc{1} = Fake.x1{2}/\
       Fake.n{2} > 1/\
       Fake.m{2} > 0/\
@@ -480,19 +476,97 @@ proof strict.
            Fake.bb{2}.[i] < borne /\ Fake.bb{2}.[i] < i /\ Fake.aa{2}.[i] < Fake.bb{2}.[i]) /\
 
     AdvAda.i{1} = Fake.i{2} /\
-      Fake.i{2} > 0 /\
+      Fake.i{2} >= 0 /\
     true
   );first (wp;rnd;wp;skip;progress assumption;first (rewrite ! set_length;try assumption));smt.
 
+wp.
+swap 1 1.
   wp;rnd;rnd;rnd.
   skip.
-  progress.
+  cut lem : (forall (x:int), x <= x);first smt.
+  delta queryValid validfx.
+  intros &1 &2.
+  elimT tuple2_ind Fake.query{2}.
+  intros query1 query2.
+
+  elimT tuple2_ind query1.
+  intros f1 x1.
+  elimT tuple6_ind f1.
+  intros n1 m1 q1 aa1 bb1 gg1.
+
+  elimT tuple2_ind query2.
+  intros f2 x2.
+  elimT tuple6_ind f2.
+  intros n2 m2 q2 aa2 bb2 gg2.
+  delta fst snd.
+
+  progress assumption.
+  apply init_length.
+  smt.
+  smt.
+  smt.
+  smt.
+  smt.
+admit.
+admit.
+admit.
+admit.
+admit.
+admit.
+admit.
+admit.
+admit.
+  smt.
+  smt.
+  smt.
+  smt.
+  smt.
+  smt.
+  smt.
+  smt.
+  smt.
+  smt.
+  smt.
+  smt.
+  smt.
+  smt.
+  smt.
+  smt.
+  smt.
+  smt.
+  smt.
+  smt.
+  admit.
+  admit.
+  smt.
+  smt.
+  smt.
+  admit.
+  smt.
+  smt.
+  smt.
+  smt.
+  smt.
+  smt.
+  smt.
+  smt.
+  smt.
+  smt.
+  smt.
+  smt.
+  smt.
+  smt.
+  smt.
+  smt.
+  smt.
+  smt.
 
   (*INVALID*)
   rcondf {1} 18;first (intros _;wp;rnd;wp;rnd;rnd;skip;smt).
   rcondf {2} 1;[intros &m;skip;smt|].
   wp.
   kill{1} 1!17;first (wp;rnd 1%r cPtrue;wp;rnd 1%r cPtrue;rnd 1%r cPtrue;skip;progress;smt).
-  rnd.*)
-  skip;progress assumption.
+  rnd;skip;progress assumption;smt.
+
 save.

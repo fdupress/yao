@@ -14,14 +14,7 @@ require import GarbleTools.
 op eval(f:funct, i:input, k:int) = (evalComplete f i extract).[k].
 op void = (Bitstring.zeros 0).
 
-op qu : Garble.query.
-
-module type AdvAda_t = {
-    fun preInit() : unit {}
-    fun work(info:bool) : bool
-}.
-
-module AdvAda(A:Garble.Adv, Dkc:DKC.Dkc_t) : AdvAda_t = {
+module AdvAda(A:Garble.Adv, Dkc:DKC.Dkc_t) (*: DKC.AdvAda_t(Dkc)*) = {
 
   var c : bool
   var fc : Garble.funct
@@ -203,7 +196,7 @@ module AdvAda(A:Garble.Adv, Dkc:DKC.Dkc_t) : AdvAda_t = {
 
   fun work(info:bool) : bool = {
     var challenge : bool;
-    var ret : bool;
+    var ret : bool; 
     query = A.gen_query();
     c = $Dbool.dbool;
     if (c) {
@@ -220,6 +213,7 @@ module AdvAda(A:Garble.Adv, Dkc:DKC.Dkc_t) : AdvAda_t = {
     xx = Array.init (n+q) (void, void);
     yy = Array.init (n+q) void;
     pp = Array.init (n+q) (void, void, void, void);
+    randG = Map.empty;
     tau = info;
     if (Garble.queryValid query)
     {

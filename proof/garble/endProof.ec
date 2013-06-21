@@ -202,7 +202,9 @@ proof.
   intros epDkc hDkc.
   elim hDkc. clear hDkc.
   intros hPos hDkc.
+
   exists (borne%r*epDkc).
+
   cut bPos : (borne%r > 0%r);first smt.
   progress;first smt.
   rewrite (RelDkcGarble &m (<:Adv)).
