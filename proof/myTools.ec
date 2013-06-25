@@ -24,7 +24,7 @@ axiom range_ind :
   forall (i j:int),
     forall (x:'a),
       forall (f:int -> 'a -> 'a),
-        i < j => (range i j x f = f j (range i (j-1) x f)).
+        i < j => (range i j x f = f (j-1) (range i (j-1) x f)).
 
 op appender(extract:int -> 'a array ->  'a, i:int, ar:'a array) : 'a array =
   ar:::(extract (i-1) ar).

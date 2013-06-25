@@ -191,7 +191,7 @@ module AdvAda(A:Garble.Adv, Dkc:DKC.Dkc_t) (*: DKC.AdvAda_t(Dkc)*) = {
 
   
   fun preInit() : unit = {
-    l = $Dinter.dinter 0 borne;
+    l = $Dinter.dinter 0 (bound-1);
   }
 
   fun work(info:bool) : bool = {

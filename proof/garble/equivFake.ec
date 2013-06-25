@@ -120,13 +120,13 @@ module Fake(A:Garble.Adv) = {
     }
 
 
-    t.[borne-1] = !tau;
+    t.[bound-1] = !tau;
 
     g = n;
     while (g < n+q) {
       a = aa.[g];
       b = bb.[g];
-      if (b = borne - 1) {
+      if (b = bound - 1) {
         query(false, false, true);
         query(true, true, true);
         preGarbD(true, false);
@@ -156,7 +156,7 @@ module Fake(A:Garble.Adv) = {
       a = aa.[g];
       b = bb.[g];
       garb(getTok xx g v.[g], false, false);
-      if (b <> borne - 1) {
+      if (b <> bound - 1) {
         tok = garbD(false, true);
         tok = garbD(true, true);
         tok = garbD(true, false);
@@ -210,7 +210,7 @@ lemma fakeEq :
       GameAda(DKC.Dkc, ADV).work ~
       Fake(ADV).work
       : (glob ADV){1} = (glob ADV){2} /\
-      (!DKC.Dkc.b{1}) /\ (AdvAda.l{1}=borne-1) ==> res{1} = res{2}
+      (!DKC.Dkc.b{1}) /\ (AdvAda.l{1}=bound-1) ==> res{1} = res{2}
     ].
 proof strict.
   intros ADV.
@@ -235,7 +235,7 @@ proof strict.
 
   swap{1} 8 -7.
 
-  seq 1 1 : ((glob ADV){1} = (glob ADV){2}/\AdvAda.query{1} = Fake.query{2} /\ (!DKC.Dkc.b{1}) /\ (AdvAda.l{1}=borne-1)).
+  seq 1 1 : ((glob ADV){1} = (glob ADV){2}/\AdvAda.query{1} = Fake.query{2} /\ (!DKC.Dkc.b{1}) /\ (AdvAda.l{1}=bound-1)).
     call ((glob ADV){1} = (glob ADV){2}) (res{1}=res{2} /\ (glob ADV){1} = (glob ADV){2});first (fun true;by progress).
   skip;progress;assumption.
   
@@ -272,11 +272,11 @@ proof strict.
       Fake.m{2} > 0/\
       Fake.q{2} > 0/\
       (*Fake.f1{2} = (Fake.n{2}, Fake.m{2}, Fake.q{2}, Fake.aa{2}, Fake.bb{2}, Fake.gg{2}) /\*)
-      borne = Fake.n{2} + Fake.q{2} /\
-      AdvAda.l{1} = borne-1 /\
+      Fake.n{2} + Fake.q{2} - Fake.m{2} = bound /\
+      AdvAda.l{1} = bound-1 /\
     (forall i, i >= Fake.n{2} => i < Fake.n{2}+Fake.q{2} => Fake.aa{2}.[i] >= 0 /\
-           Fake.bb{2}.[i] < borne /\ Fake.bb{2}.[i] < i /\ Fake.aa{2}.[i] < Fake.bb{2}.[i]) /\
-    (forall g, if (AdvAda.bb{1}.[g] = borne-1 /\ evalGate AdvAda.gg{1}.[g]
+           Fake.bb{2}.[i] < bound /\ Fake.bb{2}.[i] < i /\ Fake.aa{2}.[i] < Fake.bb{2}.[i]) /\
+    (forall g, if (AdvAda.bb{1}.[g] = bound-1 /\ evalGate AdvAda.gg{1}.[g]
       ((!AdvAda.v{1}.[AdvAda.aa{1}.[g]]), false) = evalGate AdvAda.gg{1}.[g] ((!AdvAda.v{1}.[AdvAda.aa{1}.[g]]), true)) then
         AdvAda.yy{1}.[g]=proj Fake.randG{2}.[(g, true, false)] else true)/\
 
@@ -304,26 +304,27 @@ proof strict.
       Fake.m{2} > 0/\
       Fake.q{2} > 0/\
       (*Fake.f1{2} = (Fake.n{2}, Fake.m{2}, Fake.q{2}, Fake.aa{2}, Fake.bb{2}, Fake.gg{2}) /\*)
-      borne = Fake.n{2} + Fake.q{2} /\
-      AdvAda.l{1} = borne-1 /\
+      Fake.n{2} + Fake.q{2} - Fake.m{2} = bound /\
+      AdvAda.l{1} = bound-1 /\
     (forall i, i >= Fake.n{2} => i < Fake.n{2}+Fake.q{2} => Fake.aa{2}.[i] >= 0 /\
-           Fake.bb{2}.[i] < borne /\ Fake.bb{2}.[i] < i /\ Fake.aa{2}.[i] < Fake.bb{2}.[i]) /\
-    (forall g, if (AdvAda.bb{1}.[g] = borne-1 /\ evalGate AdvAda.gg{1}.[g]
+           Fake.bb{2}.[i] < bound /\ Fake.bb{2}.[i] < i /\ Fake.aa{2}.[i] < Fake.bb{2}.[i]) /\
+    (forall g, if (AdvAda.bb{1}.[g] = bound-1 /\ evalGate AdvAda.gg{1}.[g]
       ((!AdvAda.v{1}.[AdvAda.aa{1}.[g]]), false) = evalGate AdvAda.gg{1}.[g] ((!AdvAda.v{1}.[AdvAda.aa{1}.[g]]), true)) then
         AdvAda.yy{1}.[g]=proj Fake.randG{2}.[(g, true, false)] else true)/\
 
 
-    (if (AdvAda.b{1} = borne-1 /\ evalGate AdvAda.gg{1}.[Fake.g{2}]
+    (if (AdvAda.b{1} = bound-1 /\ evalGate AdvAda.gg{1}.[Fake.g{2}]
       ((!AdvAda.v{1}.[AdvAda.a{1}]), false) = evalGate AdvAda.gg{1}.[Fake.g{2}] ((!AdvAda.v{1}.[AdvAda.a{1}]), true)) then
         AdvAda.yy{1}.[Fake.g{2}]=proj Fake.randG{2}.[(Fake.g{2}, true, false)] else true)/\
       AdvAda.g{1} = Fake.g{2} /\
       Fake.g{2} >= Fake.n{2} /\
       AdvAda.a{1} = Fake.a{2} /\
       AdvAda.b{1} = Fake.b{2} /\
-      AdvAda.a{1} < borne-1 /\
-      AdvAda.b{1} <= borne-1 /\
+      AdvAda.a{1} < bound-1 /\
+      AdvAda.b{1} <= bound-1 /\
       true
-    );first (wp;skip;progress assumption;smt).
+    );first wp;skip;(progress assumption;first apply H6;progress;assumption);smt.
+
     if;first smt.
       (*IF TRUE*)
       rcondt{1} 4;first (intros _;wp;skip;smt).
@@ -361,11 +362,11 @@ proof strict.
       Fake.m{2} > 0/\
       Fake.q{2} > 0/\
       (*Fake.f1{2} = (Fake.n{2}, Fake.m{2}, Fake.q{2}, Fake.aa{2}, Fake.bb{2}, Fake.gg{2}) /\*)
-      borne = Fake.n{2} + Fake.q{2} /\
-      AdvAda.l{1} = borne-1 /\
+      Fake.n{2} + Fake.q{2} - Fake.m{2} = bound /\
+      AdvAda.l{1} = bound-1 /\
     (forall i, i >= Fake.n{2} => i < Fake.n{2}+Fake.q{2} => Fake.aa{2}.[i] >= 0 /\
-           Fake.bb{2}.[i] < borne /\ Fake.bb{2}.[i] < i /\ Fake.aa{2}.[i] < Fake.bb{2}.[i]) /\
-    (forall g, if (AdvAda.bb{1}.[g] = borne-1 /\ evalGate AdvAda.gg{1}.[g]
+           Fake.bb{2}.[i] < bound /\ Fake.bb{2}.[i] < i /\ Fake.aa{2}.[i] < Fake.bb{2}.[i]) /\
+    (forall g, if (AdvAda.bb{1}.[g] = bound-1 /\ evalGate AdvAda.gg{1}.[g]
       ((!AdvAda.v{1}.[AdvAda.aa{1}.[g]]), false) = evalGate AdvAda.gg{1}.[g] ((!AdvAda.v{1}.[AdvAda.aa{1}.[g]]), true)) then
         AdvAda.yy{1}.[g]=proj Fake.randG{2}.[(g, true, false)] else true)/\
 
@@ -405,11 +406,11 @@ proof strict.
       Fake.m{2} > 0/\
       Fake.q{2} > 0/\
       (*Fake.f1{2} = (Fake.n{2}, Fake.m{2}, Fake.q{2}, Fake.aa{2}, Fake.bb{2}, Fake.gg{2}) /\*)
-      borne = Fake.n{2} + Fake.q{2} /\
-      AdvAda.l{1} = borne-1 /\
+      Fake.n{2} + Fake.q{2} - Fake.m{2} = bound /\
+      AdvAda.l{1} = bound-1 /\
     (forall i, i >= Fake.n{2} => i < Fake.n{2}+Fake.q{2} => Fake.aa{2}.[i] >= 0 /\
-           Fake.bb{2}.[i] < borne /\ Fake.bb{2}.[i] < i /\ Fake.aa{2}.[i] < Fake.bb{2}.[i]) /\
-    (forall g, if (AdvAda.bb{1}.[g] = borne-1 /\ evalGate AdvAda.gg{1}.[g]
+           Fake.bb{2}.[i] < bound /\ Fake.bb{2}.[i] < i /\ Fake.aa{2}.[i] < Fake.bb{2}.[i]) /\
+    (forall g, if (AdvAda.bb{1}.[g] = bound-1 /\ evalGate AdvAda.gg{1}.[g]
       ((!AdvAda.v{1}.[AdvAda.aa{1}.[g]]), false) = evalGate AdvAda.gg{1}.[g] ((!AdvAda.v{1}.[AdvAda.aa{1}.[g]]), true)) then
         AdvAda.yy{1}.[g]=proj Fake.randG{2}.[(g, true, false)] else true)/\
 
@@ -440,10 +441,10 @@ proof strict.
       Fake.m{2} > 0/\
       Fake.q{2} > 0/\
       (*Fake.f1{2} = (Fake.n{2}, Fake.m{2}, Fake.q{2}, Fake.aa{2}, Fake.bb{2}, Fake.gg{2}) /\*)
-      borne = Fake.n{2} + Fake.q{2} /\
-      AdvAda.l{1} = borne-1 /\
+      Fake.n{2} + Fake.q{2} - Fake.m{2} = bound /\
+      AdvAda.l{1} = bound-1 /\
     (forall i, i >= Fake.n{2} => i < Fake.n{2}+Fake.q{2} => Fake.aa{2}.[i] >= 0 /\
-           Fake.bb{2}.[i] < borne /\ Fake.bb{2}.[i] < i /\ Fake.aa{2}.[i] < Fake.bb{2}.[i]) /\
+           Fake.bb{2}.[i] < bound /\ Fake.bb{2}.[i] < i /\ Fake.aa{2}.[i] < Fake.bb{2}.[i]) /\
 
     AdvAda.i{1} = Fake.i{2} /\
       Fake.i{2} >= 0 /\
@@ -470,10 +471,10 @@ proof strict.
       Fake.m{2} > 0/\
       Fake.q{2} > 0/\
       (*Fake.f1{2} = (Fake.n{2}, Fake.m{2}, Fake.q{2}, Fake.aa{2}, Fake.bb{2}, Fake.gg{2}) /\*)
-      borne = Fake.n{2} + Fake.q{2} /\
-      AdvAda.l{1} = borne-1 /\
+      Fake.n{2} + Fake.q{2} - Fake.m{2} = bound /\
+      AdvAda.l{1} = bound-1 /\
     (forall i, i >= Fake.n{2} => i < Fake.n{2}+Fake.q{2} => Fake.aa{2}.[i] >= 0 /\
-           Fake.bb{2}.[i] < borne /\ Fake.bb{2}.[i] < i /\ Fake.aa{2}.[i] < Fake.bb{2}.[i]) /\
+           Fake.bb{2}.[i] < bound /\ Fake.bb{2}.[i] < i /\ Fake.aa{2}.[i] < Fake.bb{2}.[i]) /\
 
     AdvAda.i{1} = Fake.i{2} /\
       Fake.i{2} >= 0 /\
@@ -484,8 +485,12 @@ wp.
 swap 1 1.
   wp;rnd;rnd;rnd.
   skip.
+
+
   cut lem : (forall (x:int), x <= x);first smt.
-  delta queryValid validfx.
+  delta queryValid.
+  rewrite valid_wireinput.
+  delta fst snd getN getM getQ.
   intros &1 &2.
   elimT tuple2_ind Fake.query{2}.
   intros query1 query2.
@@ -499,10 +504,72 @@ swap 1 1.
   intros f2 x2.
   elimT tuple6_ind f2.
   intros n2 m2 q2 aa2 bb2 gg2.
-  delta fst snd.
 
-  progress assumption.
-  apply init_length.
+(*Progress :
+  do ? (
+    do ? (
+      do ? (intros=> [hyp1 hyp2];generalize hyp1 hyp2);
+      intros ?
+    );
+    subst;simplify;
+    
+    do (try assumption;split);
+    try assumption
+  ).
+*)
+
+  do 2! (
+    do ? (
+      do ? (intros=> [hyp1 hyp2];generalize hyp1 hyp2);
+      intros ?
+    );
+    subst;simplify;
+    
+    do (try assumption;split);
+    try assumption
+  ).
+  intros h.
+
+  La ligne suivant ne termine pas :
+
+  split.
+
+
+    do ? (
+      do ? (intros=> [hyp1 hyp2];generalize hyp1 hyp2);
+      intros ?
+    ).
+    subst;simplify.
+    do (try assumption;split).
+    do intros ?.
+    split.
+    do intros ?.
+    assumption.
+    do ? (
+      do ? (intros=> [hyp1 hyp2];generalize hyp1 hyp2);
+      intros ?
+    ).
+    case cL.
+    do ? (
+      do ? (intros=> [hyp1 hyp2];generalize hyp1 hyp2);
+      intros ?
+    ).
+    split.
+    split.
+    apply init_length;smt.
+    split.
+    apply init_length;smt.
+    split.
+    assumption.
+    split.
+    assumption.
+    split.
+    assumption.
+    split.
+    assumption.
+    split.
+    assumption.
+
   smt.
   smt.
   smt.

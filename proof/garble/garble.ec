@@ -12,8 +12,8 @@ type w2g = int array.
 type 'a g2v = ('a*'a*'a*'a) array.
 type 'a functGen = int*int*int*w2g*w2g*('a g2v).
 
-op borne : int.
-axiom borneInf : borne > 1.
+op bound : int.
+axiom boundInf : bound > 1.
 
 (*Access to funct member*)
 op getN(f:'a functGen) : int =
@@ -56,23 +56,71 @@ op garbMap(x:tokens, f:bool functGen, g:int) : token*token*token*token =
 op choose(k:(token*token) array, i:bool array, j:int) : token = getTok k j i.[j].
 
 
-op validfx(qu:(bool functGen)*(bool array)) =
-  let (n, m, q, aa, bb, gg) = fst qu in
+op validCircuit(f:(bool functGen)) =
+  let (n, m, q, aa, bb, gg) = f in
   n > 1 /\ m > 0 /\ q > 0 /\
   length aa = n + q /\ length bb = n + q /\ length gg = n + q /\
-  length (snd qu) = n /\
-  (range n (n+q-1) true (lambda i b, b /\ aa.[i] >= 0 /\ bb.[i] < i /\ aa.[i] < bb.[i])).
+  (range n (n+q) true (lambda i b, b /\ aa.[i] >= 0 /\ bb.[i] < i /\ bb.[i] < n+q-m /\ aa.[i] < bb.[i])).
+
+
+lemma induction: forall (p:int -> bool),
+    (forall i, 0 <= i => (p 0) => 
+    (forall j, 0 < j => p (j - 1) => p j) =>
+     p i).
+smt.
+save.
 
 lemma valid_wireinput :
-  forall (qu:(bool functGen)*(bool array)),
-    validfx qu =>
-      let (n, m, q, aa, bb, gg) = fst qu in
+  forall (f:(bool functGen)),
+    validCircuit f <=> 
+  let (n, m, q, aa, bb, gg) = f in
+  n > 1 /\ m > 0 /\ q > 0 /\
+  length aa = n + q /\ length bb = n + q /\ length gg = n + q /\
       (forall i,
-         i >= n  => i < n + q =>
+         i >= n  => i < n+q =>
            aa.[i] >= 0 /\
            bb.[i] < i /\
+           bb.[i] < n+q-m /\
            aa.[i] < bb.[i]).
-admit.
+delta validCircuit.
+intros f.
+elimT tuple6_ind f.
+intros x1 x2 x3 x4 x5 x6 valF.
+case (x1 > 1);last simplify;smt.
+case (x2 > 0);last simplify;split.
+case (x3 > 0);last simplify;split.
+case (length x4 = x1 + x3);last simplify;split.
+case (length x5 = x1 + x3);last simplify;split.
+case (length x6 = x1 + x3);last simplify;split.
+intros H1 H2 H3 H4 H5 H6.
+rewrite (_:(x1 > 1) = true);first smt.
+simplify.
+apply (Induction.induction
+(lambda j,
+  range x1 (x1 + j) true
+  (lambda (i : int) (b : bool),
+     b /\
+     x4.[i] >= 0 /\ x5.[i] < i /\ x5.[i] < x1 + x3 - x2 /\ x4.[i] < x5.[i]) <=>
+forall (i : int),
+  i >= x1 =>
+  i < x1 + j =>
+  x4.[i] >= 0 /\ x5.[i] < i /\ x5.[i] < x1 + x3 - x2 /\ x4.[i] < x5.[i]) _ _ x3 _
+);last first;first 2 smt.
+simplify => j hypJ hypRec.
+rewrite range_ind;first smt.
+rewrite (_:(x1 + j - 1 = x1 + (j - 1)));first smt.
+rewrite hypRec.
+simplify.
+split => h.
+elim h => h1 h2 i.
+case (i = x1 + (j - 1)).
+  intros => -> _ _.
+apply h2.
+intros hh1 hh2 hh3.
+apply h1.
+assumption.
+smt.
+(split;first intros i hI hI2);apply h;smt.
 save.
 
 clone Scheme as Garble with
@@ -132,11 +180,12 @@ clone Scheme as Garble with
   op queryValid(query:query) =
     let query0 = fst query in
     let query1 = snd query in
-    validfx query0 /\ validfx query1 /\
+    validCircuit (fst query0) /\ validCircuit (fst query1) /\
+    length (snd query0) = getN (fst query0) /\ length (snd query1) = getN (fst query1) /\
     Garble.eval (fst query0) (snd query0) = Garble.eval (fst query1) (snd query1) /\
     phi (fst query0) = phi (fst query1) /\
-    (getN (fst query0)) + (getQ (fst query0)) <= borne /\
-    (getN (fst query1)) + (getQ (fst query1)) <= borne.
+    (getN (fst query0)) + (getQ (fst query0)) - (getM (fst query0)) = bound /\
+    (getN (fst query1)) + (getQ (fst query1)) - (getM (fst query1)) = bound.
 
 
 export Garble.
