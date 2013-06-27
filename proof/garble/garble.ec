@@ -58,23 +58,15 @@ op choose(k:(token*token) array, i:bool array, j:int) : token = getTok k j i.[j]
 
 op validCircuit(f:(bool functGen)) =
   let (n, m, q, aa, bb, gg) = f in
-  n > 1 /\ m > 0 /\ q > 0 /\
+  n > 1 /\ m > 0 /\ q > 0 /\ q >= m /\
   length aa = n + q /\ length bb = n + q /\ length gg = n + q /\
   (range n (n+q) true (lambda i b, b /\ aa.[i] >= 0 /\ bb.[i] < i /\ bb.[i] < n+q-m /\ aa.[i] < bb.[i])).
-
-
-lemma induction: forall (p:int -> bool),
-    (forall i, 0 <= i => (p 0) => 
-    (forall j, 0 < j => p (j - 1) => p j) =>
-     p i).
-smt.
-save.
 
 lemma valid_wireinput :
   forall (f:(bool functGen)),
     validCircuit f <=> 
   let (n, m, q, aa, bb, gg) = f in
-  n > 1 /\ m > 0 /\ q > 0 /\
+  n > 1 /\ m > 0 /\ q > 0 /\ q >= m /\
   length aa = n + q /\ length bb = n + q /\ length gg = n + q /\
       (forall i,
          i >= n  => i < n+q =>
@@ -471,9 +463,11 @@ module RandGarble : Rand_t = {
 
     i = 0;
     while (i < (getN f)+(getQ f)-1) {
-      tok = $DKC.genRandKeyLast (! t.[i]);
+      tok = $DKC.genRandKeyLast;
+      tok = DKC.addLast tok  (! t.[i]);
       xx = setTok xx i true tok;
-      tok = $DKC.genRandKeyLast (t.[i]);
+      tok = $DKC.genRandKeyLast;
+      tok = DKC.addLast tok t.[i];
       xx = setTok xx i false tok;
       i = i + 1;
     }

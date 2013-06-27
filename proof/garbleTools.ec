@@ -22,6 +22,11 @@ op getTok(x:tokens, a:int, i:bool) : token =
 op setTok(x:tokens, a:int, i:bool, t:token) : tokens =
   if i then x.[a <- (fst x.[a], t)] else x.[a <- (t, snd x.[a])].
 
+lemma set_get_tok: forall (x:tokens, a:int, i:bool, t:token, b:int, j:bool),
+  0 <= b => b < length x =>
+  getTok (setTok x a i t) b j = (a=b/\i=j)?t:getTok x b j by [].
+
+
 op intToBitstring : int -> bitstring.
 
 axiom intToBitstring_inj : forall g gg,
@@ -39,7 +44,13 @@ intros h.
 cut eqA : ( (a::(b::Bits.empty)).[0] = (aa::(bb::Bits.empty)).[0] );first smt.
 cut eqB : ( (a::(b::Bits.empty)).[1] = (aa::(bb::Bits.empty)).[1] );first smt.
 smt.
-save.  
+save.
+
+lemma tweak_inj2 :
+  forall g a b gg aa bb,
+     !((g, a, b) = (gg, aa, bb)) => ((tweak g a b = tweak gg aa bb)=false).
+smt.
+save.
 
 
 op evalGate(f:'a gate, i:bool*bool) : 'a =

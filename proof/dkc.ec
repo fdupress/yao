@@ -1,5 +1,6 @@
 require import Bitstring.
 require import Map.
+import PartialGet.
 require import Set.
 require import Pair.
 require import Int.
@@ -22,7 +23,8 @@ theory DKC.
   op sb : int.
 
   op genRandKey = Dbitstring.dbitstring k.
-  op genRandKeyLast = Dbitstringlast.dbitstringlast k.
+  op genRandKeyLast = Dbitstring.dbitstring (k-1).
+  op addLast : number -> bool -> number .
 
   op encode : tweak -> key -> key -> msg -> cipher.
   op decode : tweak -> key -> key -> cipher -> msg.
@@ -71,7 +73,8 @@ theory DKC.
     fun initialize() : bool = {
       var t : bool;
       t = $Dbool.dbool;
-      ksec = $genRandKeyLast t;
+      ksec = $genRandKeyLast;
+      ksec = addLast ksec t;
       kpub = Map.empty;
       used = Set.empty;
       r = Map.empty;
@@ -96,18 +99,18 @@ theory DKC.
       if ((!(mem t used)) /\ ((fst j) > (fst i)))
       {
         used = add t used;
-        if (! (in_dom i kpub)) kpub.[i] = $genRandKeyLast (snd i);
-        if (! (in_dom j kpub)) kpub.[j] = $genRandKeyLast (snd j);
+        if (! (in_dom i kpub)) {kpub.[i] = $genRandKeyLast; kpub.[i] = addLast kpub.[i] (snd i);}
+        if (! (in_dom j kpub)) {kpub.[j] = $genRandKeyLast; kpub.[j] = addLast kpub.[j] (snd j);}
         if (! (in_dom j r)) r.[j] = $genRandKey;
         if (pos) {
           keya = ksec;
-          keyb = proj kpub.[i];
+          keyb = kpub.[i];
         } else {
           keyb = ksec;
-          keya = proj kpub.[i];
+          keya = kpub.[i];
         }
-        if (b) msg = proj kpub.[j]; else msg = proj r.[j];
-        out = (proj kpub.[i], proj kpub.[j], encode t keya keyb msg);
+        if (b) msg = kpub.[j]; else msg = r.[j];
+        out = (kpub.[i], kpub.[j], encode t keya keyb msg);
       }
       return out;
     }

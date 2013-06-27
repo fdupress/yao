@@ -1,8 +1,6 @@
 require import Set.
 require import Real.
 
-require import MySet.
-
 op sum(f:'a -> real, s:'a set) : real =
   List.fold_right (lambda (x:'a, sum:real), sum + f x) (0%r) (enum s).
 
