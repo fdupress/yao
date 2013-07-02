@@ -1,3 +1,57 @@
+
+require import Int.
+require import Real.
+require import Array.
+
+
+module Test = {
+  fun f() : int = {
+    var a : int;
+    var r : int array;
+    r = init 2 0;
+    a = 1;
+    a = 0;
+    r.[a] = 1;
+    return r.[a];
+  }
+}.
+
+lemma toto : forall &m, Pr[Test.f()@ &m : res = 1] = 1%r.
+intros &m.
+(bdhoare_deno (_ : (true) ==> (res=1));first fun;wp;skip);smt.
+save.
+
+lemma toto : forall &m, Pr[Test.f()@ &m : res = 1] = 0%r.
+intros &m.
+bdhoare_deno (_ : (true) ==> (res=1)).
+fun.
+cfold 3.
+wp.
+exfalso.
+skip.
+
+first fun;cfold 3;wp;skip).
+
+smt.
+save.
+
+equiv tata : Test.f ~ Test.f : true ==> res{1} = res{2}.
+fun.
+wp.
+skip.
+smt.
+save.
+
+lemma unsound : forall &m, false.
+intros &m.
+cut lem1 : Pr[Test.f()@ &m : res = 1] = Pr[Test.f()@ &m : res = 2];
+  first equiv_deno toto;smt.
+cut lem1 : Pr[Test.f()@ &m : res = 1] = Pr[Test.f()@ &m : res = 2];
+smt.
+smt.
+
+apply (_:
+
 require import Bitstring.
 require import Int.
 require import Bool.
@@ -58,7 +112,7 @@ module AdvAda(A:Garble.Adv, Dkc:DKC.Dkc_t) (*: DKC.AdvAda_t(Dkc)*) = {
     var ko : token;
     var zz : token;
     ttt = tweak g (t.[a]^^alpha) (t.[b]^^bet);
-    gamma = v.[g]^^(evalGate gg.[g] ((v.[a]^^alpha),(v.[b]^^bet));
+    gamma = v.[g]^^(evalGate gg.[g] ((v.[a]^^alpha),(v.[b]^^bet)));
     if (a = l) {
       pos = true;
       input = (b, (t.[b]^^bet));
@@ -146,6 +200,16 @@ module AdvAda(A:Garble.Adv, Dkc:DKC.Dkc_t) (*: DKC.AdvAda_t(Dkc)*) = {
         } else {
           preGarbD(true, true, false);
         }
+      tok = $DKC.genRandKeyLast;
+      tok = DKC.addLast tok (! t.[g]);
+      if (getTok xx g true = void) {
+        xx = setTok xx g true tok;
+      }
+      tok = $DKC.genRandKeyLast;
+      tok = DKC.addLast tok (t.[g]);
+      if (getTok xx g false = void) {
+        xx = setTok xx g false tok;
+      }
       }
       
       g = g + 1;

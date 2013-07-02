@@ -60,38 +60,15 @@ module Fake(A:Garble.Adv) = {
 
     ttt = tweak g (t.[a]^^alpha) (t.[b]^^bet);
     input = (a, (t.[a]^^alpha));
-    if (rand) {
-      ra = $Dbool.dbool;
-      output = (g + n + q, ra);
-    } else
-      output = (g, t.[g]);
-
-
 
     (*DKC encrypt*)
-        tok = $DKC.genRandKey;
-          
         if (! (in_dom input DKC.Dkc.kpub)) {DKC.Dkc.kpub.[input] = $DKC.genRandKeyLast; DKC.Dkc.kpub.[input] = DKC.addLast DKC.Dkc.kpub.[input] (snd input);}
-        if (! (in_dom output DKC.Dkc.kpub)) {DKC.Dkc.kpub.[output] = $DKC.genRandKeyLast; DKC.Dkc.kpub.[output] = DKC.addLast DKC.Dkc.kpub.[output] (snd output);}
-        if (! (in_dom output DKC.Dkc.r)) DKC.Dkc.r.[output] = $DKC.genRandKey;
-
-        tok = r.[output];
+        tok = $DKC.genRandKey;
         ki = kpub.[input];
-        ko = kpub.[output];
         zz = DKC.encode ttt ki ksec tok;
     (*End DKC encrypt*)
-     
-
-
-
-
-
-
-    ans = sub ans 0 ((length ans) - 1);
     pp.[g] = setGateVal pp.[g] ((t.[a]^^alpha), (t.[b]^^bet)) zz;
     xx = setTok xx g alpha ki;
-    if (!rand)
-      xx = setTok xx g false ko;
   }
 
   fun garb(yy:token, alpha:bool, bet:bool) : unit = {
@@ -139,6 +116,10 @@ module Fake(A:Garble.Adv) = {
         query(false, false, true);
         query(true, true, true);
         preGarbD(true, false);
+        tok = $DKC.genRandKeyLast;
+        xx = setTok xx g true (DKC.addLast tok (! t.[g]));
+        tok = $DKC.genRandKeyLast;
+        xx = setTok xx g false (DKC.addLast tok (t.[g]));
       } else {
         preGarbD(false, true);
         preGarbD(true, true);
@@ -279,7 +260,7 @@ proof strict.
   case (Garble.queryValid Fake.query{2}).
 
   (*VALID*)
-  rcondt {1} 20;first (intros _;wp;rnd;wp;rnd;rnd;skip;progress assumption).
+  rcondt {1} 19;first (intros _;wp;rnd;wp;rnd;rnd;skip;progress assumption).
   rcondt {2} 1;first (intros &m;skip;by progress).
 
   swap{1} 9 -8.
@@ -408,9 +389,7 @@ proof strict.
     AdvAda.i{1} = Fake.i{2} /\
       0 <= Fake.i{2} /\
     true
-  ).
-  wp;rnd;wp;rnd;skip.
-  progress assumption;smt.
+  );first wp;rnd;wp;rnd;skip;progress assumption;smt.
 
   wp.
 
@@ -436,13 +415,19 @@ proof strict.
       AdvAda.l{1} = bound-1 /\
     (forall i, i >= Fake.n{2} => i < Fake.n{2}+Fake.q{2} => Fake.aa{2}.[i] >= 0 /\ Fake.bb{2}.[i] < i /\
            Fake.bb{2}.[i] < bound /\ Fake.aa{2}.[i] < Fake.bb{2}.[i]) /\
-    (forall g, g >= Fake.n{2} => g <= Fake.g{2} => AdvAda.bb{1}.[g] = bound-1 /\ evalGate AdvAda.gg{1}.[g]
+    (forall g, g >= Fake.n{2} => g < Fake.g{2} => AdvAda.bb{1}.[g] = bound-1 /\ evalGate AdvAda.gg{1}.[g]
       ((!AdvAda.v{1}.[AdvAda.aa{1}.[g]]), false) = evalGate AdvAda.gg{1}.[g] ((!AdvAda.v{1}.[AdvAda.aa{1}.[g]]), true) =>
         AdvAda.yy{1}.[g]=Fake.randG{2}.[(g, true, false)])/\
+      (forall g a b, g >= Fake.g{2} => !(mem (tweak g a b) DKC.Dkc.used{1})) /\
+      (forall g (x:bool), g < Fake.n{2} + Fake.q{2} => g >= Fake.g{2} => !in_dom (g, x) DKC.Dkc.r{1}) /\
+      (forall g (x:bool), g >= Fake.n{2} + Fake.q{2} + Fake.g{2} => !in_dom (g, x) DKC.Dkc.r{1}) /\
+      (forall g (x:bool), g < bound-1 => in_dom (g, x) DKC.Dkc.kpub{1} = in_dom (g, x) DKC.Dkc.kpub{2}) /\
+      (forall g (x:bool), g < Fake.n{2} + Fake.q{2} => g >= Fake.g{2} => !in_dom (g, x) DKC.Dkc.kpub{1}) /\
+      (forall g (x:bool), g >= Fake.n{2} + Fake.q{2} + Fake.g{2} => !in_dom (g, x) DKC.Dkc.kpub{1}) /\
+    (!DKC.Dkc.b{1}) /\
 
     AdvAda.g{1} = Fake.g{2} /\
       Fake.g{2} >= Fake.n{2} /\
-      (forall g a b, g >= Fake.g{2} => !(mem (tweak g a b) DKC.Dkc.used{1})) /\
     true
   ).
 
@@ -468,16 +453,21 @@ proof strict.
       AdvAda.l{1} = bound-1 /\
     (forall i, i >= Fake.n{2} => i < Fake.n{2}+Fake.q{2} => Fake.aa{2}.[i] >= 0 /\ Fake.bb{2}.[i] < i /\
            Fake.bb{2}.[i] < bound /\ Fake.aa{2}.[i] < Fake.bb{2}.[i]) /\
-    (forall g, g >= Fake.n{2} => g <= Fake.g{2} => AdvAda.bb{1}.[g] = bound-1 /\ evalGate AdvAda.gg{1}.[g]
+    (forall g, g >= Fake.n{2} => g < Fake.g{2} => AdvAda.bb{1}.[g] = bound-1 /\ evalGate AdvAda.gg{1}.[g]
       ((!AdvAda.v{1}.[AdvAda.aa{1}.[g]]), false) = evalGate AdvAda.gg{1}.[g] ((!AdvAda.v{1}.[AdvAda.aa{1}.[g]]), true) =>
         AdvAda.yy{1}.[g]=Fake.randG{2}.[(g, true, false)])/\
+      (forall g (x:bool), g < Fake.n{2} + Fake.q{2} => g >= Fake.g{2} => !in_dom (g, x) DKC.Dkc.r{1}) /\
+      (forall g (x:bool), g >= Fake.n{2} + Fake.q{2} + Fake.g{2} => !in_dom (g, x) DKC.Dkc.r{1}) /\
+      (forall g (x:bool), g < bound-1 => in_dom (g, x) DKC.Dkc.kpub{1} = in_dom (g, x) DKC.Dkc.kpub{2}) /\
+      (forall g (x:bool), g < Fake.n{2} + Fake.q{2} => g >= Fake.g{2} => !in_dom (g, x) DKC.Dkc.kpub{1}) /\
+      (forall g (x:bool), g >= Fake.n{2} + Fake.q{2} + Fake.g{2} => !in_dom (g, x) DKC.Dkc.kpub{1}) /\
+    (!DKC.Dkc.b{1}) /\
 
 
-    (AdvAda.b{1} = bound-1 /\ evalGate AdvAda.gg{1}.[Fake.g{2}]
-      ((!AdvAda.v{1}.[AdvAda.a{1}]), false) = evalGate AdvAda.gg{1}.[Fake.g{2}] ((!AdvAda.v{1}.[AdvAda.a{1}]), true) =>
-        AdvAda.yy{1}.[Fake.g{2}]=Fake.randG{2}.[(Fake.g{2}, true, false)])/\
+
       AdvAda.g{1} = Fake.g{2} /\
       Fake.g{2} >= Fake.n{2} /\
+      Fake.g{2} < Fake.n{2} + Fake.q{2}/\
       AdvAda.a{1} = Fake.a{2} /\
       AdvAda.b{1} = Fake.b{2} /\
       Fake.a{2} >= 0 /\
@@ -488,22 +478,491 @@ proof strict.
       AdvAda.b{1} <= bound-1 /\
       (forall g a b, g >= Fake.g{2} => !(mem (tweak g a b) DKC.Dkc.used{1})) /\
       true
-    );first wp;skip;(progress assumption;first apply H6);smt.
+    );first wp;skip;progress assumption;smt.
   rcondf{1} 1;first intros ?;wp;skip;progress assumption;smt.
   if;first smt.
 
-  rcondf{1} 6;first intros ?;wp;skip;progress assumption;smt.
-  rcondt{1} 13;first intros ?;wp;rnd;wp;skip;progress assumption;smt.
-  rcondf{1} 23;first intros ?;(kill 1!22;first admit);skip;progress assumption;smt.
-  rcondt{1} 37;first intros ?;wp;rnd;wp;(kill 14!3;first admit);wp;rnd;wp;skip;
-    ((progress assumption;first 2 smt);first rewrite Set.add_mem;rewrite tweak_inj2);smt.
-  rcondf{1} 50;first intros ?;(kill 1!49;first admit);skip;by progress assumption.
-  rcondf{1} 50;first intros ?;(kill 1!49;first admit);skip;progress assumption;smt.
-  cfold{1} 50.
-  rcondt{1} 52;first intros ?;(kill 1!51;first admit);skip;progress assumption.
+  cfold{1} 1.
+  cfold{1} 1.
+  cfold{1} 1.
+  cfold{2} 1.
+  cfold{2} 1.
+  cfold{2} 1.
+  cfold{1} 15.
+  cfold{1} 15.
+  cfold{1} 15.
+  cfold{2} 9.
+  cfold{2} 9.
+  cfold{2} 9.
+
+  rcondf{1} 3;first intros ?;wp;skip;progress assumption;smt.
+  rcondf{1} 6;first intros ?;rnd;wp;skip;progress assumption;smt.
+  rcondt{1} 10;first intros ?;wp;rnd;wp;skip;progress assumption;smt.
+  rcondf{1} 14;first intros ?;(kill 11!3;first admit);wp;rnd;wp;skip;progress assumption;smt.
+  rcondf{1} 16;first intros ?;(kill 1!15;first admit);skip;progress assumption;smt.
+  rcondf{1} 20;first intros ?;(kill 1!19;first admit);skip;progress assumption;smt.
+  rcondt{1} 21;first intros ?;(kill 1!20;first admit);wp;skip;progress assumption;smt.
+  rcondf{1} 25;first intros ?;(kill 1!24;first admit);wp;skip;progress assumption;smt.
+  rcondt{1} 28;first intros ?;(kill 1!27;first admit);wp;skip;progress assumption;smt.
+  rcondt{1} 32;first intros ?;wp;rnd;wp;(kill 11!3;first admit);wp;rnd;wp;skip;(progress assumption;
+    first rewrite Set.add_mem;rewrite tweak_inj2);smt.
+  rcondf{1} 36;first intros ?;wp;(kill 31!5;first admit);wp;rnd;wp;(kill 1!13;first admit);skip;by progress assumption.
+  rcondf{1} 38;first intros ?;(kill 1!37;first admit);skip;by progress assumption.
+  rcondf{1} 42;first intros ?;(kill 1!41;first admit);skip;progress assumption;smt.
+  rcondf{1} 43;first intros ?;(kill 1!42;first admit);skip;by progress assumption.
+  rcondf{1} 44;first intros ?;(kill 1!43;first admit);skip;progress assumption;smt.
+  rcondf{1} 44;first intros ?;(kill 1!43;first admit);skip;progress assumption;smt.
+  rcondt{1} 47;first intros ?;wp;(kill 1!35;first admit);skip;progress assumption;smt.
+  rcondt{1} 13;first intros ?;(kill 9!4;first admit);wp;rnd;wp;skip;progress assumption;smt.
+  rcondt{1} 35;first intros ?;(kill 31!4;first admit);wp;rnd;wp;rnd;(kill 11!2;first admit); wp;rnd;wp;skip;progress assumption;smt.
+
+  kill{1} 5;first rnd 1%r cpTrue;skip;smt.
+
+  seq 9 2 : (
+      Fake.ev{2} = Garble.eval AdvAda.fc{1} AdvAda.xc{1} /\
+      (glob ADV){1} = (glob ADV){2} /\
+      length AdvAda.xx{1} = AdvAda.n{1}+AdvAda.q{1} /\
+      length AdvAda.t{1} = AdvAda.n{1}+AdvAda.q{1} /\
+      AdvAda.xx{1} = Fake.xx{2}/\
+      AdvAda.t{1} = Fake.t{2}/\
+      AdvAda.n{1} = Fake.n{2}/\
+      AdvAda.m{1} = Fake.m{2}/\
+      AdvAda.q{1} = Fake.q{2}/\
+      AdvAda.aa{1} = Fake.aa{2}/\
+      AdvAda.bb{1} = Fake.bb{2}/\
+      AdvAda.randG{1} = Fake.randG{2}/\
+      AdvAda.pp{1} = Fake.pp{2}/\
+      Fake.n{2} > 1/\
+      Fake.m{2} > 0/\
+      Fake.q{2} > 0/\
+      (*Fake.f1{2} = (Fake.n{2}, Fake.m{2}, Fake.q{2}, Fake.aa{2}, Fake.bb{2}, Fake.gg{2}) /\*)
+      Fake.n{2} + Fake.q{2} - Fake.m{2} = bound /\
+      AdvAda.l{1} = bound-1 /\
+    (forall i, i >= Fake.n{2} => i < Fake.n{2}+Fake.q{2} => Fake.aa{2}.[i] >= 0 /\ Fake.bb{2}.[i] < i /\
+           Fake.bb{2}.[i] < bound /\ Fake.aa{2}.[i] < Fake.bb{2}.[i]) /\
+    (forall g, g >= Fake.n{2} => g < Fake.g{2} => AdvAda.bb{1}.[g] = bound-1 /\ evalGate AdvAda.gg{1}.[g]
+      ((!AdvAda.v{1}.[AdvAda.aa{1}.[g]]), false) = evalGate AdvAda.gg{1}.[g] ((!AdvAda.v{1}.[AdvAda.aa{1}.[g]]), true) =>
+        AdvAda.yy{1}.[g]=Fake.randG{2}.[(g, true, false)])/\
+      (forall g (x:bool), g < Fake.n{2} + Fake.q{2} => g >= Fake.g{2} => !in_dom (g, x) DKC.Dkc.r{1}) /\
+      (forall g (x:bool), g >= Fake.n{2} + Fake.q{2} + Fake.g{2} => !in_dom (g, x) DKC.Dkc.r{1}) /\
+      (forall g (x:bool), g < bound-1 => in_dom (g, x) DKC.Dkc.kpub{1} = in_dom (g, x) DKC.Dkc.kpub{2}) /\
+    (!DKC.Dkc.b{1}) /\
+      (forall g (x:bool), g < Fake.n{2} + Fake.q{2} => g >= Fake.g{2} => !in_dom (g, x) DKC.Dkc.kpub{1}) /\
+      (forall g (x:bool), g >= Fake.n{2} + Fake.q{2} + Fake.g{2} => !in_dom (g, x) DKC.Dkc.kpub{1}) /\
+
+
+
+      AdvAda.g{1} = Fake.g{2} /\
+      Fake.g{2} >= Fake.n{2} /\
+      Fake.g{2} < Fake.n{2} + Fake.q{2}/\
+      AdvAda.a{1} = Fake.a{2} /\
+      AdvAda.b{1} = Fake.b{2} /\
+      Fake.a{2} >= 0 /\
+      Fake.b{2} >= 0 /\
+      AdvAda.a{1} < Fake.g{2} /\
+      AdvAda.b{1} < Fake.g{2} /\
+      AdvAda.a{1} < bound-1 /\
+      AdvAda.b{1} <= bound-1 /\
+      i1{1} = input{2} /\
+      input{2} = (Fake.a{2}, Fake.t{2}.[Fake.a{2}] ^^ false) /\
+      (forall g a b, g > Fake.g{2} => !(mem (tweak g a b) DKC.Dkc.used{1})) /\
+
+      gamma1{1} = AdvAda.v{1}.[AdvAda.g{1}] ^^ evalGate AdvAda.gg{1}.[AdvAda.g{1}] (AdvAda.v{1}.[AdvAda.a{1}] ^^ false, AdvAda.v{1}.[AdvAda.b{1}] ^^ true) /\
+      j1{1} = (AdvAda.g{1}, AdvAda.t{1}.[AdvAda.g{1}] ^^ gamma1{1}) /\
+
+      true
+    );first wp;skip;progress assumption;smt.
+
+
+  seq 1 1 : (
+      Fake.ev{2} = Garble.eval AdvAda.fc{1} AdvAda.xc{1} /\
+      (glob ADV){1} = (glob ADV){2} /\
+      length AdvAda.xx{1} = AdvAda.n{1}+AdvAda.q{1} /\
+      length AdvAda.t{1} = AdvAda.n{1}+AdvAda.q{1} /\
+      AdvAda.xx{1} = Fake.xx{2}/\
+      AdvAda.t{1} = Fake.t{2}/\
+      AdvAda.n{1} = Fake.n{2}/\
+      AdvAda.m{1} = Fake.m{2}/\
+      AdvAda.q{1} = Fake.q{2}/\
+      AdvAda.aa{1} = Fake.aa{2}/\
+      AdvAda.bb{1} = Fake.bb{2}/\
+      AdvAda.randG{1} = Fake.randG{2}/\
+      AdvAda.pp{1} = Fake.pp{2}/\
+      Fake.n{2} > 1/\
+      Fake.m{2} > 0/\
+      Fake.q{2} > 0/\
+      (*Fake.f1{2} = (Fake.n{2}, Fake.m{2}, Fake.q{2}, Fake.aa{2}, Fake.bb{2}, Fake.gg{2}) /\*)
+      Fake.n{2} + Fake.q{2} - Fake.m{2} = bound /\
+      AdvAda.l{1} = bound-1 /\
+    (forall i, i >= Fake.n{2} => i < Fake.n{2}+Fake.q{2} => Fake.aa{2}.[i] >= 0 /\ Fake.bb{2}.[i] < i /\
+           Fake.bb{2}.[i] < bound /\ Fake.aa{2}.[i] < Fake.bb{2}.[i]) /\
+    (forall g, g >= Fake.n{2} => g < Fake.g{2} => AdvAda.bb{1}.[g] = bound-1 /\ evalGate AdvAda.gg{1}.[g]
+      ((!AdvAda.v{1}.[AdvAda.aa{1}.[g]]), false) = evalGate AdvAda.gg{1}.[g] ((!AdvAda.v{1}.[AdvAda.aa{1}.[g]]), true) =>
+        AdvAda.yy{1}.[g]=Fake.randG{2}.[(g, true, false)])/\
+      (forall g (x:bool), g < Fake.n{2} + Fake.q{2} => g >= Fake.g{2} => !in_dom (g, x) DKC.Dkc.r{1}) /\
+      (forall g (x:bool), g >= Fake.n{2} + Fake.q{2} + Fake.g{2} => !in_dom (g, x) DKC.Dkc.r{1}) /\
+      (forall g (x:bool), g < bound-1 => in_dom (g, x) DKC.Dkc.kpub{1} = in_dom (g, x) DKC.Dkc.kpub{2}) /\
+    (!DKC.Dkc.b{1}) /\
+      (forall g (x:bool), g < Fake.n{2} + Fake.q{2} => g >= Fake.g{2} => !in_dom (g, x) DKC.Dkc.kpub{1}) /\
+      (forall g (x:bool), g >= Fake.n{2} + Fake.q{2} + Fake.g{2} => !in_dom (g, x) DKC.Dkc.kpub{1}) /\
+
+
+
+      AdvAda.g{1} = Fake.g{2} /\
+      Fake.g{2} >= Fake.n{2} /\
+      Fake.g{2} < Fake.n{2} + Fake.q{2}/\
+      AdvAda.a{1} = Fake.a{2} /\
+      AdvAda.b{1} = Fake.b{2} /\
+      Fake.a{2} >= 0 /\
+      Fake.b{2} >= 0 /\
+      AdvAda.a{1} < Fake.g{2} /\
+      AdvAda.b{1} < Fake.g{2} /\
+      AdvAda.a{1} < bound-1 /\
+      AdvAda.b{1} <= bound-1 /\
+      i1{1} = input{2} /\
+      input{2} = (Fake.a{2}, Fake.t{2}.[Fake.a{2}] ^^ false) /\
+      (forall g a b, g > Fake.g{2} => !(mem (tweak g a b) DKC.Dkc.used{1})) /\
+
+      gamma1{1} = AdvAda.v{1}.[AdvAda.g{1}] ^^ evalGate AdvAda.gg{1}.[AdvAda.g{1}] (AdvAda.v{1}.[AdvAda.a{1}] ^^ false, AdvAda.v{1}.[AdvAda.b{1}] ^^ true) /\
+      j1{1} = (AdvAda.g{1}, AdvAda.t{1}.[AdvAda.g{1}] ^^ gamma1{1}) /\
+
+      true
+    );first if;[ |wp;rnd;skip|skip];progress assumption;rewrite ? in_dom_set;smt.
+
+    alias{1} 37 with mytok1.
+    swap{1} 37 -35.
+    alias{2} 17 with mytok1.
+    swap{2} 17 -16.
+
+
+    alias{1} 41 with mytok2.
+    swap{1} 41 -38.
+    alias{2} 20 with mytok2.
+    swap{2} 20 -18.
+
+    rcondt{1} 1;first intros ?;skip;progress;smt.
+
+    rcondt{1} 26;first intros ?;
+seq 24 : ((! in_dom j2 DKC.Dkc.kpub) /\ (i2 = (AdvAda.a, AdvAda.t.[AdvAda.a] ^^ true))/\(j2 = (AdvAda.g + AdvAda.n + AdvAda.q, ra2))/\AdvAda.g + AdvAda.n + AdvAda.q<>AdvAda.a);
+[ |if];do ? (wp;rnd);skip;progress;rewrite ? in_dom_set;smt.
+
+  alias{1} 26 with leftpart.
+  swap{1} 26 -6.
+
+  seq 25 9 : (
+      Fake.ev{2} = Garble.eval AdvAda.fc{1} AdvAda.xc{1} /\
+      (glob ADV){1} = (glob ADV){2} /\
+      length AdvAda.xx{1} = AdvAda.n{1}+AdvAda.q{1} /\
+      length AdvAda.t{1} = AdvAda.n{1}+AdvAda.q{1} /\
+      AdvAda.xx{1} = Fake.xx{2}/\
+      AdvAda.t{1} = Fake.t{2}/\
+      AdvAda.n{1} = Fake.n{2}/\
+      AdvAda.m{1} = Fake.m{2}/\
+      AdvAda.q{1} = Fake.q{2}/\
+      AdvAda.aa{1} = Fake.aa{2}/\
+      AdvAda.bb{1} = Fake.bb{2}/\
+      AdvAda.randG{1} = Fake.randG{2}/\
+      AdvAda.pp{1} = Fake.pp{2}/\
+      Fake.n{2} > 1/\
+      Fake.m{2} > 0/\
+      Fake.q{2} > 0/\
+      (*Fake.f1{2} = (Fake.n{2}, Fake.m{2}, Fake.q{2}, Fake.aa{2}, Fake.bb{2}, Fake.gg{2}) /\*)
+      Fake.n{2} + Fake.q{2} - Fake.m{2} = bound /\
+      AdvAda.l{1} = bound-1 /\
+    (forall i, i >= Fake.n{2} => i < Fake.n{2}+Fake.q{2} => Fake.aa{2}.[i] >= 0 /\ Fake.bb{2}.[i] < i /\
+           Fake.bb{2}.[i] < bound /\ Fake.aa{2}.[i] < Fake.bb{2}.[i]) /\
+    (forall g, g >= Fake.n{2} => g < Fake.g{2} => AdvAda.bb{1}.[g] = bound-1 /\ evalGate AdvAda.gg{1}.[g]
+      ((!AdvAda.v{1}.[AdvAda.aa{1}.[g]]), false) = evalGate AdvAda.gg{1}.[g] ((!AdvAda.v{1}.[AdvAda.aa{1}.[g]]), true) =>
+        AdvAda.yy{1}.[g]=Fake.randG{2}.[(g, true, false)])/\
+      (forall g (x:bool), g < Fake.n{2} + Fake.q{2} => g >= Fake.g{2} => !in_dom (g, x) DKC.Dkc.r{1}) /\
+      (forall g (x:bool), g >= Fake.n{2} + Fake.q{2} + Fake.g{2} => !in_dom (g, x) DKC.Dkc.r{1}) /\
+      (forall g (x:bool), g < bound-1 => in_dom (g, x) DKC.Dkc.kpub{1} = in_dom (g, x) DKC.Dkc.kpub{2}) /\
+    (!DKC.Dkc.b{1}) /\
+      (forall g (x:bool), g < Fake.n{2} + Fake.q{2} => g >= Fake.g{2} => !in_dom (g, x) DKC.Dkc.kpub{1}) /\
+      (forall g (x:bool), g >= Fake.n{2} + Fake.q{2} + Fake.g{2} => !in_dom (g, x) DKC.Dkc.kpub{1}) /\
+
+
+
+      AdvAda.g{1} = Fake.g{2} /\
+      Fake.g{2} >= Fake.n{2} /\
+      Fake.g{2} < Fake.n{2} + Fake.q{2}/\
+      AdvAda.a{1} = Fake.a{2} /\
+      AdvAda.b{1} = Fake.b{2} /\
+      Fake.a{2} >= 0 /\
+      Fake.b{2} >= 0 /\
+      AdvAda.a{1} < Fake.g{2} /\
+      AdvAda.b{1} < Fake.g{2} /\
+      AdvAda.a{1} < bound-1 /\
+      AdvAda.b{1} <= bound-1 /\
+      i2{1} = input0{2} /\ 
+      input0{2} = (Fake.a{2}, Fake.t{2}.[Fake.a{2}] ^^ true) /\
+      (forall g a b, g > Fake.g{2} => !(mem (tweak g a b) DKC.Dkc.used{1})) /\
+
+      gamma1{1} = AdvAda.v{1}.[AdvAda.g{1}] ^^ evalGate AdvAda.gg{1}.[AdvAda.g{1}] (AdvAda.v{1}.[AdvAda.a{1}] ^^ false, AdvAda.v{1}.[AdvAda.b{1}] ^^ true) /\
+      j1{1} = (AdvAda.g{1}, AdvAda.t{1}.[AdvAda.g{1}] ^^ gamma1{1}) /\
+
+      true
+    );first last.
+
+  seq 1 1 : (
+      Fake.ev{2} = Garble.eval AdvAda.fc{1} AdvAda.xc{1} /\
+      (glob ADV){1} = (glob ADV){2} /\
+      length AdvAda.xx{1} = AdvAda.n{1}+AdvAda.q{1} /\
+      length AdvAda.t{1} = AdvAda.n{1}+AdvAda.q{1} /\
+      AdvAda.xx{1} = Fake.xx{2}/\
+      AdvAda.t{1} = Fake.t{2}/\
+      AdvAda.n{1} = Fake.n{2}/\
+      AdvAda.m{1} = Fake.m{2}/\
+      AdvAda.q{1} = Fake.q{2}/\
+      AdvAda.aa{1} = Fake.aa{2}/\
+      AdvAda.bb{1} = Fake.bb{2}/\
+      AdvAda.randG{1} = Fake.randG{2}/\
+      AdvAda.pp{1} = Fake.pp{2}/\
+      Fake.n{2} > 1/\
+      Fake.m{2} > 0/\
+      Fake.q{2} > 0/\
+      (*Fake.f1{2} = (Fake.n{2}, Fake.m{2}, Fake.q{2}, Fake.aa{2}, Fake.bb{2}, Fake.gg{2}) /\*)
+      Fake.n{2} + Fake.q{2} - Fake.m{2} = bound /\
+      AdvAda.l{1} = bound-1 /\
+    (forall i, i >= Fake.n{2} => i < Fake.n{2}+Fake.q{2} => Fake.aa{2}.[i] >= 0 /\ Fake.bb{2}.[i] < i /\
+           Fake.bb{2}.[i] < bound /\ Fake.aa{2}.[i] < Fake.bb{2}.[i]) /\
+    (forall g, g >= Fake.n{2} => g < Fake.g{2} => AdvAda.bb{1}.[g] = bound-1 /\ evalGate AdvAda.gg{1}.[g]
+      ((!AdvAda.v{1}.[AdvAda.aa{1}.[g]]), false) = evalGate AdvAda.gg{1}.[g] ((!AdvAda.v{1}.[AdvAda.aa{1}.[g]]), true) =>
+        AdvAda.yy{1}.[g]=Fake.randG{2}.[(g, true, false)])/\
+      (forall g (x:bool), g < Fake.n{2} + Fake.q{2} => g >= Fake.g{2} => !in_dom (g, x) DKC.Dkc.r{1}) /\
+      (forall g (x:bool), g >= Fake.n{2} + Fake.q{2} + Fake.g{2} => !in_dom (g, x) DKC.Dkc.r{1}) /\
+      (forall g (x:bool), g < bound-1 => in_dom (g, x) DKC.Dkc.kpub{1} = in_dom (g, x) DKC.Dkc.kpub{2}) /\
+    (!DKC.Dkc.b{1}) /\
+      (forall g (x:bool), g < Fake.n{2} + Fake.q{2} => g >= Fake.g{2} => !in_dom (g, x) DKC.Dkc.kpub{1}) /\
+      (forall g (x:bool), g >= Fake.n{2} + Fake.q{2} + Fake.g{2} => !in_dom (g, x) DKC.Dkc.kpub{1}) /\
+
+
+
+      AdvAda.g{1} = Fake.g{2} /\
+      Fake.g{2} >= Fake.n{2} /\
+      Fake.g{2} < Fake.n{2} + Fake.q{2}/\
+      AdvAda.a{1} = Fake.a{2} /\
+      AdvAda.b{1} = Fake.b{2} /\
+      Fake.a{2} >= 0 /\
+      Fake.b{2} >= 0 /\
+      AdvAda.a{1} < Fake.g{2} /\
+      AdvAda.b{1} < Fake.g{2} /\
+      AdvAda.a{1} < bound-1 /\
+      AdvAda.b{1} <= bound-1 /\
+      (forall g a b, g > Fake.g{2} => !(mem (tweak g a b) DKC.Dkc.used{1})) /\
+
+      gamma1{1} = AdvAda.v{1}.[AdvAda.g{1}] ^^ evalGate AdvAda.gg{1}.[AdvAda.g{1}] (AdvAda.v{1}.[AdvAda.a{1}] ^^ false, AdvAda.v{1}.[AdvAda.b{1}] ^^ true) /\
+      j1{1} = (AdvAda.g{1}, AdvAda.t{1}.[AdvAda.g{1}] ^^ gamma1{1}) /\
+
+      true
+    );first if;[ |wp;rnd;skip|skip];progress assumption;rewrite ? in_dom_set;smt.
+
+
+   wp.
+    cfold{1} 12.
+    cfold{1} 12.
+    cfold{1} 12.
+    cfold{2} 6.
+    cfold{2} 6.
+   wp.
+
+      case (evalGate AdvAda.gg{1}.[Fake.g{2}]
+      ((!AdvAda.v{1}.[AdvAda.aa{1}.[Fake.g{2}]]), false) = evalGate AdvAda.gg{1}.[Fake.g{2}] ((!AdvAda.v{1}.[AdvAda.aa{1}.[Fake.g{2}]]), true)).
+
+    wp.
+
+    swap{1} 35 -10.
+    swap{2} 16 -5.
+    wp;rnd.
+
+  seq 24 10 : (
+      Fake.ev{2} = Garble.eval AdvAda.fc{1} AdvAda.xc{1} /\
+      (glob ADV){1} = (glob ADV){2} /\
+      length AdvAda.xx{1} = AdvAda.n{1}+AdvAda.q{1} /\
+      length AdvAda.t{1} = AdvAda.n{1}+AdvAda.q{1} /\
+      AdvAda.xx{1} = Fake.xx{2}/\
+      AdvAda.t{1} = Fake.t{2}/\
+      AdvAda.n{1} = Fake.n{2}/\
+      AdvAda.m{1} = Fake.m{2}/\
+      AdvAda.q{1} = Fake.q{2}/\
+      AdvAda.aa{1} = Fake.aa{2}/\
+      AdvAda.bb{1} = Fake.bb{2}/\
+      AdvAda.randG{1} = Fake.randG{2}/\
+      AdvAda.pp{1} = Fake.pp{2}/\
+      Fake.n{2} > 1/\
+      Fake.m{2} > 0/\
+      Fake.q{2} > 0/\
+      (*Fake.f1{2} = (Fake.n{2}, Fake.m{2}, Fake.q{2}, Fake.aa{2}, Fake.bb{2}, Fake.gg{2}) /\*)
+      Fake.n{2} + Fake.q{2} - Fake.m{2} = bound /\
+      AdvAda.l{1} = bound-1 /\
+    (forall i, i >= Fake.n{2} => i < Fake.n{2}+Fake.q{2} => Fake.aa{2}.[i] >= 0 /\ Fake.bb{2}.[i] < i /\
+           Fake.bb{2}.[i] < bound /\ Fake.aa{2}.[i] < Fake.bb{2}.[i]) /\
+    (forall g, g >= Fake.n{2} => g < Fake.g{2} => AdvAda.bb{1}.[g] = bound-1 /\ evalGate AdvAda.gg{1}.[g]
+      ((!AdvAda.v{1}.[AdvAda.aa{1}.[g]]), false) = evalGate AdvAda.gg{1}.[g] ((!AdvAda.v{1}.[AdvAda.aa{1}.[g]]), true) =>
+        AdvAda.yy{1}.[g]=Fake.randG{2}.[(g, true, false)])/\
+      (forall g (x:bool), g < Fake.n{2} + Fake.q{2} => g >= Fake.g{2} => !in_dom (g, x) DKC.Dkc.r{1}) /\
+      (forall g (x:bool), g >= Fake.n{2} + Fake.q{2} + Fake.g{2} => !in_dom (g, x) DKC.Dkc.r{1}) /\
+      (forall g (x:bool), g < bound-1 => in_dom (g, x) DKC.Dkc.kpub{1} = in_dom (g, x) DKC.Dkc.kpub{2}) /\
+    (!DKC.Dkc.b{1}) /\
+      (forall g (x:bool), g < Fake.n{2} + Fake.q{2} => g >= Fake.g{2} => !in_dom (g, x) DKC.Dkc.kpub{1}) /\
+      (forall g (x:bool), g >= Fake.n{2} + Fake.q{2} + Fake.g{2} => !in_dom (g, x) DKC.Dkc.kpub{1}) /\
+
+
+
+      AdvAda.g{1} = Fake.g{2} /\
+      Fake.g{2} >= Fake.n{2} /\
+      Fake.g{2} < Fake.n{2} + Fake.q{2}/\
+      AdvAda.a{1} = Fake.a{2} /\
+      AdvAda.b{1} = Fake.b{2} /\
+      Fake.a{2} >= 0 /\
+      Fake.b{2} >= 0 /\
+      AdvAda.a{1} < Fake.g{2} /\
+      AdvAda.b{1} < Fake.g{2} /\
+      AdvAda.a{1} < bound-1 /\
+      AdvAda.b{1} <= bound-1 /\
+      i1{1} = input{2} /\
+      input{2} = (Fake.a{2}, Fake.t{2}.[Fake.a{2}] ^^ false) /\
+      (forall g a b, g > Fake.g{2} => !(mem (tweak g a b) DKC.Dkc.used{1})) /\
+
+      gamma1{1} = AdvAda.v{1}.[AdvAda.g{1}] ^^ evalGate AdvAda.gg{1}.[AdvAda.g{1}] (AdvAda.v{1}.[AdvAda.a{1}] ^^ false, AdvAda.v{1}.[AdvAda.b{1}] ^^ true) /\
+      j1{1} = (AdvAda.g{1}, AdvAda.t{1}.[AdvAda.g{1}] ^^ gamma1{1}) /\
+      getTok AdvAda.xx{1} AdvAda.g{1} false = void /\
+      j2{1} = (AdvAda.g{1} + AdvAda.n{1} + AdvAda.q{1}, ra2{1}) /\
+
+      true
+    );first last.
+      rcondt{1} 2;first intros ?;rnd;skip;progress;smt.
+
+      case (evalGate AdvAda.gg{1}.[Fake.g{2}]
+      ((!AdvAda.v{1}.[AdvAda.aa{1}.[Fake.g{2}]]), false) = evalGate AdvAda.gg{1}.[Fake.g{2}] ((!AdvAda.v{1}.[AdvAda.aa{1}.[Fake.g{2}]]), true)).
+      
+      wp.
+      rnd.
+      rnd{1}.
+      skip.
+      
+
+ progress;try assumption.
+      delta setTok;simplify;rewrite ! set_length;trivial.
+rewrite !set_set_tok;first 4 smt.
+   generalize H33.
+   generalize H34.
+rewrite ! set_get_tok;first 6 smt.
+simplify.
+intros h1 h2.
+congr.
+admit.
+trivial.
+trivial.
+congr.
+split.
+congr.
+congr.
+trivial.
+congr.
+split.
+trivial.
+congr.
+admit.
+smt.
+congr.
+
+
+delta PartialGet.__get.
+simplify.
+smt.
+    if;[ |wp;rnd;skip|skip];progress assumption;rewrite ? in_dom_set;smt.
+
+
+
+
+wp;skip;progress assumption;smt.
+
+  if;first progress assumption;smt.
+
+
+  rcondt{1} 1;first intros ?;skip;progress assumption;smt.
+
+  rcondt{1} 24;first intros ?;seq 22 : (!(in_dom j2{hr} DKC.Dkc.kpub{hr})/\i2 <> j2);[wp;rnd;wp;rnd;wp;rnd;skip|if;[wp;rnd;skip|skip]];progress assumption;rewrite ? in_dom_setNE;smt.
+
+
+progress assumption;smt.
+progress assumption;smt.
+
+(* PROBLEME IF
+JE VEUX CFOLD !!!!!!!!!!
+*)
+
+
+  rcondt{1} 1;first intros ?;skip;progress assumption;smt.
+
+  case (AdvAda.t{1}.[AdvAda.g{1}] ^^ AdvAda.v{1}.[AdvAda.g{1}] ^^ evalGate AdvAda.gg{1}.[AdvAda.g{1}] (AdvAda.v{1}.[AdvAda.a{1}] ^^ false, AdvAda.v{1}.[AdvAda.b{1}] ^^ true)).
+
+  
+
+  seq 33 12 : (
+      Fake.ev{2} = Garble.eval AdvAda.fc{1} AdvAda.xc{1} /\
+      (glob ADV){1} = (glob ADV){2} /\
+      length AdvAda.xx{1} = AdvAda.n{1}+AdvAda.q{1} /\
+      length AdvAda.t{1} = AdvAda.n{1}+AdvAda.q{1} /\
+      AdvAda.xx{1} = Fake.xx{2}/\
+      AdvAda.t{1} = Fake.t{2}/\
+      AdvAda.n{1} = Fake.n{2}/\
+      AdvAda.m{1} = Fake.m{2}/\
+      AdvAda.q{1} = Fake.q{2}/\
+      AdvAda.aa{1} = Fake.aa{2}/\
+      AdvAda.bb{1} = Fake.bb{2}/\
+      AdvAda.randG{1} = Fake.randG{2}/\
+      AdvAda.pp{1} = Fake.pp{2}/\
+      Fake.n{2} > 1/\
+      Fake.m{2} > 0/\
+      Fake.q{2} > 0/\
+      (*Fake.f1{2} = (Fake.n{2}, Fake.m{2}, Fake.q{2}, Fake.aa{2}, Fake.bb{2}, Fake.gg{2}) /\*)
+      Fake.n{2} + Fake.q{2} - Fake.m{2} = bound /\
+      AdvAda.l{1} = bound-1 /\
+    (forall i, i >= Fake.n{2} => i < Fake.n{2}+Fake.q{2} => Fake.aa{2}.[i] >= 0 /\ Fake.bb{2}.[i] < i /\
+           Fake.bb{2}.[i] < bound /\ Fake.aa{2}.[i] < Fake.bb{2}.[i]) /\
+    (forall g, g >= Fake.n{2} => g < Fake.g{2} => AdvAda.bb{1}.[g] = bound-1 /\ evalGate AdvAda.gg{1}.[g]
+      ((!AdvAda.v{1}.[AdvAda.aa{1}.[g]]), false) = evalGate AdvAda.gg{1}.[g] ((!AdvAda.v{1}.[AdvAda.aa{1}.[g]]), true) =>
+        AdvAda.yy{1}.[g]=Fake.randG{2}.[(g, true, false)])/\
+      (forall g (x:bool), g < Fake.n{2} + Fake.q{2} => g >= Fake.g{2} => !in_dom (g, x) DKC.Dkc.r{1}) /\
+      (forall g (x:bool), g >= Fake.n{2} + Fake.q{2} + Fake.g{2} => !in_dom (g, x) DKC.Dkc.r{1}) /\
+      (forall g (x:bool), g < bound-1 => in_dom (g, x) DKC.Dkc.kpub{1} = in_dom (g, x) DKC.Dkc.kpub{2}) /\
+    (!DKC.Dkc.b{1}) /\
+
+
+
+      AdvAda.g{1} = Fake.g{2} /\
+      Fake.g{2} >= Fake.n{2} /\
+      Fake.g{2} < Fake.n{2} + Fake.q{2}/\
+      AdvAda.a{1} = Fake.a{2} /\
+      AdvAda.b{1} = Fake.b{2} /\
+      Fake.a{2} >= 0 /\
+      Fake.b{2} >= 0 /\
+      AdvAda.a{1} < Fake.g{2} /\
+      AdvAda.b{1} < Fake.g{2} /\
+      AdvAda.a{1} < bound-1 /\
+      AdvAda.b{1} <= bound-1 /\
+      (forall g a b, g >= Fake.g{2} => !(mem (tweak g a b) DKC.Dkc.used{1})) /\
+
+      !(in_dom input{2} DKC.Dkc.kpub{2}) /\
+
+
+      true
+    );first last.
+    admit.
+
+
+
+  if.
+  progress assumption.
+smt.
+
+wp.
+
   wp.
-  rnd.
-  wp.
+
+
 
 if.
 
@@ -511,7 +970,7 @@ skip;progress assumption.
 (kill 8;first admit);wp;skip;progress assumption;smt.
   wp.
 
-
+*)
 
   wp.
   while (
@@ -629,7 +1088,9 @@ skip.
   smt.
   smt.
   smt.
+  smt.
   apply H48;smt.
+  smt.
   smt.
   smt.
   smt.
@@ -638,10 +1099,10 @@ skip.
   smt.
 
   (*INVALID*)
-  rcondf {1} 20;first (intros _;wp;rnd;wp;rnd;rnd;skip;smt).
+  rcondf {1} 19;first (intros _;wp;rnd;wp;rnd;rnd;skip;smt).
   rcondf {2} 1;[intros &m;skip;smt|].
   wp.
-  kill{1} 1!19;first (wp;rnd 1%r cpTrue;wp;rnd 1%r cpTrue;rnd 1%r cpTrue;skip;progress;smt).
+  kill{1} 1!18;first (wp;rnd 1%r cpTrue;wp;rnd 1%r cpTrue;rnd 1%r cpTrue;skip;progress;smt).
   rnd;skip;progress assumption;smt.
 
 save.

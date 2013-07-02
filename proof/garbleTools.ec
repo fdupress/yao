@@ -26,6 +26,13 @@ lemma set_get_tok: forall (x:tokens, a:int, i:bool, t:token, b:int, j:bool),
   0 <= b => b < length x =>
   getTok (setTok x a i t) b j = (a=b/\i=j)?t:getTok x b j by [].
 
+lemma set_set_tok: forall (x:tokens, a:int, i:bool, t:token, u:token),
+  0 <= a => a < Array.length x =>
+  setTok (setTok x a i t) a i u = (setTok x a i u).
+  intros=> ? ? ? ? ? ? ? ?.
+  simplify setTok fst snd.
+  case i=> ?;simplify;rewrite set_setE  set_get //. 
+save.
 
 op intToBitstring : int -> bitstring.
 
