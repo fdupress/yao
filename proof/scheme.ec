@@ -31,13 +31,6 @@ theory Scheme.
   op phiG : functG -> tPhi.
   op queryValid : query -> bool.
 
-  axiom inverse :
-    forall (f : funct) , functCorrect f =>
-    forall (x : random) , randomCorrect f x =>
-    forall (i : input) , inputCorrect f i =>
-      let (g, ki, ko) = garble x f in
-      eval f i = decrypt ko (evalG g (encrypt ki i)).
-
   op k : int.
 
   module type GARBLE = {

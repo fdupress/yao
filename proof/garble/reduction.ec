@@ -7,14 +7,13 @@ require import Distr.
 require import List.
 require import Array.
 
-require import MyDkc.
+require import Hypothesis.
 require import Garble.
 require import GarbleTools.
 
-op eval(f:funct, i:input, k:int) = (evalComplete f i extract).[k].
 op void = (Bitstring.zeros 0).
 
-module Adv(A:Garble.Adv) (*: Dkc.Adv*) = {
+module Red(A:Garble.Adv) : DKC.Adv_t = {
   var c : bool
   var fc : Garble.funct
   var xc : Garble.input
@@ -42,7 +41,7 @@ module Adv(A:Garble.Adv) (*: Dkc.Adv*) = {
   var i : int
   var g : int
 
-  fun _query1(rand:bool, alpha:bool, bet:bool) : DKC.query = {
+  fun qquery1(rand:bool, alpha:bool, bet:bool) : DKC.query = {
     var ttt : token;
     var gamma : bool;
     var pos : bool;
@@ -66,7 +65,7 @@ module Adv(A:Garble.Adv) (*: Dkc.Adv*) = {
     return (input, output, pos, ttt);
   }
 
-  fun _query2(rand:bool, alpha:bool, bet:bool, answer:DKC.answer) : token = {
+  fun qquery2(rand:bool, alpha:bool, bet:bool, answer:DKC.answer) : token = {
     var gamma : bool;
     var ki : token;
     var ko : token;
@@ -85,7 +84,7 @@ module Adv(A:Garble.Adv) (*: Dkc.Adv*) = {
 
   fun query1(rand:bool, alpha:bool, bet:bool) : unit = {
     var query:DKC.query;
-    query = _query1(rand, alpha, bet);
+    query = qquery1(rand, alpha, bet);
     queries = query::queries;
   }   
 
@@ -94,7 +93,7 @@ module Adv(A:Garble.Adv) (*: Dkc.Adv*) = {
     var r:token;
     a = ans.[(length ans) - 1];
     ans = sub ans 0 ((length ans) - 1);
-    r = _query2(rand, alpha, bet, a);
+    r = qquery2(rand, alpha, bet, a);
     return r;
   }
 
@@ -102,9 +101,9 @@ module Adv(A:Garble.Adv) (*: Dkc.Adv*) = {
     var q:DKC.query;
     var a:DKC.answer;
     var r:token;
-    q = _query1(rand, alpha, bet);
+    q = qquery1(rand, alpha, bet);
     (*a = DKC.encrypt(q);*)
-    r = _query2(rand, alpha, bet, a);
+    r = qquery2(rand, alpha, bet, a);
     return r;
   }
 
@@ -129,8 +128,8 @@ module Adv(A:Garble.Adv) (*: Dkc.Adv*) = {
   fun garble_queries() : unit = {
     i = 0;
     while (i < n+q-1) {
-      t.[i] = eval fc xc i;
-      v.[i] = eval fc xc i;
+      t.[i] = eval2 fc xc i;
+      v.[i] = eval2 fc xc i;
       i = i + 1;
     }
 
@@ -180,11 +179,11 @@ module Adv(A:Garble.Adv) (*: Dkc.Adv*) = {
     i = 0;
     while (i < n+q-1) {
       if (getTok xx i (!v.[i]) = void /\ i <> l) {
-        tok = $DKC.genRandKeyLast (! t.[i]);
+        (*tok = $DKC.genRandKeyLast (! t.[i]);*)
         xx = setTok xx i (!v.[i]) tok;
       }
       if (getTok xx i (v.[i]) = void) {
-        tok = $DKC.genRandKeyLast (t.[i]);
+        (*tok = $DKC.genRandKeyLast (t.[i]);*)
         xx = setTok xx i (v.[i]) tok;
       }
       i = i + 1;
@@ -194,90 +193,30 @@ module Adv(A:Garble.Adv) (*: Dkc.Adv*) = {
     while (g < n+q-1) {
       a = aa.[g];
       b = bb.[g];
-      if (a < l)
-      {
-        tok = $DKC.genRandKey;
-        garb(tok, true, false);
-        tok = $DKC.genRandKey;
-        garb(tok, true, true);
+      garb(getTok xx g v.[g], false, false);
+      if (a <> l /\ b <> l) {
+        tok = garbD(a <= l, true, false);
+        tok = garbD(b <= l, false, true);
+        yyt = garbD(a <= l, true, true);
         if (a <= l /\ l <= b /\ evalGate gg.[g] ((!v.[a]), false) = evalGate gg.[g] ((!v.[a]), true))
-          garb(tok, true, false);
+          garb(yyt, true, false);
+      } else {
+        if (a = l) {
+          tok = garbD(false, false, true);
+        } else {
+          tok = garbD(true, true, false);
+          if (evalGate gg.[g] ((!v.[a]), false) = evalGate gg.[g] ((!v.[a]), true))
+            garb(yy.[g], true, false);
+        }
       }
       g = g + 1;
     }
-    g = n;
-    while (g < n+q-1) {
-      a = aa.[g];
-      b = bb.[g];
-      if (b < l)
-      {
-        tok = $DKC.genRandKey;
-        garb(tok, false, true);
-      }
-      g = g + 1;
-    }
-    g = n;
-    while (g < n+q-1) {
-      a = aa.[g];
-      b = bb.[g];
-      if (a = l)
-      {
-        tok = getTok xx g (evalGate gg.[g] ((v.[a]),(!v.[b])));
-        garb(tok, false, true);
-      }
-      g = g + 1;
-    }
-    g = n;
-    while (g < n+q-1) {
-      a = aa.[g];
-      b = bb.[g];
-      if (b = l)
-      {
-        tok = $DKC.genRandKey;
-        garb(tok, true, false);
-      }
-      g = g + 1;
-    }
-    g = n;
-    while (g < n+q-1) {
-      a = aa.[g];
-      b = bb.[g];
-      if (b = l)
-      {
-        if (evalGate gg.[g] ((!v.[a]), false) = evalGate gg.[g] ((!v.[a]), true))
-          garb(yy.[g], true, false);
-      }
-      g = g + 1;
-    }
-    g = n;
-    while (g < n+q-1) {
-      a = aa.[g];
-      b = bb.[g];
-      if (a > l)
-      {
-        tok = getTok xx g (evalGate gg.[g] ((!v.[a]),( v.[b])));
-        garb(tok, true, false);
-        tok = getTok xx g (evalGate gg.[g] ((!v.[a]),(!v.[b])));
-        garb(tok, true, true);
-      }
-      g = g + 1;
-    }
-    g = n;
-    while (g < n+q-1) {
-      a = aa.[g];
-      b = bb.[g];
-      if (b > l)
-      {
-        tok = getTok xx g (evalGate gg.[g] ((v.[a]),(!v.[b])));
-        garb(tok, false, true);
-      }
-      g = g + 1;
-    }
+    answer = ((n, m, q, aa, bb, pp), encrypt xx xc,tt);
   }
 
   
   fun preInit() : unit = {
-    l = $Dinter.dinter 0 borne;
+    l = $Dinter.dinter 0 (bound-1);
   }
 
   fun gen_queries(info:bool) : DKC.query array = {
@@ -292,12 +231,12 @@ module Adv(A:Garble.Adv) (*: Dkc.Adv*) = {
     }
     (n, m, q, aa, bb, gg) = fc;
     queries = Array.empty;
-    t = Array.init (n+q) false;
-    v = Array.init (n+q) false;
-    xx = Array.init (n+q) (void, void);
-    yy = Array.init (n+q) void;
-    gg = Array.init (n+q) (false, false, false, false);
-    pp = Array.init (n+q) (void, void, void, void);
+    t = Array.create (n+q) false;
+    v = Array.create (n+q) false;
+    xx = Array.create (n+q) (void, void);
+    yy = Array.create (n+q) void;
+    gg = Array.create (n+q) (false, false, false, false);
+    pp = Array.create (n+q) (void, void, void, void);
     tau = info;
     if (Garble.queryValid query)
     {

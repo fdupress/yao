@@ -1,8 +1,13 @@
-require import Set.
+require import FSet.
 require import Real.
 require import Distr.
 
-require import MySum.
+require Monoid.
+clone Monoid as MReal with
+  type t = real,
+  op Z = 0%r,
+  op (+) = Real.(+)
+  proof * by smt.
 
 theory Mean.
   type base.
@@ -31,11 +36,5 @@ theory Mean.
     forall &m,
       forall (W<:Worker),
         Pr[Rand(W).randAndWork()@ &m:res] =
-          sum (lambda (x:base), (mu_x d x)*Pr[W.work(x)@ &m:res]) support.
-
-  axiom Not :
-    forall &m,
-      forall (W<:Worker),
-        forall x,
-          Pr[W.work(x)@ &m:res] = 1%r - Pr[W.work(x)@ &m: !res].
+          MReal.SumSet.sum (lambda (x:base), (mu_x d x)*Pr[W.work(x)@ &m:res]) support.
 end Mean.

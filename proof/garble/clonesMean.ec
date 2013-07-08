@@ -1,28 +1,27 @@
-require import Set.
+require import FSet. import Interval.
 require import Int.
 require import Bool.
 require import Distr.
 require import Real.
 
-require import MySum.
-require import MyInt.
-
-require import CloneDkc.
+require import Hypothesis.
 require import Garble.
-require import Mean.
-require import AdvGarbleAda.
+require import Mean. export MReal.SumSet.
+require import ReductionAda.
 
 clone Mean as MeanBool with
   type base = bool,
   op d = Dbool.dbool,
-  op support = Set.add false (Set.add true Set.empty).
+  op support = add false (add true empty)
+  proof in_support by smt.
 
 clone Mean as MeanInt with
   type base = int,
-  op d = Dinter.dinter 0 (borne-1),
-  op support = integers 0 borne.
+  op d = Dinter.dinter 0 (bound-1),
+  op support = interval 0 (bound-1)
+  proof in_support by smt.
 
-module DkcWorkAdv(Adv:AdvAda_t) = {
+module DkcWorkAdv(Adv:DKC.AdvAda_t) = {
   module Game = DKC.GameAda(DKC.Dkc, Adv)
   module ADV = Adv(DKC.Dkc)
   fun work() : bool = {
@@ -63,15 +62,16 @@ proof.
   intros b &m Adv h.
   cut eq : equiv[DkcWorkAdv(Adv).work ~ DkcWork(Adv).work
 : DKC.Dkc.b{1} = x{2} /\ (glob Adv){1} = (glob Adv){2} /\ (glob DKC.GameAda(DKC.Dkc,Adv)){1} = (glob DKC.GameAda(DKC.Dkc,Adv)){2}
-      ==>res{1}=res{2}].
+      ==>res{1}=res{2}];
+  last equiv_deno eq;progress assumption.
   fun.
-  call ((glob DKC.GameAda(DKC.Dkc,Adv)){1} = (glob DKC.GameAda(DKC.Dkc,Adv)){2}) (res{1}=res{2}).
-  apply (DkcExp (<:DKC.GameAda(DKC.Dkc,Adv))).
-  call ((glob Adv){1} = (glob Adv){2}) (res{1}=res{2}/\(glob Adv){1} = (glob Adv){2}).
+  call (DkcExp (DKC.GameAda(DKC.Dkc, Adv))).
+  call (_:
+    (glob Adv){1} = (glob Adv){2} ==>
+    (res{1}=res{2}/\(glob Adv){1} = (glob Adv){2})).
   fun true;progress assumption.
   wp.
   skip;progress.
-  equiv_deno eq;progress assumption.
 save.
 
 lemma DkcEsp :
@@ -94,25 +94,16 @@ proof.
       wp.
       cut prelem : (forall (M<:DKC.Exp), equiv[M.work~M.work:(glob M){1}=(glob M){2}==>res{1}=res{2}]);
         first (intros M;fun true;by progress).
-      call ((glob DKC.GameAda(DKC.Dkc, Adv)){1}=(glob DKC.GameAda(DKC.Dkc, Adv)){2}) (res{1}=res{2});
-        first apply (prelem (<:DKC.GameAda(DKC.Dkc, Adv))).
-      wp.
-      call ((glob Adv){1} = (glob Adv){2}) ((glob Adv){1} = (glob Adv){2});first (fun true;by progress).
+      call (prelem (DKC.GameAda(DKC.Dkc, Adv))).
+      call (_:(glob Adv){1} = (glob Adv){2} ==> (glob Adv){1} = (glob Adv){2});first (fun true;by progress).
       wp;rnd;skip;by (progress assumption).
     equiv_deno eq;progress assumption;smt.
-  rewrite pr.
-  rewrite (MeanBool.Mean &m (<:DkcWork(Adv))).
+  rewrite pr (MeanBool.Mean &m (DkcWork(Adv))).
   delta MeanBool.support.
-  rewrite (sum_add<:bool> (lambda (x : MeanBool.base),
-     mu_x MeanBool.d x * Pr[DkcWork(Adv).work(x) @ &m : res{hr}]) (add true Set.empty) false _);first smt.
-  rewrite (sum_add<:bool> (lambda (x : MeanBool.base),
-     mu_x MeanBool.d x * Pr[DkcWork(Adv).work(x) @ &m : res{hr}]) Set.empty true _);first smt.
-  rewrite (sum_nil<:bool> (lambda (x : MeanBool.base),
-     mu_x MeanBool.d x * Pr[DkcWork(Adv).work(x) @ &m : res{hr}])).
-  simplify.
+  (rewrite ! sum_add;first rewrite mem_add /=);first 2 apply mem_empty.
+  rewrite sum_nil /=.
   delta MeanBool.d.
-  rewrite (Dbool.mu_x_def false).
-  rewrite (Dbool.mu_x_def true).
+  rewrite ! Dbool.mu_x_def MReal.addZ MReal.C /MReal.(+).
   smt.
 save.
 
@@ -121,12 +112,11 @@ theory AdvEsp.
   op b : bool.
 
   module AdvWork(Adv:Garble.Adv) : MeanInt.Worker = {
-    (*TODO*)
-    module Game = GameAda(DKC.Dkc, Adv)
+    module Game = DKC.GameAda(DKC.Dkc, RedAda(Adv))
 
     fun work(x:int) : bool = {
       var r : bool;
-      AdvAda.l = x;
+      RedAda.l = x;
       DKC.Dkc.b = b;
       r = Game.work();
       return r;

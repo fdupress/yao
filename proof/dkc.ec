@@ -1,6 +1,5 @@
 require import Bitstring.
 require import Map.
-import PartialGet.
 require import Set.
 require import Pair.
 require import Int.
@@ -8,7 +7,6 @@ require import Real.
 require import Bool.
 require import Array.
 require import Distr.
-require import MyRand.
 
 theory DKC.
   type number = bitstring.
@@ -28,12 +26,6 @@ theory DKC.
 
   op encode : tweak -> key -> key -> msg -> cipher.
   op decode : tweak -> key -> key -> cipher -> msg.
-  axiom inverse :
-    forall (t:tweak),
-    forall (k1:key),
-    forall (k2:key),
-    forall (m:msg),
-    decode t k1 k2 (encode t k1 k2 m) = m.
 
   type query = (int*bool)*(int*bool)*bool*tweak.
   type answer = key*key*cipher.
@@ -52,11 +44,6 @@ theory DKC.
     fun preInit() : unit
     fun gen_queries(info:bool) : (query array)
     fun get_challenge(answers: (answer array)) : bool
-  }.
-
-  module type AdvAda_t(DKC:Dkc_t) = {
-    fun preInit() : unit {}
-    fun work(info:bool) : bool {DKC.encrypt}
   }.
 
   module Dkc : Dkc_t = {
@@ -94,23 +81,31 @@ theory DKC.
       var pos : bool;
       var t : tweak;
       var out : answer;
+      var temp : number;
       (i, j, pos, t) = q;
       out = bad;
       if ((!(mem t used)) /\ ((fst j) > (fst i)))
       {
         used = add t used;
-        if (! (in_dom i kpub)) {kpub.[i] = $genRandKeyLast; kpub.[i] = addLast kpub.[i] (snd i);}
-        if (! (in_dom j kpub)) {kpub.[j] = $genRandKeyLast; kpub.[j] = addLast kpub.[j] (snd j);}
-        if (! (in_dom j r)) r.[j] = $genRandKey;
+        if (! (in_dom i kpub)) {
+          temp = $genRandKeyLast;
+          kpub.[i] = addLast temp (snd i);
+        }
+        if (! (in_dom j kpub)) {
+          temp = $genRandKeyLast;
+          kpub.[j] = addLast temp (snd j);
+        }
+        if (! (in_dom j r))
+          r.[j] = $genRandKey;
         if (pos) {
           keya = ksec;
-          keyb = kpub.[i];
+          keyb = proj kpub.[i];
         } else {
           keyb = ksec;
-          keya = kpub.[i];
+          keya = proj kpub.[i];
         }
-        if (b) msg = kpub.[j]; else msg = r.[j];
-        out = (kpub.[i], kpub.[j], encode t keya keyb msg);
+        if (b) msg = proj kpub.[j]; else msg = proj r.[j];
+        out = (proj kpub.[i], proj kpub.[j], encode t keya keyb msg);
       }
       return out;
     }
@@ -142,7 +137,7 @@ theory DKC.
       info = D.initialize();
       queries = A.gen_queries(info);
       nquery = Array.length queries;
-      answers = Array.init nquery bad;
+      answers = Array.create nquery bad;
       i = 0;
       while (i < nquery)
       {
@@ -160,6 +155,11 @@ theory DKC.
       r = work();
       return r;
     }
+  }.
+
+  module type AdvAda_t(DKC:Dkc_t) = {
+    fun preInit() : unit {}
+    fun work(info:bool) : bool {DKC.encrypt}
   }.
 
   module GameAda(D:Dkc_t, Adv:AdvAda_t) = {
@@ -188,11 +188,5 @@ theory DKC.
       return r;
     }
   }.
-
-  axiom Security :
-    exists (epsilon:real), epsilon > 0%r /\
-      forall (A<:Adv_t), forall &m,
-        `|2%r * Pr[Game(Dkc, A).main()@ &m:res] - 1%r| <
-          epsilon.
 
 end DKC.

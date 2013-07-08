@@ -8,12 +8,11 @@ require import Bool.
 require import Array.
 require import Real.
 require import Distr.
-require import MyRand.
 
-require import CloneDkc.
+require import Hypothesis.
 require import GarbleTools.
 require import Garble.
-require import AdvGarbleAda.
+require import ReductionAda.
 
 (*STRANGE VEHAVIOUR :
 module type Ty = {}.
@@ -65,12 +64,13 @@ module RandGarble2 : Rand_t = {
     var gg : bool g2v;
     var dkckey : token;
     (n, m, q, aa, bb, gg) = f;
-    t = Array.init (n+q) false;
-    xx = Array.init (n+q) (void, void);
+    t = Array.create (n+q) false;
+    xx = Array.create (n+q) (void, void);
 
     t0 = $Dbool.dbool;
     v = x.[0];
-    dkckey = $DKC.genRandKeyLast (t0);
+    dkckey = $DKC.genRandKeyLast;
+    dkckey = DKC.addLast dkckey v;
 
     i = 0;
     while (i < n+q-m) {
@@ -94,25 +94,29 @@ module RandGarble2 : Rand_t = {
         
         if (getTok xx b false = void)
         {
-          tok = $DKC.genRandKeyLast (t.[b]);
+          tok = $DKC.genRandKeyLast;
+          tok = DKC.addLast tok (t.[b]);
           xx = setTok xx b false tok;
         }
 
         if (getTok xx g (evalGate gg.[g] (!v,false)) = void)
         {
-          tok = $DKC.genRandKeyLast (evalGate gg.[g] (!v,false));
+          tok = $DKC.genRandKeyLast;
+          tok = DKC.addLast tok (evalGate gg.[g] (!v,false));
           xx = setTok xx g (evalGate gg.[g] (!v,false)) tok;
         }
 
         if (getTok xx b true = void)
         {
-          tok = $DKC.genRandKeyLast (!t.[b]);
+          tok = $DKC.genRandKeyLast;
+          tok = DKC.addLast tok (!t.[b]);
           xx = setTok xx b true tok;
         }
 
         if (getTok xx g (evalGate gg.[g] (!v,true)) = void)
         {
-          tok = $DKC.genRandKeyLast (evalGate gg.[g] (!v,true));
+          tok = $DKC.genRandKeyLast;
+           tok = DKC.addLast tok (evalGate gg.[g] (!v,true));
           xx = setTok xx g (evalGate gg.[g] (!v,true)) tok;
         }
       }
@@ -122,11 +126,13 @@ module RandGarble2 : Rand_t = {
     i = 0;
     while (i < n+q) {
       if (getTok xx i true = void /\ i <> 0) {
-        tok = $DKC.genRandKeyLast (! t.[i]);
+        tok = $DKC.genRandKeyLast;
+        tok = DKC.addLast tok  (! t.[i]);
         xx = setTok xx i true tok;
       }
       if (getTok xx i false = void) {
-        tok = $DKC.genRandKeyLast (t.[i]);
+        tok = $DKC.genRandKeyLast;
+        tok = DKC.addLast tok (t.[i]);
         xx = setTok xx i false tok;
       }
       i = i + 1;
@@ -137,12 +143,12 @@ module RandGarble2 : Rand_t = {
 }.
 
 lemma realEq :
-  forall (ADV <: Garble.Adv{AdvAda, DKC.Dkc, Garble.PrvInd}),
+  forall (ADV <: Garble.Adv{RedAda, DKC.Dkc, Garble.PrvInd}),
     equiv [
-      GameAda(DKC.Dkc, ADV).work ~
+      DKC.GameAda(DKC.Dkc, RedAda(ADV)).work ~
       Garble.Game(Garble.PrvInd(RandGarble2), ADV).main
       : (glob ADV){1} = (glob ADV){2} /\
-      (DKC.Dkc.b{1}) /\ (AdvAda.l{1}=0) ==> res{1} = res{2}
+      (DKC.Dkc.b{1}) /\ (RedAda.l{1}=0) ==> res{1} = res{2}
     ].
 proof.
 

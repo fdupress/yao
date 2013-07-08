@@ -1,79 +1,25 @@
-
-require import Int.
-require import Real.
-require import Array.
-
-
-module Test = {
-  fun f() : int = {
-    var a : int;
-    var r : int array;
-    r = init 2 0;
-    a = 1;
-    a = 0;
-    r.[a] = 1;
-    return r.[a];
-  }
-}.
-
-lemma toto : forall &m, Pr[Test.f()@ &m : res = 1] = 1%r.
-intros &m.
-(bdhoare_deno (_ : (true) ==> (res=1));first fun;wp;skip);smt.
-save.
-
-lemma toto : forall &m, Pr[Test.f()@ &m : res = 1] = 0%r.
-intros &m.
-bdhoare_deno (_ : (true) ==> (res=1)).
-fun.
-cfold 3.
-wp.
-exfalso.
-skip.
-
-first fun;cfold 3;wp;skip).
-
-smt.
-save.
-
-equiv tata : Test.f ~ Test.f : true ==> res{1} = res{2}.
-fun.
-wp.
-skip.
-smt.
-save.
-
-lemma unsound : forall &m, false.
-intros &m.
-cut lem1 : Pr[Test.f()@ &m : res = 1] = Pr[Test.f()@ &m : res = 2];
-  first equiv_deno toto;smt.
-cut lem1 : Pr[Test.f()@ &m : res = 1] = Pr[Test.f()@ &m : res = 2];
-smt.
-smt.
-
-apply (_:
-
 require import Bitstring.
 require import Int.
 require import Bool.
 require import Pair.
 require import Map.
-import PartialGet.
 require import Distr.
 require import List.
 require import Array.
 
-require import CloneDkc.
+require import Hypothesis.
 require import Garble.
 require import GarbleTools.
 
 op eval(f:funct, i:input, k:int) = (evalComplete f i extract).[k].
 op void = (Bitstring.zeros 0).
 
+(*
 lemma eval_val : forall f x i,
   i >= (getN f) + (getQ f) - (getM f) => i < (getN f) + (getQ f) =>
-  eval f x i = (Garble.eval f x).[i-((getN f) + (getQ f) - (getM f))] by admit.
+  eval f x i = (Garble.eval f x).[i-((getN f) + (getQ f) - (getM f))] by admit.*)
 
-module AdvAda(A:Garble.Adv, Dkc:DKC.Dkc_t) (*: DKC.AdvAda_t(Dkc)*) = {
+module RedAda(A:Garble.Adv, Dkc:DKC.Dkc_t) = {
 
   var c : bool
   var fc : Garble.funct
@@ -152,7 +98,7 @@ module AdvAda(A:Garble.Adv, Dkc:DKC.Dkc_t) (*: DKC.AdvAda_t(Dkc)*) = {
   fun garbD(rand:bool, alpha:bool, bet:bool) : token = {
     var yy : token;
     if (rand)
-      yy = randG.[(g,alpha,bet)];
+      yy = proj randG.[(g,alpha,bet)];
     else
       yy = getTok xx g (evalGate gg.[g] ((v.[a]^^alpha),(v.[b]^^alpha)));
     garb(yy, alpha, bet);
@@ -254,7 +200,7 @@ module AdvAda(A:Garble.Adv, Dkc:DKC.Dkc_t) (*: DKC.AdvAda_t(Dkc)*) = {
       }
       g = g + 1;
     }
-    answer = ((getN fc, getM fc, getQ fc, getA fc, getB fc, pp), encrypt (Array.sub xx 0 (getN fc)) (Array.init (getN fc) false),tt);
+    answer = ((getN fc, getM fc, getQ fc, getA fc, getB fc, pp), encrypt (Array.sub xx 0 (getN fc)) (Array.create (getN fc) false),tt);
   }
 
   
@@ -275,11 +221,11 @@ module AdvAda(A:Garble.Adv, Dkc:DKC.Dkc_t) (*: DKC.AdvAda_t(Dkc)*) = {
       xc = snd (snd query);
     }
     (n, m, q, aa, bb, gg) = fc;
-    t = Array.init (n+q) false;
-    v = Array.init (n+q) false;
-    xx = Array.init (n+q) (void, void);
-    yy = Array.init (n+q) void;
-    pp = Array.init (n+q) (void, void, void, void);
+    t = Array.create (n+q) false;
+    v = Array.create (n+q) false;
+    xx = Array.create (n+q) (void, void);
+    yy = Array.create (n+q) void;
+    pp = Array.create (n+q) (void, void, void, void);
     randG = Map.empty;
     tau = info;
     if (Garble.queryValid query)
@@ -293,31 +239,3 @@ module AdvAda(A:Garble.Adv, Dkc:DKC.Dkc_t) (*: DKC.AdvAda_t(Dkc)*) = {
     return ret;
   }
 }.
-
-
-  module GameAda(D:DKC.Dkc_t, Adv:Garble.Adv) = {
-
-    module A = AdvAda(Adv, DKC.Dkc)
-
-    fun preInit() : unit = {
-      D.preInit();
-      A.preInit();
-    }
-
-    fun work() : bool = {
-      var info : bool;
-      var advChallenge : bool;
-      var realChallenge : bool;
-      info = D.initialize();
-      advChallenge = A.work(info);
-      realChallenge = D.get_challenge();
-      return advChallenge = realChallenge;
-    }
-    
-    fun main() : bool = {
-      var r : bool;
-      preInit();
-      r = work();
-      return r;
-    }
-  }.

@@ -5,7 +5,6 @@ require import Array.
 require import Int.
 require import Pair.
 require import Bool.
-require Array.
 
 
 type token = bitstring.
@@ -24,39 +23,40 @@ op setTok(x:tokens, a:int, i:bool, t:token) : tokens =
 
 lemma set_get_tok: forall (x:tokens, a:int, i:bool, t:token, b:int, j:bool),
   0 <= b => b < length x =>
-  getTok (setTok x a i t) b j = (a=b/\i=j)?t:getTok x b j by [].
+  getTok (setTok x a i t) b j = (a=b/\i=j)?t:getTok x b j.
+intros=> ? ? ? ? ? ? ? ?.
+simplify setTok getTok.
+by case i=> ?;case j=> ?;rewrite ! set_get //;case (a=b)=> ?;subst;trivial.
+save.
 
 lemma set_set_tok: forall (x:tokens, a:int, i:bool, t:token, u:token),
   0 <= a => a < Array.length x =>
   setTok (setTok x a i t) a i u = (setTok x a i u).
-  intros=> ? ? ? ? ? ? ? ?.
+  intros=> ? ? ? ? ? ? ?.
   simplify setTok fst snd.
   case i=> ?;simplify;rewrite set_setE  set_get //. 
 save.
 
-op intToBitstring : int -> bitstring.
+op intToBitstring = zeros.
 
-axiom intToBitstring_inj : forall g gg,
+lemma intToBitstring_inj : forall g gg,
+0 <= g => 0 <= gg =>
 intToBitstring g = intToBitstring gg =>
 g = gg.
-
-op tweak(g:int, a:bool, b:bool) : bitstring = (a::(b::Bits.empty)) || (intToBitstring g).
-
-lemma tweak_inj :
-  forall g a b gg aa bb,
-     tweak g a b = tweak gg aa bb => (g, a, b) = (gg, aa, bb).
-intros g a b gg aa bb.
-simplify.
-intros h.
-cut eqA : ( (a::(b::Bits.empty)).[0] = (aa::(bb::Bits.empty)).[0] );first smt.
-cut eqB : ( (a::(b::Bits.empty)).[1] = (aa::(bb::Bits.empty)).[1] );first smt.
-smt.
+intros=> ? ? ? ?.
+rewrite /intToBitstring -Bits.rw_ext /Bits.(==)! zeros_length //.
 save.
 
-lemma tweak_inj2 :
-  forall g a b gg aa bb,
-     !((g, a, b) = (gg, aa, bb)) => ((tweak g a b = tweak gg aa bb)=false).
-smt.
+op tweak(g:int, a:bool, b:bool) : bitstring = a::(b::(intToBitstring g)).
+
+lemma tweak_inj :
+  forall g a b gg aa bb, 0 <= g => 0 <= gg =>
+     tweak g a b = tweak gg aa bb => (g, a, b) = (gg, aa, bb).
+intros ? ? ? ? ? ? ? ?.
+simplify tweak.
+rewrite ! Bits.cons_inj=> [[? ?] ?].
+subst;split=> //.
+apply intToBitstring_inj=> //.
 save.
 
 
@@ -122,31 +122,10 @@ lemma inverse_base :
           (lsb gi1, lsb gi2)
         ) = getTok x g (evalGate f i).
 proof.
-  intros i n q m a b g f x.
-  intros npos qpos mpos avalid bvalid gvalid tokCor.
-  intros gi1 gi2.
-  cut main : (forall (inter:bool),
-    (evalGate f (fst i, snd i) = inter) =>
-      DKC.decode
-        (tweak g (lsb gi1) (lsb gi2))
-        gi1
-        gi2
-        (evalGate (garbleGate x f a b g) (lsb gi1,lsb gi2))
-      = getTok x g inter
-  );[|smt].
-  intros inter h1.
-  delta evalGate garbleGate.
-  simplify.
-  cut removeIf : ((
-    if !lsb gi1 && !lsb gi2 then enc x f a b g false false else
-    if !lsb gi1 &&  lsb gi2 then enc x f a b g false  true else
-    if  lsb gi1 && !lsb gi2 then enc x f a b g  true false else
-    enc x f a b g true true) = enc x f a b g (lsb gi1) (lsb gi2));[smt|].
-  rewrite removeIf.
-  delta enc gi1 gi2.
-  simplify.
-  rewrite (_:(lsb (getTok x a true) = lsb (getTok x a (fst i))) = (fst i));[smt|].
-  rewrite (_:(lsb (getTok x b true) = lsb (getTok x b (snd i))) = (snd i));[smt|].
-  rewrite h1.
-  smt.
+  do intros ?.
+  rewrite -(DKC.inverse (tweak g (lsb gi1) (lsb gi2)) gi1 gi2 (getTok x g (evalGate f i))).
+  congr=> //. 
+  simplify evalGate garbleGate enc.
+  generalize H5.
+  case (! lsb gi1 && ! lsb gi2)=> h;smt.
 save.

@@ -6,7 +6,8 @@ x =
 2%r * b%r *
 ((1%r / b%r * x + 1%r / b%r * (1%r / 2%r) + (b%r - 1%r) * (1%r / b%r)) / 2%r) +
 1%r / 2%r - b%r.
-smt "Mathematica".
+(*smt "Mathematica".*)
+admit.
 save.
 
 require import Int.
@@ -16,13 +17,11 @@ lemma simpl : (forall (x y z:real), y>0%r=> x < z  => x * y < y * z) by [].
 require import Fun.
 require import Set.
 
-require import MySum.
-require import MyInt.
-
-require AdvGarble.
 require import Garble.
 require import ClonesMean.
 require import CloneDkc.
+require import Reduction.
+require import ReductionAda.
 
 (*
 require import Bitstring.
@@ -195,19 +194,14 @@ save.
 
 lemma PrvIndGarble :
   exists (epsilon:real), epsilon > 0%r /\
-    forall (Adv<:Garble.Adv{DKC.Dkc,DKC.Game,AdvGarble.Adv}), forall &m,
+    forall (Adv<:Garble.Adv{DKC.Dkc,DKC.Game,Red}), forall &m,
         `|Pr[Garble.Game(Garble.PrvInd(RandGarble), Adv).main()@ &m:res] - 1%r / 2%r| < epsilon.
 proof.
-  elim DKC.Security.
-  intros epDkc hDkc.
-  elim hDkc. clear hDkc.
-  intros hPos hDkc.
-
-  exists (borne%r*epDkc).
-
-  cut bPos : (borne%r > 0%r);first smt.
+  elim DkcSecure=> epDkc [hPos hDkc].
+  exists (bound%r*epDkc).
+  cut bPos : (bound%r > 0%r);first smt.
   progress;first smt.
-  rewrite (RelDkcGarble &m (<:Adv)).
+  rewrite RelDkcGarble.
   cut remPr : (forall (x:real), `|2%r * x - 1%r| < epDkc => `|2%r * borne%r * x +
   1%r / 2%r - borne%r - 1%r / 2%r| < borne%r * epDkc).
     intros x h.
