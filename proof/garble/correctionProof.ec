@@ -3,10 +3,10 @@ require import Array.
 require import Pair.
 require import Bool.
 
-require import Hypothesis.
-require import GarbleTools.
 require import MyTools.
-require import Garble.
+require import GarbleTools.
+
+require import PreProof.
 
 lemma encrypt_len :
   forall (k:keyInput, i:input),
@@ -40,15 +40,17 @@ lemma extractG :
       extractG f k ar = extractG f k (sub ar 0 k)
 by (delta extractG;progress;smt).
 
-lemma correct :
-  (forall (t k1 k2 m:token),
+lemma correct : 
+(forall (t k1 k2 m:Dkc.t),
     DKC.decode t k1 k2 (DKC.encode t k1 k2 m) = m) =>
-  forall (f : funct) , functCorrect f =>
-  forall (x : random) , randomCorrect f x =>
-  forall (i : input) , inputCorrect f i =>
+forall (f : funct) (x : random) (i : input),
+ functCorrect f =>
+ (*randomCorrect f x =>*)
+ inputCorrect f i =>
     let (g, ki, ko) = garble x f in
     eval f i = decrypt ko (evalG g (encrypt ki i)).
 proof.
+  intros DKCHyp.
   intros f hypF x hypX i hypI.
   elimT tuple3_ind (garble x f)=> g ki ko h.
   delta eval evalG evalGen garble.

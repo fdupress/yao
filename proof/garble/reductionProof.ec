@@ -1,5 +1,7 @@
 require import Real.
+require import Bool.
 
+(*
 lemma math :
 forall (x:real) (b:int),
 x =
@@ -9,19 +11,22 @@ x =
 (*smt "Mathematica".*)
 admit.
 save.
+lemma simpl : (forall (x y z:real), y>0%r=> x < z  => x * y < y * z) by [].
+*)
 
 require import Int.
-
-lemma simpl : (forall (x y z:real), y>0%r=> x < z  => x * y < y * z) by [].
-
 require import Fun.
 require import Set.
 
-require import Garble.
+require import GarbleTools.
+require import PreProof.
 require import ClonesMean.
-require import CloneDkc.
 require import Reduction.
 require import ReductionAda.
+require import EquivReal.
+require import EquivHybrid.
+require import EquivFake.
+(*require import EquivAda.*)
 
 (*
 require import Bitstring.
@@ -42,79 +47,77 @@ require import MyMean.
 *)
 
 lemma prReal :
-  forall (ADV <: Garble.Adv{AdvGarble.Adv}),
+  forall (ADV <: PrvIndSec.Adv_t{RedAda, DKCS.Dkc, PrvIndSec.Game}),
     forall &m,
-    Pr[AdvEspTrue.AdvWork(ADV).work(0) @ &m : res] =
-      Pr[Garble.Game(Garble.PrvInd(RandGarble), ADV).main() @ &m : res].
+    Pr[RedEspTrue.RedWork(ADV).work(0) @ &m : res] =
+      Pr[PrvIndSec.Game(RandGarble2, ADV).main() @ &m : res].
 proof.
-  rewrite (AdvEspTrue.RemAdvEsp
-
+intros=> ADV &m.
+cut := RedEspTrue.RemRedEsp (lambda x, x) ADV &m &m 0=> /= ->.
+equiv_deno (realEq ADV)=> //.
 save.
 
 lemma prHybrid :
-  forall (ADV <: Garble.Adv{AdvGarble.Adv}),
+  forall (ADV <: PrvIndSec.Adv_t{RedAda, DKCS.Dkc, PrvIndSec.Game}),
     forall &m x,
-      x >= 0 /\ x < borne =>
+      x >= 0 /\ x < Cst.bound =>
     let y = x + 1 in
-    Pr[AdvEspFalse.AdvWork(ADV).work(x) @ &m : res] =
-      Pr[AdvEspTrue.AdvWork(ADV).work(y) @ &m : !res].
+    Pr[RedEspFalse.RedWork(ADV).work(x) @ &m : res] =
+      Pr[RedEspTrue.RedWork(ADV).work(y) @ &m : !res].
 proof.
-  admit.
+intros=> ADV &m ? ? ?.
+cut := RedEspFalse.RemRedEsp (lambda x, x) ADV &m &m x=> /= ->.
+cut := RedEspTrue.RemRedEsp (lambda x, !x) ADV &m &m y=> /= ->.
+equiv_deno (hybridEq ADV x)=> //.
 save.
 
 lemma prFake :
-  forall (ADV <: Garble.Adv{AdvGarble.Adv}),
-    forall &1,
-        let x = borne - 1 in
-        Pr[AdvEspFalse.AdvWork(ADV).work(x)@ &1 : res] = 1%r / 2%r.
+  forall (ADV <: PrvIndSec.Adv_t{RedAda, DKCS.Dkc, Fake}),
+    forall &m,
+      islossless ADV.gen_query =>
+      islossless ADV.get_challenge =>
+        let x = Cst.bound - 1 in
+        Pr[RedEspFalse.RedWork(ADV).work(x)@ &m : !res] = 1%r / 2%r.
 proof.
-  admit.
+intros=> ADV &m ? ? /=.
+cut := RedEspFalse.RemRedEsp (lambda x, !x) ADV &m &m (Cst.bound - 1)=> /= ->.
+rewrite -(fakePr ADV &m) //.
+equiv_deno (fakeEq ADV)=> //.
 save.
 
 lemma RelDkcGarble :
   forall &m,
-    forall (Adv<:Garble.Adv{DKC.Dkc,DKC.Game,AdvGarble.Adv}),
-      Pr[Garble.Game(Garble.PrvInd(RandGarble), Adv).main()@ &m:res] =
-        2%r * borne%r * Pr[GameAda(DKC.Dkc, ADV).work()@ &m:res]
-          + 1%r / 2%r - borne%r.
+    forall (ADV<:PrvIndSec.Adv_t{DKCS.Dkc,DKCS.Game,RedAda}),
+      Pr[PrvIndSec.Game(RandGarble2, ADV).main()@ &m:res] =
+        2%r * Cst.bound%r * Pr[DKCS.GameAda(DKCS.Dkc, RedAda(ADV)).main()@ &m:res]
+          + 1%r / 2%r - Cst.bound%r.
 proof.
-  intros &m Adv.
-  rewrite (DkcEsp &m (<:AdvGarble.Adv(Adv))).
-  rewrite (AdvEspTrue.AdvEsp &m (<:Adv) true).
-  rewrite (AdvEspFalse.AdvEsp &m (<:Adv) false).
+  intros &m ADV.
+  rewrite (DkcEsp &m (RedAda(ADV))).
+  rewrite (RedEspTrue.AdvEsp &m ADV true) //=.
+  rewrite (RedEspFalse.AdvEsp &m ADV false) //=.
 
 (**Remove Pr*)
-  cut introF : (exists (f:int->real), (forall (l:int), (f l) =
-    Pr[AdvEspTrue.AdvWork(Adv).work(l) @ &m : res{hr}]));first
-    (exists (lambda (l:int), Pr[AdvEspTrue.AdvWork(Adv).work(l) @ &m : res{hr}]);
-     simplify;split).
-  elim introF.
-  intros f fv.
+  pose f := (lambda l, Pr[RedEspTrue.RedWork(ADV).work(l) @ &m : res]).
   rewrite (_:(lambda (l : int),
-       1%r / borne%r *
-       Pr[AdvEspTrue.AdvWork(Adv).work(l) @ &m : res{hr}]) = lambda (l : int),
-       1%r / borne%r * (f l));
-    first (apply Fun.extensionality;delta Fun.(==);simplify;intros l;rewrite (fv l);split).
+    Pr[RedEspTrue.RedWork(ADV).work(l) @ &m : res] / Cst.bound%r) =
+      lambda (l : int), 1%r / Cst.bound%r * (f l));
+    first (apply fun_ext=> l //).
 (**End Remove Pr*)
 
 (**Remove Pr*)
-  cut introG : (exists (g:int->real), (forall (l:int), (g l) =
-    Pr[AdvEspFalse.AdvWork(Adv).work(l) @ &m : res{hr}]));first
-    (exists (lambda (l:int), Pr[AdvEspFalse.AdvWork(Adv).work(l) @ &m : res{hr}]);
-     simplify;split).
-  elim introG.
-  intros g gv.
+  pose g := (lambda l, Pr[RedEspFalse.RedWork(ADV).work(l) @ &m : res]).
   rewrite (_:(lambda (l : int),
-       1%r / borne%r *
-       Pr[AdvEspFalse.AdvWork(Adv).work(l) @ &m : res{hr}]) = lambda (l : int),
-       1%r / borne%r * (g l));
-    first (apply Fun.extensionality;delta Fun.(==);simplify;intros l;rewrite (gv l);split).
+    Pr[RedEspFalse.RedWork(ADV).work(l) @ &m : res] / Cst.bound%r) =
+      lambda (l : int), 1%r / Cst.bound%r * (g l));
+    first (apply fun_ext=> l //).
 (**End Remove Pr*)
 
 (**Remove Pr*)
+  cut -> : (Pr[PrvIndSec.Game(RandGarble2, ADV).main() @ &m : res] = f 0).
+  rewrite /f. (prReal ADV &m) //.
 cut valf0 : (f 0 = Pr[Game(PrvInd(RandGarble), Adv).main() @ &m : res{hr}]).
   rewrite (fv 0).
-  apply (prReal (<:Adv) &m).
 rewrite <- valf0.
 (**End Remove Pr*)
 

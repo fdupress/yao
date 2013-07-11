@@ -9,9 +9,8 @@ require import Array.
 require import Real.
 require import Distr.
 
-require import Hypothesis.
 require import GarbleTools.
-require import Garble.
+require import PreProof.
 require import ReductionAda.
 
 (*STRANGE VEHAVIOUR :
@@ -45,8 +44,10 @@ lemma add_mem_2: forall (x y:'a) X,
 
 lemma equ : forall a b, (a <=> b) => !b => !a by [].
 
-module RandGarble2 : Rand_t = {
-  fun gen(f:funct, x:input) : random = {
+module RandGarble2 : PrvIndSec.Rand_t = {
+  fun gen(query:funct*input) : random = {
+    var f : funct;
+    var x : input;
     var i : int;
     var g : int;
     var a : int;
@@ -63,6 +64,7 @@ module RandGarble2 : Rand_t = {
     var bb : w2g;
     var gg : bool g2v;
     var dkckey : token;
+    (f, x) = query;
     (n, m, q, aa, bb, gg) = f;
     t = Array.create (n+q) false;
     xx = Array.create (n+q) (void, void);
@@ -143,12 +145,11 @@ module RandGarble2 : Rand_t = {
 }.
 
 lemma realEq :
-  forall (ADV <: Garble.Adv{RedAda, DKC.Dkc, Garble.PrvInd}),
-    equiv [
-      DKC.GameAda(DKC.Dkc, RedAda(ADV)).work ~
-      Garble.Game(Garble.PrvInd(RandGarble2), ADV).main
+  forall (ADV <: PrvIndSec.Adv_t{RedAda, DKCS.Dkc, PrvIndSec.Game}),
+    equiv [PreInit(ADV).f ~
+      PrvIndSec.Game(RandGarble2, ADV).main
       : (glob ADV){1} = (glob ADV){2} /\
-      (DKC.Dkc.b{1}) /\ (RedAda.l{1}=0) ==> res{1} = res{2}
+      vb{1} /\ (vl{1}=0) ==> res{1} = res{2}
     ].
 proof.
 
@@ -171,7 +172,7 @@ proof.
   swap{1} 8 -7.
 
   seq 1 1 : ((glob ADV){1} = (glob ADV){2}/\AdvAda.query{1} = query{2}/\DKC.Dkc.b{1} /\ (AdvAda.l{1}=0)).
-    call ((glob ADV){1} = (glob ADV){2}) (res{1}=res{2} /\ (glob ADV){1} = (glob ADV){2});first (fun true;by progress).
+    call (_:(glob ADV){1} = (glob ADV){2} ==> res{1}=res{2} /\ (glob ADV){1} = (glob ADV){2});first (fun true;by progress).
   skip;progress;assumption.
   
   case (Garble.queryValid query{2}).
@@ -180,7 +181,7 @@ proof.
   rcondt {1} 19;first (intros _;wp;rnd;wp;rnd;rnd;skip;progress assumption).
   rcondt {2} 1;first (intros &m;skip;by progress).
   wp.
-  call ((glob ADV){1} = (glob ADV){2}/\answer{1}=answer{2}) (res{1}=res{2});first (fun true;by progress).
+  call (_:(glob ADV){1} = (glob ADV){2}/\answer{1}=answer{2} ==> res{1}=res{2});first (fun true;by progress).
   wp.
 
 (*Main invariant :
@@ -537,7 +538,7 @@ admit.
   wp.
   rnd.
   wp.
-  rnd (lambda x, x = DKC.Dkc.b{1}) _.
+  rnd (lambda x, x = DKC.Dkc.b{1}).
   wp.
 
   skip.

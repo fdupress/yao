@@ -1,27 +1,40 @@
 require import Real.
 
-(*TODO Remove by Section*)
-require import Reduction.
+(* Import some common defs *)
+require import PreProof.
 
-(*Hypothesis*)
-require import Hypothesis.
+(* We assume that DKC is correct *)
+axiom DkcCorrect :
+  forall (t k1 k2 m:Dkc.t),
+    GC.DKC.decode t k1 k2 (GC.DKC.encode t k1 k2 m) = m.
 
-(*Definition*)
-require import Garble.
+(* Get the main lemma for correction proof *)
+require CorrectionProof.
 
-(*Lemmas*)
-require import CorrectionProof.
-require import ReductionProof.
+(* Proof that GarbleCircuit is Correct *)
+require Garble.
+clone Garble.Correct as GCorrect with
+  theory Garble = GC.GarbleCircuit
+  proof Correct.
+realize Correct.
+intros f x i h1 h2.
+apply (CorrectionProof.correct _ f x i _ _)=> //.
+apply DkcCorrect.
+qed.
 
-(*Theorem*)
-lemma GarbleCorrect :
-  forall (f : funct) , functCorrect f =>
-  forall (x : random) , randomCorrect f x =>
-  forall (i : input) , inputCorrect f i =>
-    let (g, ki, ko) = garble x f in
-    eval f i = decrypt ko (evalG g (encrypt ki i)) by [].
-
-lemma GarbleSecure :
+(* We assume that DKC is secure *)
+axiom DkcSecure :
   exists (epsilon:real), epsilon > 0%r /\
-    forall (Adv<:Garble.Adv{DKC.Dkc,DKC.Game,Red}), forall &m,
-        `|Pr[Garble.Game(Garble.PrvInd(RandGarble), Adv).main()@ &m:res] - 1%r / 2%r| < epsilon by [].
+    forall (A<:DKCS.Adv_t), forall &m,
+      `|2%r * Pr[DKCS.Game(DKCS.Dkc, A).main()@ &m:res] - 1%r| < epsilon.
+
+(* Get the reduction proof *)
+require ReductionProof.
+
+(* Proof that GarbleCircuit is INDCPA for PrvInd *)
+clone Garble.PrvInd as PrvInd_Circuit with
+  theory Garble = GC.GarbleCircuit.
+require INDCPA.
+clone INDCPA.Sec as PrvIndSec with
+  theory INDCPA_Scheme = PrvInd_Circuit.INDCPA_Scheme
+  proof Sec by admit.

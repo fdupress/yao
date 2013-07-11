@@ -7,9 +7,9 @@ require import Distr.
 require import List.
 require import Array.
 
-require import Hypothesis.
-require import Garble.
 require import GarbleTools.
+
+require import PreProof.
 
 op eval(f:funct, i:input, k:int) = (evalComplete f i extract).[k].
 op void = (Bitstring.zeros 0).
@@ -19,16 +19,16 @@ lemma eval_val : forall f x i,
   i >= (getN f) + (getQ f) - (getM f) => i < (getN f) + (getQ f) =>
   eval f x i = (Garble.eval f x).[i-((getN f) + (getQ f) - (getM f))] by admit.*)
 
-module RedAda(A:Garble.Adv, Dkc:DKC.Dkc_t) = {
+module RedAda(A:PrvIndSec.Adv_t, Dkc:DKCS.Dkc_t) = {
 
   var c : bool
-  var fc : Garble.funct
-  var xc : Garble.input
+  var fc : funct
+  var xc : input
   var good : bool
   var tau : bool
   var l : int
-  var answer : Garble.functG*Garble.inputG*Garble.keyOutput
-  var query : Garble.query
+  var answer : functG*inputG*keyOutput
+  var query : (PrvIndSec.INDCPA_Scheme.query * PrvIndSec.INDCPA_Scheme.query)
 
   var n : int
   var m : int
@@ -205,7 +205,7 @@ module RedAda(A:Garble.Adv, Dkc:DKC.Dkc_t) = {
 
   
   fun preInit() : unit = {
-    l = $Dinter.dinter 0 (bound-1);
+    l = $Dinter.dinter 0 (Cst.bound-1);
   }
 
   fun work(info:bool) : bool = {
@@ -228,7 +228,7 @@ module RedAda(A:Garble.Adv, Dkc:DKC.Dkc_t) = {
     pp = Array.create (n+q) (void, void, void, void);
     randG = Map.empty;
     tau = info;
-    if (Garble.queryValid query)
+    if (PrvIndSec.INDCPA_Scheme.queryValid query)
     {
       garble();
       challenge = A.get_challenge(answer);
@@ -237,5 +237,16 @@ module RedAda(A:Garble.Adv, Dkc:DKC.Dkc_t) = {
     else
       ret = $Dbool.dbool;
     return ret;
+  }
+}.
+
+module PreInit(ADV:PrvIndSec.Adv_t) = {
+  module G = DKCS.GameAda(DKCS.Dkc, RedAda(ADV))
+  fun f(vl:int, vb:bool) : bool = {
+    var r : bool;
+    RedAda.l = vl;
+    DKCS.Dkc.b = vb;
+    r = G.work();
+    return r;
   }
 }.

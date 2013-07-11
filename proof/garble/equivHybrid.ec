@@ -7,20 +7,20 @@ require import Int.
 require import Bool.
 require import Array.
 
-require import Hypothesis.
-require import GarbleTools.
-require import Garble.
-require import RedAda.
 
-lemma realEq :
-  forall (ADV <: Garble.Adv{ReductionAda, DKC.Dkc, Garble.PrvInd}),
+require import GarbleTools.
+require import PreProof.
+require import ReductionAda.
+
+lemma hybridEq :
+  forall (ADV <: PrvIndSec.Adv_t{RedAda, DKCS.Dkc, PrvIndSec.Game}),
     forall (l:int),
     equiv [
-      DKC.GameAda(DKC.Dkc, RedAda(ADV)).work ~
-      DKC.GameAda(DKC.Dkc, RedAda(ADV)).work
+      PreInit(ADV).f ~
+      PreInit(ADV).f
       : (glob ADV){1} = (glob ADV){2} /\
-      (!DKC.Dkc.b{1}) /\ (RedAda.l{1}=l) /\
-      (DKC.Dkc.b{2}) /\ (RedAda.l{2}=l+1) ==> res{1} = res{2}
+      (!vb{1}) /\ (vl{1}=l) /\
+      (vb{2}) /\ (vl{2}=l+1) ==> res{1} = !res{2}
     ].
 proof.
 admit.

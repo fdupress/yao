@@ -9,22 +9,21 @@ require import Bool.
 require import Array.
 require import Distr.
 
-require import Hypothesis.
 require import GarbleTools.
-require import Garble.
+require import PreProof.
 require import ReductionAda.
 
-module Fake(A:Garble.Adv) = {
+module Fake(A:PrvIndSec.Adv_t) = {
 
-  var f1 : Garble.funct
-  var x1 : Garble.input
-  var ev : Garble.output
+  var f1 : funct
+  var x1 : input
+  var ev : output
   var good : bool
   var tau : bool
-  var queries : DKC.query array
-  var ans : DKC.answer array
-  var answer : Garble.functG*Garble.inputG*Garble.keyOutput
-  var query : Garble.query
+  var queries : DKCS.query array
+  var ans : DKCS.answer array
+  var answer : functG*inputG*keyOutput
+  var query : PrvIndSec.INDCPA_Scheme.query*PrvIndSec.INDCPA_Scheme.query
 
   var n : int
   var m : int
@@ -62,9 +61,9 @@ module Fake(A:Garble.Adv) = {
     input = (a, (t.[a]^^alpha));
 
     (*DKC encrypt*)
-        if (! (in_dom input DKC.Dkc.kpub)) {
+        if (! (in_dom input DKCS.Dkc.kpub)) {
           temp = $DKC.genRandKeyLast;
-          DKC.Dkc.kpub.[input] = DKC.addLast temp (snd input);
+          DKCS.Dkc.kpub.[input] = DKC.addLast temp (snd input);
         }
         tok = $DKC.genRandKey;
         ki = proj kpub.[input];
@@ -109,13 +108,13 @@ module Fake(A:Garble.Adv) = {
     }
 
 
-    t.[bound-1] = !tau;
+    t.[Cst.bound-1] = !tau;
 
     g = n;
     while (g < n+q) {
       a = aa.[g];
       b = bb.[g];
-      if (b = bound - 1) {
+      if (b = Cst.bound - 1) {
         query(false, false, true);
         query(true, true, true);
         preGarbD(true, false);
@@ -135,7 +134,7 @@ module Fake(A:Garble.Adv) = {
     while (i < n+q) {
       tok = $DKC.genRandKeyLast;
       tok = DKC.addLast tok (! t.[i]);
-      if (getTok xx i true = void /\ i <> bound - 1) {
+      if (getTok xx i true = void /\ i <> Cst.bound - 1) {
         xx = setTok xx i true tok;
       }
       tok = $DKC.genRandKeyLast;
@@ -151,7 +150,7 @@ module Fake(A:Garble.Adv) = {
       a = aa.[g];
       b = bb.[g];
       garb(getTok xx g false, false, false);
-      if (b <> bound - 1) {
+      if (b <> Cst.bound - 1) {
         tok = garbD(false, true);
         tok = garbD(true, true);
         tok = garbD(true, false);
@@ -171,7 +170,7 @@ module Fake(A:Garble.Adv) = {
 
     query = A.gen_query();
   
-    if (Garble.queryValid query)
+    if (PrvIndSec.INDCPA_Scheme.queryValid query)
     {
       tau = $Dbool.dbool;
       ksec = $DKC.genRandKeyLast;
@@ -181,7 +180,7 @@ module Fake(A:Garble.Adv) = {
 
       (f1, x1) = fst query;
       (n, m, q, aa, bb, gg) = f1;
-      ev = Garble.eval f1 x1;
+      ev = GarbleCircuit.eval f1 x1;
       queries = Array.empty;
       t = Array.create (n+q) false;
       xx = Array.create (n+q) (void, void);
@@ -202,38 +201,39 @@ module Fake(A:Garble.Adv) = {
 prover "Alt-Ergo".
 
 lemma fakePr :
-  forall (ADV <: Garble.Adv{RedAda, DKC.Dkc, Fake}) &m,
+  forall (ADV <: PrvIndSec.Adv_t{RedAda, DKCS.Dkc, Fake}) &m,
     islossless ADV.gen_query =>
     islossless ADV.get_challenge =>
-    Pr [Fake(ADV).work() @ &m : res] = 1%r / 2%r.
+    Pr [Fake(ADV).work() @ &m : !res] = 1%r / 2%r.
 intros ADV &m h1 h2.
-bdhoare_deno (_ : (true) ==> (res));last 2 by progress.
+bdhoare_deno (_ : (true) ==> (!res))=> //.
 fun.
-seq 1 : (true).
-call (_ : true ==> true);[fun (true)|skip];progress;assumption.
-case (queryValid Fake.query).
+seq 1 : true (1%r) (1%r/2%r) 0%r 1%r=> //.
+  first call (_ : true ==> true);[fun (true)|skip];progress;assumption.
+case (PrvIndSec.INDCPA_Scheme.queryValid Fake.query).
   (* VALID *)
   rcondt 1;first skip;progress.
   wp.
-  rnd (1%r/2%r) (lambda b, (b = challenge) = false).
+  rnd (lambda b, ! (b = challenge) = false).
   call (_ : true ==> true);first fun (true);progress;assumption.
   kill 1!14;first admit. (*TERMINATE*)
-  skip;progress;rewrite Dbool.mu_def;case (result);delta charfun;simplify;smt.
+  skip;progress;rewrite Dbool.mu_def /=;case (result);delta charfun;simplify;smt.
   (* INVALID *)
   rcondf 1;first skip;progress.
-  rnd (1%r/2%r) (lambda b, b = false).
-  skip;progress;smt "Z3".
+  rnd (lambda b, ! b = false).
+  skip;progress.
+  rewrite Dbool.mu_def /charfun //.
 save.
 
 lemma fakeEq :
-  forall (ADV <: Garble.Adv{RedAda, DKC.Dkc, Fake}),
+  forall (ADV <: PrvIndSec.Adv_t{RedAda, DKCS.Dkc, Fake}),
     equiv [
-      DKC.GameAda(DKC.Dkc, RedAda(ADV)).work ~
+      PreInit(ADV).f ~
       Fake(ADV).work
       : (glob ADV){1} = (glob ADV){2} /\
-      (!DKC.Dkc.b{1}) /\ (RedAda.l{1}=bound-1) ==> res{1} = res{2}
+      (!vb{1}) /\ (vl{1}=Cst.bound-1) ==> res{1} = res{2}
     ].
-proof strict.
+proof.
   intros ADV.
   fun.
   inline {1} GameAda(DKC.Dkc, ADV).A.work.
@@ -976,8 +976,6 @@ if.
 skip;progress assumption.
 (kill 8;first admit);wp;skip;progress assumption;smt.
   wp.
-
-*)
 
   wp.
   while (

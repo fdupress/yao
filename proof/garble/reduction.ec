@@ -7,23 +7,24 @@ require import Distr.
 require import List.
 require import Array.
 
-require import Hypothesis.
-require import Garble.
 require import GarbleTools.
+require import PreProof.
 
 op void = (Bitstring.zeros 0).
 
-module Red(A:Garble.Adv) : DKC.Adv_t = {
+op eval(f:funct, i:input, k:int) = (evalComplete f i extract).[k].
+
+module Red(A:PrvIndSec.Adv_t) : DKCS.Adv_t = {
   var c : bool
-  var fc : Garble.funct
-  var xc : Garble.input
+  var fc : funct
+  var xc : input
   var good : bool
   var tau : bool
   var l : int
-  var queries : DKC.query array
-  var ans : DKC.answer array
-  var answer : Garble.functG*Garble.inputG*Garble.keyOutput
-  var query : Garble.query
+  var queries : DKCS.query array
+  var ans : DKCS.answer array
+  var answer : functG*inputG*keyOutput
+  var query : PrvIndSec.INDCPA_Scheme.query*PrvIndSec.INDCPA_Scheme.query
 
   var n : int
   var m : int
@@ -41,7 +42,7 @@ module Red(A:Garble.Adv) : DKC.Adv_t = {
   var i : int
   var g : int
 
-  fun qquery1(rand:bool, alpha:bool, bet:bool) : DKC.query = {
+  fun qquery1(rand:bool, alpha:bool, bet:bool) : DKCS.query = {
     var ttt : token;
     var gamma : bool;
     var pos : bool;
@@ -65,7 +66,7 @@ module Red(A:Garble.Adv) : DKC.Adv_t = {
     return (input, output, pos, ttt);
   }
 
-  fun qquery2(rand:bool, alpha:bool, bet:bool, answer:DKC.answer) : token = {
+  fun qquery2(rand:bool, alpha:bool, bet:bool, answer:DKCS.answer) : token = {
     var gamma : bool;
     var ki : token;
     var ko : token;
@@ -83,13 +84,13 @@ module Red(A:Garble.Adv) : DKC.Adv_t = {
   }
 
   fun query1(rand:bool, alpha:bool, bet:bool) : unit = {
-    var query:DKC.query;
+    var query:DKCS.query;
     query = qquery1(rand, alpha, bet);
     queries = query::queries;
   }   
 
   fun query2(rand:bool, alpha:bool, bet:bool) : token = {
-    var a:DKC.answer;
+    var a:DKCS.answer;
     var r:token;
     a = ans.[(length ans) - 1];
     ans = sub ans 0 ((length ans) - 1);
@@ -98,8 +99,8 @@ module Red(A:Garble.Adv) : DKC.Adv_t = {
   }
 
   fun query(rand:bool, alpha:bool, bet:bool) : token = {
-    var q:DKC.query;
-    var a:DKC.answer;
+    var q:DKCS.query;
+    var a:DKCS.answer;
     var r:token;
     q = qquery1(rand, alpha, bet);
     (*a = DKC.encrypt(q);*)
@@ -128,8 +129,8 @@ module Red(A:Garble.Adv) : DKC.Adv_t = {
   fun garble_queries() : unit = {
     i = 0;
     while (i < n+q-1) {
-      t.[i] = eval2 fc xc i;
-      v.[i] = eval2 fc xc i;
+      t.[i] = eval fc xc i;
+      v.[i] = eval fc xc i;
       i = i + 1;
     }
 
@@ -216,10 +217,10 @@ module Red(A:Garble.Adv) : DKC.Adv_t = {
 
   
   fun preInit() : unit = {
-    l = $Dinter.dinter 0 (bound-1);
+    l = $Dinter.dinter 0 (Cst.bound-1);
   }
 
-  fun gen_queries(info:bool) : DKC.query array = {
+  fun gen_queries(info:bool) : DKCS.query array = {
     query = A.gen_query();
     c = $Dbool.dbool;
     if (c) {
@@ -238,7 +239,7 @@ module Red(A:Garble.Adv) : DKC.Adv_t = {
     gg = Array.create (n+q) (false, false, false, false);
     pp = Array.create (n+q) (void, void, void, void);
     tau = info;
-    if (Garble.queryValid query)
+    if (PrvIndSec.INDCPA_Scheme.queryValid query)
     {
       garble_queries();
       good = true;
@@ -248,7 +249,7 @@ module Red(A:Garble.Adv) : DKC.Adv_t = {
     return queries;
   }
   
-  fun get_challenge(answers:DKC.answer array) : bool = {
+  fun get_challenge(answers:DKCS.answer array) : bool = {
     var challenge : bool;
     var ret : bool;
     answers = answers;

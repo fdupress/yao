@@ -8,27 +8,38 @@ require import Bool.
 require import Array.
 require import Distr.
 
-theory DKC.
-  type number = bitstring.
+type t = bitstring.
 
-  type key = number.
-  type msg = number.
-  type cipher = number.
-  type tweak = number.
+theory DKC_Abs.
+
+  op genRandKey : t distr.
+  op genRandKeyLast : t distr.
+  op addLast : t -> bool -> t.
+
+  op encode : t -> t -> t -> t -> t.
+  op decode : t -> t -> t -> t -> t.
+end DKC_Abs.
+
+theory DKC.
+  type t = bitstring.
 
   op k : int.
-  op tau : int.
-  op sb : int.
+  axiom kVal : k > 1.
 
   op genRandKey = Dbitstring.dbitstring k.
   op genRandKeyLast = Dbitstring.dbitstring (k-1).
-  op addLast : number -> bool -> number .
+  op addLast : t -> bool -> t .
 
-  op encode : tweak -> key -> key -> msg -> cipher.
-  op decode : tweak -> key -> key -> cipher -> msg.
+  op encode : t -> t -> t -> t -> t.
+  op decode : t -> t -> t -> t -> t.
+end DKC.
 
-  type query = (int*bool)*(int*bool)*bool*tweak.
-  type answer = key*key*cipher.
+theory DKC_Sec.
+
+  clone export DKC_Abs.
+
+  type query = (int*bool)*(int*bool)*bool*t.
+  type answer = t*t*t.
 
   op defaultQ : query.
   op bad : answer.
@@ -48,10 +59,10 @@ theory DKC.
 
   module Dkc : Dkc_t = {
     var b : bool
-    var ksec : key
-    var r : (int*bool, msg) map
-    var kpub : (int*bool, key) map
-    var used : tweak set
+    var ksec : t
+    var r : (int*bool, t) map
+    var kpub : (int*bool, t) map
+    var used : t set
 
     fun preInit() : unit = {
       b = $Dbool.dbool;
@@ -73,15 +84,15 @@ theory DKC.
     }
     
     fun encrypt(q:query) : answer = {
-      var keya : key;
-      var keyb : key;
-      var msg : msg;
+      var keya : t;
+      var keyb : t;
+      var msg : t;
       var i : int*bool;
       var j : int*bool;
       var pos : bool;
-      var t : tweak;
+      var t : t;
       var out : answer;
-      var temp : number;
+      var temp : t;
       (i, j, pos, t) = q;
       out = bad;
       if ((!(mem t used)) /\ ((fst j) > (fst i)))
@@ -162,7 +173,7 @@ theory DKC.
     fun work(info:bool) : bool {DKC.encrypt}
   }.
 
-  module GameAda(D:Dkc_t, Adv:AdvAda_t) = {
+  module GameAda(D:Dkc_t, Adv:AdvAda_t) : Exp = {
 
     module A = Adv(Dkc)
 
@@ -189,4 +200,4 @@ theory DKC.
     }
   }.
 
-end DKC.
+end DKC_Sec.

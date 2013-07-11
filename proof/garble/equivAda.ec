@@ -13,7 +13,7 @@ require import Garble.
 require import Reduction.
 require import ReductionAda.
 
-lemma realEq :
+lemma AdaEq :
   forall (ADV <: Garble.Adv{Red, DKC.Dkc}),
     equiv [
       DKC.Game(DKC.Dkc, Red(ADV)).main ~
