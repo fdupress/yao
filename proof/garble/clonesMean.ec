@@ -78,7 +78,7 @@ lemma DkcEsp :
   forall &m,
     forall (Adv<:DKCS.AdvAda_t {DKCS.Dkc, DKCS.Game}),
       Pr[DKCS.GameAda(DKCS.Dkc, Adv).main()@ &m:res] = 
-        (Pr[DkcWork(Adv).work(true)@ &m:res] +
+        (MReal.(+) Pr[DkcWork(Adv).work(true)@ &m:res]
            Pr[DkcWork(Adv).work(false)@ &m:res]) / 2%r.
 proof.
   intros &m Adv.
@@ -122,7 +122,7 @@ theory RedEsp.
       r = Game.work();
       return r;
     }
-}.
+  }.
 
 lemma RemRedEsp : forall (p:bool -> bool) (ADV <: PrvIndSec.Adv_t{RedAda, DKCS.Dkc}) &1 &2 l,
   (glob DKCS.GameAda){1} = (glob DKCS.GameAda){2} =>
@@ -164,6 +164,14 @@ case (mem x MeanInt.support = true);
   rewrite /MeanInt.d;
   [rewrite Dinter.mu_x_def_in|rewrite Dinter.mu_x_def_notin];
   (try by rewrite - /MeanInt.d MeanInt.in_support memX //);smt.
+save.
+
+lemma RedEspT : forall x &m (ADV<:PrvIndSec.Adv_t{DKCS.Dkc,RedAda,DKCS.Game}),
+  Pr[RedWork(ADV).work(x) @ &m : true] = 1%r.
+intros x &m ADV.
+bdhoare_deno (_: true ==> true)=> //.
+fun.
+admit.
 save.
 
 end RedEsp.

@@ -208,7 +208,7 @@ lemma fakePr :
 intros ADV &m h1 h2.
 bdhoare_deno (_ : (true) ==> (!res))=> //.
 fun.
-seq 1 : true (1%r) (1%r/2%r) 0%r 1%r=> //.
+seq 1 : true (1%r) (1%r/2%r) 0%r 1%r=> //;
   first call (_ : true ==> true);[fun (true)|skip];progress;assumption.
 case (PrvIndSec.INDCPA_Scheme.queryValid Fake.query).
   (* VALID *)

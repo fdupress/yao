@@ -45,7 +45,7 @@ lemma correct :
     DKC.decode t k1 k2 (DKC.encode t k1 k2 m) = m) =>
 forall (f : funct) (x : random) (i : input),
  functCorrect f =>
- (*randomCorrect f x =>*)
+ randomCorrect f x =>
  inputCorrect f i =>
     let (g, ki, ko) = garble x f in
     eval f i = decrypt ko (evalG g (encrypt ki i)).

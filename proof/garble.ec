@@ -18,7 +18,7 @@ theory Garble.
 
   op functCorrect : funct -> bool.
   op inputCorrect : funct -> input -> bool.
-  (*pred randomCorrect : (funct, random).*)
+  pred randomCorrect : (funct, random).
 
   op garble : random -> funct -> functG*keyInput*keyOutput.
   op encrypt : keyInput -> input -> inputG.
@@ -34,7 +34,7 @@ theory Correct.
 
   axiom Correct : forall (f:funct) (x:random) (i:input),
     functCorrect f =>
-    (*randomCorrect f x =>*)
+    randomCorrect f x =>
     inputCorrect f i =>
       let (g, ki, ko) = garble x f in
       eval f i = decrypt ko (evalG g (encrypt ki i)).

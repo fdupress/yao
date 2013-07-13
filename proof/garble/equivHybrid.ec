@@ -15,12 +15,13 @@ require import ReductionAda.
 lemma hybridEq :
   forall (ADV <: PrvIndSec.Adv_t{RedAda, DKCS.Dkc, PrvIndSec.Game}),
     forall (l:int),
+      0 <= l <= Cst.bound - 1 =>
     equiv [
       PreInit(ADV).f ~
       PreInit(ADV).f
       : (glob ADV){1} = (glob ADV){2} /\
       (!vb{1}) /\ (vl{1}=l) /\
-      (vb{2}) /\ (vl{2}=l+1) ==> res{1} = !res{2}
+      (vb{2}) /\ (vl{2}=l+1) ==> !res{1} = res{2}
     ].
 proof.
 admit.

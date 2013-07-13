@@ -52,15 +52,3 @@ theory INDCPA_Def.
     }
   }.
 end INDCPA_Def.
-
-theory Sec.
-
-  clone import INDCPA_Scheme.
-  clone import INDCPA_Def with theory INDCPA_Scheme = INDCPA_Scheme.
-
-  axiom Sec :
-    exists (RAND <: Rand_t) (epsilon:real), epsilon > 0%r /\
-      forall (ADV<:Adv_t{Game}), forall &m,
-        `|Pr[Game(RAND, ADV).main()@ &m:res] - 1%r / 2%r| < epsilon.
-
-end Sec.

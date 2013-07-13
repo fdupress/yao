@@ -31,13 +31,12 @@ clone Garble as GarbleCircuit with
   
   type random = tokens,
 
-
   (*Correction predicat*)
   op functCorrect = validCircuit bound,
   op inputCorrect(f:funct, i:input) =
     (getN f) = Array.length i,
-  (*pred randomCorrect(f:funct, x:tokens) =
-    tokenCorrect (getN f) (getQ f) (getM f) x,*)
+  pred randomCorrect(f:funct, x:tokens) =
+    tokenCorrect (getN f) (getQ f) (getM f) x,
 
   (*Operator*)
   op phi(f:funct) =
@@ -78,6 +77,10 @@ module RandGarble : INDCPA_Def_Circuit.Rand_t = {
     var tok : token;
     var f:funct;
     var x:input;
+
+    t = Array.empty;
+    xx = Array.empty;
+    
 
     (f, x) = query;
     i = 0;

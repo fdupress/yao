@@ -6,8 +6,9 @@ require Monoid.
 clone Monoid as MReal with
   type t = real,
   op Z = 0%r,
-  op (+) = Real.(+)
-  proof * by smt.
+  op (+) = Real.(+),
+  op NatMul.( * ) = (lambda x y, x%r * y)
+  proof * by smt, NatMul.* by smt.
 
 theory Mean.
   type base.

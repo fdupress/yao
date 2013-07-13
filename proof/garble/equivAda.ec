@@ -7,17 +7,17 @@ require import Int.
 require import Bool.
 require import Array.
 
-require import Hypothesis.
 require import GarbleTools.
-require import Garble.
+require import PreProof.
+
 require import Reduction.
 require import ReductionAda.
 
-lemma AdaEq :
-  forall (ADV <: Garble.Adv{Red, DKC.Dkc}),
+lemma adaEq :
+  forall (ADV <: PrvIndSec.Adv_t{Red, DKCS.Dkc}),
     equiv [
-      DKC.Game(DKC.Dkc, Red(ADV)).main ~
-      DKC.GameAda(DKC.Dkc, RedAda(ADV)).main
+      DKCS.Game(DKCS.Dkc, Red(ADV)).main ~
+      DKCS.GameAda(DKCS.Dkc, RedAda(ADV)).main
       : (glob ADV){1} = (glob ADV){2} ==> res{1} = res{2}
     ].
 proof.

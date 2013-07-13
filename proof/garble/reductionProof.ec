@@ -1,22 +1,8 @@
-require import Real.
 require import Bool.
-
-(*
-lemma math :
-forall (x:real) (b:int),
-x =
-2%r * b%r *
-((1%r / b%r * x + 1%r / b%r * (1%r / 2%r) + (b%r - 1%r) * (1%r / b%r)) / 2%r) +
-1%r / 2%r - b%r.
-(*smt "Mathematica".*)
-admit.
-save.
-lemma simpl : (forall (x y z:real), y>0%r=> x < z  => x * y < y * z) by [].
-*)
-
+require import Real.
 require import Int.
 require import Fun.
-require import Set.
+require import FSet.
 
 require import GarbleTools.
 require import PreProof.
@@ -26,25 +12,13 @@ require import ReductionAda.
 require import EquivReal.
 require import EquivHybrid.
 require import EquivFake.
-(*require import EquivAda.*)
+require import EquivAda.
 
-(*
-require import Bitstring.
-require import List.
-require import Map.
-require import Set.
-require import Pair.
-require import Bool.
-require import Distr.
-require import Fun.
-require import Logic.
-
-require import MyTools.
-require import Garble.
-require import GarbleTools.
-require import Myset.
-require import MyMean.
-*)
+lemma inv : forall (a:real), a <> 0%r=>  (a / a) = 1%r by smt.
+lemma unit : forall (a:real), a * 1%r = a by smt.
+lemma simpl : forall (a b:real), b <> 0%r=>  (a / b * b) = a by smt.
+lemma invadd : forall (a b : real), a - b = Real.(+) a (-b) by smt.
+lemma midiv : forall (a b : real), - a / b = (-a) / b by smt.
 
 lemma prReal :
   forall (ADV <: PrvIndSec.Adv_t{RedAda, DKCS.Dkc, PrvIndSec.Game}),
@@ -60,15 +34,16 @@ save.
 lemma prHybrid :
   forall (ADV <: PrvIndSec.Adv_t{RedAda, DKCS.Dkc, PrvIndSec.Game}),
     forall &m x,
-      x >= 0 /\ x < Cst.bound =>
+      0 <= x <= Cst.bound - 1 =>
     let y = x + 1 in
-    Pr[RedEspFalse.RedWork(ADV).work(x) @ &m : res] =
-      Pr[RedEspTrue.RedWork(ADV).work(y) @ &m : !res].
+    Pr[RedEspFalse.RedWork(ADV).work(x) @ &m : !res] =
+      Pr[RedEspTrue.RedWork(ADV).work(y) @ &m : res].
 proof.
 intros=> ADV &m ? ? ?.
-cut := RedEspFalse.RemRedEsp (lambda x, x) ADV &m &m x=> /= ->.
-cut := RedEspTrue.RemRedEsp (lambda x, !x) ADV &m &m y=> /= ->.
-equiv_deno (hybridEq ADV x)=> //.
+cut := RedEspFalse.RemRedEsp (lambda x, !x) ADV &m &m x=> /= ->.
+cut := RedEspTrue.RemRedEsp (lambda x, x) ADV &m &m y=> /= ->.
+equiv_deno (hybridEq ADV x _)=> //.
+by intros ? ?;case res{1};case res{2}=> //.
 save.
 
 lemma prFake :
@@ -85,132 +60,115 @@ rewrite -(fakePr ADV &m) //.
 equiv_deno (fakeEq ADV)=> //.
 save.
 
+lemma prAda :
+  forall (ADV <: PrvIndSec.Adv_t{Red, DKCS.Dkc}),
+    forall &m,
+      Pr[DKCS.Game(DKCS.Dkc, Red(ADV)).main()@ &m : res] =
+        Pr[DKCS.GameAda(DKCS.Dkc, RedAda(ADV)).main()@ &m : res].
+proof.
+intros=> ADV &m.
+equiv_deno (adaEq ADV)=> //.
+save.
+
 lemma RelDkcGarble :
   forall &m,
-    forall (ADV<:PrvIndSec.Adv_t{DKCS.Dkc,DKCS.Game,RedAda}),
+    forall (ADV<:PrvIndSec.Adv_t{DKCS.Dkc,DKCS.Game,RedAda,Fake}),
+      islossless ADV.gen_query =>
+      islossless ADV.get_challenge =>
       Pr[PrvIndSec.Game(RandGarble2, ADV).main()@ &m:res] =
         2%r * Cst.bound%r * Pr[DKCS.GameAda(DKCS.Dkc, RedAda(ADV)).main()@ &m:res]
           + 1%r / 2%r - Cst.bound%r.
 proof.
-  intros &m ADV.
+  intros &m ADV ? ?.
   rewrite (DkcEsp &m (RedAda(ADV))).
-  rewrite (RedEspTrue.AdvEsp &m ADV true) //=.
-  rewrite (RedEspFalse.AdvEsp &m ADV false) //=.
+  cut := RedEspTrue.AdvEsp &m ADV;delta RedEspTrue.b=> /= ->.
+  cut := RedEspFalse.AdvEsp &m ADV;delta RedEspFalse.b=> /= ->.
+  rewrite /MeanInt.support.
 
-(**Remove Pr*)
-  pose f := (lambda l, Pr[RedEspTrue.RedWork(ADV).work(l) @ &m : res]).
-  rewrite (_:(lambda (l : int),
-    Pr[RedEspTrue.RedWork(ADV).work(l) @ &m : res] / Cst.bound%r) =
-      lambda (l : int), 1%r / Cst.bound%r * (f l));
-    first (apply fun_ext=> l //).
-(**End Remove Pr*)
+  cut -> : ((lambda (l : int), Pr[RedEspFalse.RedWork(ADV).work(l) @ &m : res] / (Cst.bound)%Cst%r) =
+   (lambda (l : int), (1%r - Pr[RedEspFalse.RedWork(ADV).work(l) @ &m : !res]) / (Cst.bound)%Cst%r));
+    first by apply fun_ext=> x /=;rewrite Pr mu_not;
+             rewrite (RedEspFalse.RedEspT x &m ADV) //;smt.
 
-(**Remove Pr*)
-  pose g := (lambda l, Pr[RedEspFalse.RedWork(ADV).work(l) @ &m : res]).
-  rewrite (_:(lambda (l : int),
-    Pr[RedEspFalse.RedWork(ADV).work(l) @ &m : res] / Cst.bound%r) =
-      lambda (l : int), 1%r / Cst.bound%r * (g l));
-    first (apply fun_ext=> l //).
-(**End Remove Pr*)
+  rewrite (sum_rm _ _ 0) /=;first by rewrite Interval.mem_interval;smt.
+  rewrite (sum_chind _ (lambda (x:int), x - 1) (lambda (x:int), x + 1)) /=;
+    first smt.
+  rewrite (Interval.dec_interval 0 (Cst.bound-1) _);first smt.
+  rewrite (sum_rm _ (Interval.interval 0 (Cst.bound - 1)) ((Cst.bound)%Cst - 1)) /=;
+    first rewrite Interval.mem_interval;first smt.
 
-(**Remove Pr*)
-  cut -> : (Pr[PrvIndSec.Game(RandGarble2, ADV).main() @ &m : res] = f 0).
-  rewrite /f. (prReal ADV &m) //.
-cut valf0 : (f 0 = Pr[Game(PrvInd(RandGarble), Adv).main() @ &m : res{hr}]).
-  rewrite (fv 0).
-rewrite <- valf0.
-(**End Remove Pr*)
+  pose s1 := sum _ _.
+  pose s2 := sum _ _.
+  rewrite -(Mean.MReal.C s2) Mean.MReal.A -(Mean.MReal.A _ s1).
+  delta s1 s2.
+  clear s1 s2.
+  rewrite sum_add2 /=.
 
-  rewrite (sum_rm<:int>
-   (lambda (l : int), 1%r / borne%r * (f l))
-   MeanInt.support
-   0 _);first smt.
-  rewrite (sum_rm<:int>
-   (lambda (l : int), 1%r / borne%r * (g l))
-   MeanInt.support
-   (borne-1) _);first smt.
-simplify.
-rewrite ( _ :
-1%r / borne%r * f 0 +
-  sum (lambda (l : int), 1%r / borne%r * f l)
-    (rm 0 MeanInt.support) +
-  (1%r / borne%r * g (borne-1) +
-   sum (lambda (l : int), 1%r / borne%r * g l)
-     (rm (borne-1) MeanInt.support))
-=
-1%r / borne%r * (f 0) +
-1%r / borne%r * (g (borne-1)) +
-(
-sum (lambda (l : int), 1%r / borne%r * (f l)) (rm 0 MeanInt.support) +
-sum (lambda (l : int), 1%r / borne%r * (g l)) (rm (borne-1) MeanInt.support)
-)
-);first smt.
+  rewrite -(prReal ADV &m).
+  cut := prFake ADV &m=> /= -> //.
 
-  rewrite (sum_chind<:int>
-    (lambda (l : int),
-       1%r / borne%r * (f l))
-    (lambda (x:int), x - 1)
-    (lambda (x:int), x + 1)
-    (rm 0 MeanInt.support) _);first smt.
-  simplify.
-  delta MeanInt.support.
-  rewrite (dec_integers 0 borne _);first smt.
-  rewrite (sum_add2<:int>
-    (lambda (l : int), 1%r / borne%r * f (l+1))
-    (lambda (l : int), 1%r / borne%r * g l)
-    (rm (borne-1) (integers 0 borne))).
-  simplify.
-  cut lem : (forall x, mem x (rm (borne-1) (integers 0 borne)) =>
-    f (Int.(+) x 1) = 1%r - g x).
-      intros x h.
-      rewrite (fv (x+1)).
-      rewrite (gv x).
-      rewrite (prHybrid (<:Adv) &m x _);first smt.
-      apply (MeanInt.Not &m (<:AdvEspTrue.AdvWork(Adv)) (x + 1)).
-    
-  rewrite (sum_in<:int> (lambda (x : int),
-       1%r / borne%r * f (Int.(+) x 1) +
-       1%r / borne%r * g x) (rm (borne-1) (integers 0 borne))).
-  simplify.
-  rewrite (_ : (lambda (x:int),
-(if mem x (rm (borne-1) (integers 0 borne)) then
-         1%r / borne%r * f (Int.(+) x 1) +
-         1%r / borne%r * g x
-       else 0%r))
-= (lambda (x:int), if mem x (rm (borne-1) (integers 0 borne)) then 1%r / borne%r else 0%r)
-);first (apply Fun.extensionality;smt).
-  rewrite (sum_const<:int> (1%r/borne%r)
-(lambda (x : int),
-       if mem x (rm (Int.(-) borne 1) (integers 0 borne)) then 1%r / borne%r
-       else 0%r)
-(rm (Int.(-) borne 1) (integers 0 borne))
-_
-);first smt.
-cut valgborne : (g (borne-1) = 1%r / 2%r).
-  rewrite (gv (borne-1)).
-  apply (prFake (<:Adv) &m).
-rewrite valgborne.
-rewrite (_:(card (rm (Int.(-) borne 1) (integers 0 borne)))%r = borne%r - 1%r).
+  rewrite (Mean.MReal.NatMul.sum_const (1%r/Cst.bound%r));
+    first by intros=> x;
+    rewrite mem_rm Interval.mem_interval=> [h1 h2];
+    cut := prHybrid ADV &m x=> /= -> //;smt.
+  delta Mean.MReal.NatMul.( * ) Mean.MReal.( + )=> /=.
+
+rewrite card_rm_in.
+rewrite Interval.mem_interval;
+  first by split;[smt| intros=> _;apply Refl].
+rewrite Interval.card_interval_max.
+rewrite (_:(max ((Cst.bound)%Cst - 1 - 0 + 1) 0) = Cst.bound);first smt.
+pose a := Pr[RedEspTrue.RedWork(ADV).work(0) @ &m : res].
+rewrite Sub.
+pose b := (Cst.bound)%r.
+rewrite sub_div;first smt.
+rewrite Real.Comm.Comm.
+rewrite assoc_mul_div;first smt.
+rewrite -(Real.Comm.Comm b).
+rewrite assoc_mul_div;first smt.
+rewrite !inv;first 2 smt.
+rewrite !Real.Mul_distr_r.
+rewrite ! unit.
+rewrite ! simpl;first 2 smt.
+rewrite (invadd 1%r).
+rewrite !Real.Mul_distr_r.
+rewrite midiv.
+rewrite simpl;first smt.
 smt.
-apply math.
 save.
 
-lemma PrvIndGarble :
-  exists (epsilon:real), epsilon > 0%r /\
-    forall (Adv<:Garble.Adv{DKC.Dkc,DKC.Game,Red}), forall &m,
-        `|Pr[Garble.Game(Garble.PrvInd(RandGarble), Adv).main()@ &m:res] - 1%r / 2%r| < epsilon.
+lemma _PrvIndDkc :
+  exists (Rand<:PrvIndSec.Rand_t),
+    forall (ADVG<:PrvIndSec.Adv_t{DKCS.Dkc,DKCS.Game,RedAda,Red,Fake}),
+      islossless ADVG.gen_query =>
+      islossless ADVG.get_challenge =>
+      exists (ADVD<:DKCS.Adv_t),
+        forall &m,
+          `|Pr[PrvIndSec.Game(Rand, ADVG).main()@ &m:res] - 1%r / 2%r| =
+             2%r * Cst.bound%r * `|Pr[DKCS.Game(DKCS.Dkc, ADVD).main()@ &m:res] - 1%r / 2%r|.
 proof.
-  elim DkcSecure=> epDkc [hPos hDkc].
-  exists (bound%r*epDkc).
-  cut bPos : (bound%r > 0%r);first smt.
-  progress;first smt.
-  rewrite RelDkcGarble.
-  cut remPr : (forall (x:real), `|2%r * x - 1%r| < epDkc => `|2%r * borne%r * x +
-  1%r / 2%r - borne%r - 1%r / 2%r| < borne%r * epDkc).
-    intros x h.
-    rewrite (_:`|2%r * borne%r * x + 1%r / 2%r - borne%r - 1%r / 2%r| = `|2%r * x - 1%r| * `| borne%r|);first smt.
-  rewrite (_:(`|borne%r| = borne%r));first smt.
-  apply (simpl (`|2%r * x - 1%r|) (borne%r) epDkc);assumption.
-  apply (remPr Pr[DKC.Game(DKC.Dkc, AdvGarble.Adv(Adv)).main() @ &m :res{hr}] _).
-  apply (hDkc (<:AdvGarble.Adv(Adv)) &m).
+  exists RandGarble2.
+  intros ADVG ? ?.
+  exists (Red(ADVG)).
+  intros &m.
+  rewrite (RelDkcGarble &m ADVG) //.
+  rewrite (prAda ADVG &m).
+  pose p := Pr[DKCS.GameAda(DKCS.Dkc, RedAda(ADVG)).main() @ &m : res].
+  cut -> : forall y z c, 2%r * y * z + c - y - c = 2%r * y * (z - (1%r / 2%r)) by smt.
+  cut -> : forall (a b:real), a >= 0%r => `| a * b | = a * `| b | by smt;
+  [smt|by trivial].
+save.
+
+
+lemma PrvIndDkc :
+  exists (Rand<:PrvIndSec.Rand_t),
+    forall (ADVG<:PrvIndSec.Adv_t{PrvIndSec.Game}),
+      islossless ADVG.gen_query =>
+      islossless ADVG.get_challenge =>
+      exists (ADVD<:DKCS.Adv_t),
+        forall &m,
+          `|Pr[PrvIndSec.Game(Rand, ADVG).main()@ &m:res] - 1%r / 2%r| =
+             2%r * Cst.bound%r * `|Pr[DKCS.Game(DKCS.Dkc, ADVD).main()@ &m:res] - 1%r / 2%r|.
+proof.
+  admit.
 save.

@@ -180,11 +180,13 @@ module Red(A:PrvIndSec.Adv_t) : DKCS.Adv_t = {
     i = 0;
     while (i < n+q-1) {
       if (getTok xx i (!v.[i]) = void /\ i <> l) {
-        (*tok = $DKC.genRandKeyLast (! t.[i]);*)
+        tok = $DKC.genRandKeyLast;
+        tok = DKC.addLast tok (! t.[i]);
         xx = setTok xx i (!v.[i]) tok;
       }
       if (getTok xx i (v.[i]) = void) {
-        (*tok = $DKC.genRandKeyLast (t.[i]);*)
+        tok = $DKC.genRandKeyLast;
+        tok = DKC.addLast tok (t.[i]);
         xx = setTok xx i (v.[i]) tok;
       }
       i = i + 1;
