@@ -58,7 +58,7 @@ lemma DkcWork :
       DKCS.Dkc.b{m} = b =>
   Pr[DkcWorkAdv(Adv).work()@ &m:res] = 
     Pr[DkcWork(Adv).work(b)@ &m:res].
-proof.
+proof strict.
   intros b &m Adv h.
   cut eq : equiv[DkcWorkAdv(Adv).work ~ DkcWork(Adv).work
 : DKCS.Dkc.b{1} = x{2} /\ (glob Adv){1} = (glob Adv){2} /\ (glob DKCS.GameAda(DKCS.Dkc,Adv)){1} = (glob DKCS.GameAda(DKCS.Dkc,Adv)){2}
@@ -80,7 +80,7 @@ lemma DkcEsp :
       Pr[DKCS.GameAda(DKCS.Dkc, Adv).main()@ &m:res] = 
         (MReal.(+) Pr[DkcWork(Adv).work(true)@ &m:res]
            Pr[DkcWork(Adv).work(false)@ &m:res]) / 2%r.
-proof.
+proof strict.
   intros &m Adv.
   cut pr : (Pr[DKCS.GameAda(DKCS.Dkc, Adv).main()@ &m:res] = Pr[MeanBool.Rand(DkcWork(Adv)).randAndWork()@ &m:res]).
     cut eq : equiv[
@@ -129,6 +129,7 @@ lemma RemRedEsp : forall (p:bool -> bool) (ADV <: PrvIndSec.Adv_t{RedAda, DKCS.D
   (glob RedAda){1} = (glob RedAda){2}=>
   (glob ADV){1} = (glob ADV){2}=>
   Pr[RedWork(ADV).work(l)@ &1:p res] = Pr[PreInit(ADV).f(l, b)@ &2:p res].
+proof strict.
 intros=> ? ? ? ? ? ? ? ?;
 (equiv_deno(_: ={glob DKCS.GameAda,glob RedAda,glob ADV}/\
               x{1}=vl{2}/\b=vb{2} ==> ={res});
@@ -141,7 +142,7 @@ lemma AdvEsp :
     forall (ADV<:PrvIndSec.Adv_t{DKCS.Dkc,RedAda,DKCS.Game}),
       Pr[DkcWork(RedAda(ADV)).work(b)@ &m:res] =
         (sum (lambda l, (1%r / Cst.bound%r) * Pr[RedWork(ADV).work(l)@ &m:res]) MeanInt.support).
-proof.
+proof strict.
   intros &m ADV.
   cut <- : (Pr[MeanInt.Rand(RedWork(ADV)).randAndWork()@ &m:res] = Pr[DkcWork(RedAda(ADV)).work(b)@ &m:res]).
     equiv_deno (_:x{2} = b /\ (glob DKCS.GameAda(DKCS.Dkc, RedAda(ADV))){1}=(glob DKCS.GameAda(DKCS.Dkc, RedAda(ADV))){2} ==>res{1}=res{2})=> //.
@@ -168,6 +169,7 @@ save.
 
 lemma RedEspT : forall x &m (ADV<:PrvIndSec.Adv_t{DKCS.Dkc,RedAda,DKCS.Game}),
   Pr[RedWork(ADV).work(x) @ &m : true] = 1%r.
+proof strict.
 intros x &m ADV.
 bdhoare_deno (_: true ==> true)=> //.
 fun.

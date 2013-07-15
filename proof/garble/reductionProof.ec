@@ -25,7 +25,7 @@ lemma prReal :
     forall &m,
     Pr[RedEspTrue.RedWork(ADV).work(0) @ &m : res] =
       Pr[PrvIndSec.Game(RandGarble2, ADV).main() @ &m : res].
-proof.
+proof strict.
 intros=> ADV &m.
 cut := RedEspTrue.RemRedEsp (lambda x, x) ADV &m &m 0=> /= ->.
 equiv_deno (realEq ADV)=> //.
@@ -38,7 +38,7 @@ lemma prHybrid :
     let y = x + 1 in
     Pr[RedEspFalse.RedWork(ADV).work(x) @ &m : !res] =
       Pr[RedEspTrue.RedWork(ADV).work(y) @ &m : res].
-proof.
+proof strict.
 intros=> ADV &m ? ? ?.
 cut := RedEspFalse.RemRedEsp (lambda x, !x) ADV &m &m x=> /= ->.
 cut := RedEspTrue.RemRedEsp (lambda x, x) ADV &m &m y=> /= ->.
@@ -53,7 +53,7 @@ lemma prFake :
       islossless ADV.get_challenge =>
         let x = Cst.bound - 1 in
         Pr[RedEspFalse.RedWork(ADV).work(x)@ &m : !res] = 1%r / 2%r.
-proof.
+proof strict.
 intros=> ADV &m ? ? /=.
 cut := RedEspFalse.RemRedEsp (lambda x, !x) ADV &m &m (Cst.bound - 1)=> /= ->.
 rewrite -(fakePr ADV &m) //.
@@ -65,7 +65,7 @@ lemma prAda :
     forall &m,
       Pr[DKCS.Game(DKCS.Dkc, Red(ADV)).main()@ &m : res] =
         Pr[DKCS.GameAda(DKCS.Dkc, RedAda(ADV)).main()@ &m : res].
-proof.
+proof strict.
 intros=> ADV &m.
 equiv_deno (adaEq ADV)=> //.
 save.
@@ -78,7 +78,7 @@ lemma RelDkcGarble :
       Pr[PrvIndSec.Game(RandGarble2, ADV).main()@ &m:res] =
         2%r * Cst.bound%r * Pr[DKCS.GameAda(DKCS.Dkc, RedAda(ADV)).main()@ &m:res]
           + 1%r / 2%r - Cst.bound%r.
-proof.
+proof strict.
   intros &m ADV ? ?.
   rewrite (DkcEsp &m (RedAda(ADV))).
   cut := RedEspTrue.AdvEsp &m ADV;delta RedEspTrue.b=> /= ->.
@@ -146,7 +146,7 @@ lemma _PrvIndDkc :
         forall &m,
           `|Pr[PrvIndSec.Game(Rand, ADVG).main()@ &m:res] - 1%r / 2%r| =
              2%r * Cst.bound%r * `|Pr[DKCS.Game(DKCS.Dkc, ADVD).main()@ &m:res] - 1%r / 2%r|.
-proof.
+proof strict.
   exists RandGarble2.
   intros ADVG ? ?.
   exists (Red(ADVG)).
@@ -169,6 +169,6 @@ lemma PrvIndDkc :
         forall &m,
           `|Pr[PrvIndSec.Game(Rand, ADVG).main()@ &m:res] - 1%r / 2%r| =
              2%r * Cst.bound%r * `|Pr[DKCS.Game(DKCS.Dkc, ADVD).main()@ &m:res] - 1%r / 2%r|.
-proof.
+proof strict.
   admit.
 save.

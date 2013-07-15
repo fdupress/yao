@@ -1,7 +1,7 @@
 require import Bitstring.
 require import List.
 require import Map.
-require import Set.
+require import FSet.
 require import Pair.
 require import Real.
 require import Int.

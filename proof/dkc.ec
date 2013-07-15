@@ -1,6 +1,6 @@
 require import Bitstring.
 require import Map.
-require import Set.
+require import FSet.
 require import Pair.
 require import Int.
 require import Real.
@@ -74,7 +74,7 @@ theory DKC_Sec.
       ksec = $genRandKeyLast;
       ksec = addLast ksec t;
       kpub = Map.empty;
-      used = Set.empty;
+      used = FSet.empty;
       r = Map.empty;
       return t;
     }

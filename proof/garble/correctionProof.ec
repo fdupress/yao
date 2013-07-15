@@ -51,10 +51,105 @@ forall (f : funct) (x : random) (i : input),
     eval f i = decrypt ko (evalG g (encrypt ki i)).
 proof.
   intros DKCHyp.
-  intros f hypF x hypX i hypI.
+  intros f x i hypF hypX hypI.
   elimT tuple3_ind (garble x f)=> g ki ko h.
   delta eval evalG evalGen garble.
   simplify.
+  
+  pose n := (getN f).
+  pose q := (getQ f).
+  pose ig := (encrypt ki i).
+
+
+  cut main :(forall (j:int), 0 <= j < n+q =>
+    (appendInit ig (n+q) (extractG g)).[j]
+    = getTok x j (appendInit i (n+q) (extract f)).[j]
+  ).
+
+
+  elim/strongInduction .
+
+(*TODO*)
+
+  cut introVar : (forall (nn n m q:int) (g:functG) (ig:inputG),
+    nn = (getN f) + 1 =>
+    n  = getN f =>
+    m  = getM f =>
+    q  = getQ f =>
+    g  = (getN f, getM f, getQ f, getA f, getB f, init ((getN f)+(getQ f)) (garbMap x f)) =>
+    ig = encrypt (sub x 0 (getN f)) i =>
+    let (g, ki, ko) = garble x f in eval f i = decrypt ko (evalG g (encrypt ki i)));
+  [|apply (introVar (*BUG*)
+    ((getN f)+1)
+    (getN f)
+    (getM f)
+    (getQ f)
+    (getN f, getM f, getQ f, getA f, getB f, init ((getN f)+(getQ f)) (garbMap x f))
+    (encrypt (sub x 0 (getN f)) i)
+  )].
+  intros nn n m q g ig valNN valN valM valQ valG valIG.
+
+  delta eval evalG evalGen garble.
+  simplify.
+  rewrite - valG.
+  rewrite - valIG.
+  rewrite - valNN.
+  rewrite - valN.
+  rewrite - valM.
+  rewrite - valQ.
+
+  cut valN2 : (n = (getN g));[smt|].
+  cut valM2 : (m = (getM g));[smt|].
+  cut valQ2 : (q = (getQ g));[smt|].
+  rewrite - valN2.
+  rewrite - valM2.
+  rewrite - valQ2.
+  
+  cut main :(forall (j:int), j >= 0 => j < n+q =>
+    (appendInit ig (n+q) (extractG g)).[j]
+    = getTok x j (appendInit i (n+q) (extract f)).[j]
+  ).
+
+
+  elim/strongInduction .
+
+(*TODO*)
+
+  cut introVar : (forall (nn n m q:int) (g:functG) (ig:inputG),
+    nn = (getN f) + 1 =>
+    n  = getN f =>
+    m  = getM f =>
+    q  = getQ f =>
+    g  = (getN f, getM f, getQ f, getA f, getB f, init ((getN f)+(getQ f)) (garbMap x f)) =>
+    ig = encrypt (sub x 0 (getN f)) i =>
+    let (g, ki, ko) = garble x f in eval f i = decrypt ko (evalG g (encrypt ki i)));
+  [|apply (introVar (*BUG*)
+    ((getN f)+1)
+    (getN f)
+    (getM f)
+    (getQ f)
+    (getN f, getM f, getQ f, getA f, getB f, init ((getN f)+(getQ f)) (garbMap x f))
+    (encrypt (sub x 0 (getN f)) i)
+  )].
+  intros nn n m q g ig valNN valN valM valQ valG valIG.
+
+  delta eval evalG evalGen garble.
+  simplify.
+  rewrite - valG.
+  rewrite - valIG.
+  rewrite - valNN.
+  rewrite - valN.
+  rewrite - valM.
+  rewrite - valQ.
+
+  cut valN2 : (n = (getN g));[smt|].
+  cut valM2 : (m = (getM g));[smt|].
+  cut valQ2 : (q = (getQ g));[smt|].
+  rewrite - valN2.
+  rewrite - valM2.
+  rewrite - valQ2.
+  
+  elim/strongInduction .
 
 (*TODO*)
 
