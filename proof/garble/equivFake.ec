@@ -216,7 +216,9 @@ case (PrvIndSec.INDCPA_Scheme.queryValid Fake.query).
   wp.
   rnd (lambda b, ! (b = challenge) = false).
   call (_ : true ==> true);first fun (true);progress;assumption.
-  kill 1!14;first admit. (*TERMINATE*)
+  kill 1!14;first admit.
+
+ (*TERMINATE*)
   skip;progress;rewrite Dbool.mu_def /=;case (result);delta charfun;simplify;smt.
   (* INVALID *)
   rcondf 1;first skip;progress.
@@ -236,17 +238,18 @@ lemma fakeEq :
 proof.
   intros ADV.
   fun.
-  inline {1} GameAda(DKC.Dkc, ADV).A.work.
-  inline {1} RedAda(ADV, DKC.Dkc).work.
-  inline {1} RedAda(ADV, DKC.Dkc).garble.
-  inline {1} RedAda(ADV, DKC.Dkc).query.
-  inline {1} RedAda(ADV, DKC.Dkc).garbD.
-  inline {1} RedAda(ADV, DKC.Dkc).garb.
-  inline {1} RedAda(ADV, DKC.Dkc).preGarbD.
-  inline {1} DKC.Dkc.preInit.
-  inline {1} DKC.Dkc.get_challenge.
-  inline {1} DKC.Dkc.initialize.
-  inline {1} DKC.Dkc.encrypt.
+  inline {1} PreInit(ADV).G.work.
+  inline {1} DKCS.GameAda(DKCS.Dkc, RedAda(ADV)).A.work.
+  inline {1} RedAda(ADV, DKCS.Dkc).work.
+  inline {1} RedAda(ADV, DKCS.Dkc).garble.
+  inline {1} RedAda(ADV, DKCS.Dkc).query.
+  inline {1} RedAda(ADV, DKCS.Dkc).garbD.
+  inline {1} RedAda(ADV, DKCS.Dkc).garb.
+  inline {1} RedAda(ADV, DKCS.Dkc).preGarbD.
+  inline {1} DKCS.Dkc.preInit.
+  inline {1} DKCS.Dkc.get_challenge.
+  inline {1} DKCS.Dkc.initialize.
+  inline {1} DKCS.Dkc.encrypt.
   inline {2} Fake(ADV).work.
   inline {2} Fake(ADV).garble.
   inline {2} Fake(ADV).query.
@@ -254,9 +257,9 @@ proof.
   inline {2} Fake(ADV).garb.
   inline {2} Fake(ADV).preGarbD.
 
-  swap{1} 9 -8.
+  swap{1} 11 -10.
 
-  seq 1 1 : ((glob ADV){1} = (glob ADV){2}/\RedAda.query{1} = Fake.query{2} /\ (!DKC.Dkc.b{1}) /\ (RedAda.l{1}=bound-1)).
+  seq 1 1 : ((glob ADV){1} = (glob ADV){2}/\RedAda.query{1} = Fake.query{2} /\ (!DKCS.Dkc.b{1}) /\ (RedAda.l{1}=bound-1)).
     call (_ : (glob ADV){1} = (glob ADV){2} ==> res{1}=res{2} /\ (glob ADV){1} = (glob ADV){2});first (fun true;by progress).
   skip;progress;assumption.
   

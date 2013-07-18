@@ -22,13 +22,7 @@ clone Dkc.DKC as DKC with
 clone Dkc.DKC_Sec as DKCS with
   theory DKC_Abs = DKC.
 
-(* Take a GarbleCircuit *)
+(* Generate GarbleCircuit *)
 clone export GarbledCircuit as GC with
   theory Cst = Cst,
   theory DKC = DKC.
-
-(* We want to prove PrvInd security base on INDCPA *)
-clone Garble.PrvInd as PrvInd_Circuit with
-  theory Garble = GC.GarbleCircuit.
-clone INDCPA.INDCPA_Def as PrvIndSec with
-  theory INDCPA_Scheme = PrvInd_Circuit.INDCPA_Scheme.

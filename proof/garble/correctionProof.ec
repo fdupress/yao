@@ -66,9 +66,6 @@ proof.
     = getTok x j (appendInit i (n+q) (extract f)).[j]
   ).
 
-
-  elim/strongInduction .
-
 (*TODO*)
 
   cut introVar : (forall (nn n m q:int) (g:functG) (ig:inputG),
@@ -111,8 +108,6 @@ proof.
   ).
 
 
-  elim/strongInduction .
-
 (*TODO*)
 
   cut introVar : (forall (nn n m q:int) (g:functG) (ig:inputG),
@@ -149,7 +144,6 @@ proof.
   rewrite - valM2.
   rewrite - valQ2.
   
-  elim/strongInduction .
 
 (*TODO*)
 

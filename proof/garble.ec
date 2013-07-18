@@ -20,10 +20,10 @@ theory Garble.
   op inputCorrect : funct -> input -> bool.
   pred randomCorrect : (funct, random).
 
+  op eval : funct -> input -> output.
   op garble : random -> funct -> functG*keyInput*keyOutput.
   op encrypt : keyInput -> input -> inputG.
   op decrypt : keyOutput -> outputG -> output.
-  op eval : funct -> input -> output.
   op evalG : functG -> inputG -> outputG.
   op phi : funct -> tPhi.
   op phiG : functG -> tPhi.
