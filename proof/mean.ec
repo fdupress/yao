@@ -8,10 +8,6 @@ theory Mean.
   type base.
 
   op d : base distr.
-  op support : base set.
-  axiom in_support :
-    forall (x:base),
-      in_supp x d <=> mem x support.
   
   module type Worker = {
     fun work(x:base) : bool
@@ -29,14 +25,14 @@ theory Mean.
 
   lemma test: forall (A<:Worker{Rand}) &m (v:base) prWork,
     bd_hoare[A.work : x = v ==> res] = prWork =>
-      Pr[Rand(A).randAndWork() @ &m : res /\ Rand.x = v] = (mu d ((=) v)) * prWork.
+      Pr[Rand(A).randAndWork() @ &m : res /\ Rand.x = v] = (mu_x d v) * prWork.
   proof strict.
   intros A &m v prWork lWork.
   bdhoare_deno (_:true ==> res /\ Rand.x = v)=> //.
   fun.
-  seq 1 : (Rand.x = v) (mu d ((=) v)) prWork (Pr[Rand(A).genRand() @ &m : true]-Pr[Rand(A).genRand() @ &m : Rand.x = v]) 0%r true.
+  seq 1 : (Rand.x = v) (mu_x d v) prWork 1%r 0%r true.
     by trivial.
-    by call lRand.
+    by (rnd;skip;progress;delta mu_x;smt).
     by call lWork.
     by hoare;call (_:! Rand.x = v ==> !Rand.x = v)=> //;[
         fun (!Rand.x = v)=> //;skip;progress;assumption|
@@ -44,13 +40,15 @@ theory Mean.
     by trivial.
   qed.
 
-  
+require import ISet.
 
-  axiom Mean :
-    forall &m,
-      forall (W<:Worker),
+  lemma Mean :
+    forall &m, forall (W<:Worker), Finite.finite (support d) =>
         Pr[Rand(W).randAndWork()@ &m:res] =
-          Mrplus.sum (lambda (x:base), (mu_x d x)*Pr[W.work(x)@ &m:res]) support.
+          Mrplus.sum (lambda (x:base), (mu_x d x)*Pr[W.work(x)@ &m:res]) (Finite.toFSet (support d)).
+    intros &m W fin.
+    
+  
 end Mean.
 
 type input.
