@@ -23,32 +23,111 @@ theory Mean.
     }
   }.
 
-  lemma test: forall (A<:Worker{Rand}) &m (v:base) prWork,
-    bd_hoare[A.work : x = v ==> res] = prWork =>
-      Pr[Rand(A).randAndWork() @ &m : res /\ Rand.x = v] = (mu_x d v) * prWork.
+require import ISet.
+require import Pair.
+
+  lemma prCond: forall (A<:Worker{Rand}) &m (v:base),
+      Pr[Rand(A).randAndWork() @ &m : (cpAnd (lambda x, fst x) (lambda x, v = (snd x))) (res, Rand.x)] = (mu_x d v) * Pr[A.work(v) @ &m : res].
   proof strict.
-  intros A &m v prWork lWork.
-  bdhoare_deno (_:true ==> res /\ Rand.x = v)=> //.
+  intros A &m v.
+  cut hPr : forall &hm, Rand.x{hm} = v => Pr[A.work(v) @ &hm : Rand.x = v /\ res] =
+    Pr[A.work(v) @ &hm : res].
+    intros &hm h.
+    cut -> : Pr[A.work(v) @ &hm : Rand.x = v /\ res] = Pr[A.work(v) @ &hm : Rand.x = v] + Pr[A.work(v) @ &hm : res] - Pr[A.work(v) @ &hm : Rand.x = v \/  res]
+      by (rewrite Pr mu_or;smt).
+    cut -> : (Pr[A.work(v) @ &hm : Rand.x = v] = Pr[A.work(v) @ &hm : Rand.x = v \/ res])
+      by (equiv_deno (_ : ={glob A,Rand.x, x} /\ Rand.x{1}=v ==> ={Rand.x} /\ Rand.x{1}=v)=> //;fun (={Rand.x} /\ Rand.x{1} = v)=> //).
+    smt.
+  bdhoare_deno (_:true ==> (cpAnd (lambda x, fst x) (lambda x, v = (snd x))) (res, Rand.x))=> //;
+    last by intros &h;split;intros h;apply h.
   fun.
-  seq 1 : (Rand.x = v) (mu_x d v) prWork 1%r 0%r true.
+  seq 1 : (v = Rand.x) (mu_x d v) Pr[A.work(v) @ &m : res] 1%r 0%r true.
     by trivial.
     by (rnd;skip;progress;delta mu_x;smt).
-    by call lWork.
-    by hoare;call (_:! Rand.x = v ==> !Rand.x = v)=> //;[
-        fun (!Rand.x = v)=> //;skip;progress;assumption|
-        skip;progress;try (rewrite -rw_nand;right);assumption].
+    simplify cpAnd fst snd.
+    admit. (*by call lWork.*)
+    by hoare;call (_:! v = Rand.x ==> !v = Rand.x)=> //;[
+        fun (!v = Rand.x)=> //;skip;progress;assumption|
+        skip;progress;try (rewrite -rw_nand;right);smt].
     by trivial.
   qed.
 
-require import ISet.
+  lemma introOrs : 
+    forall &m, forall (W<:Worker{Rand}) (q:(bool*base) -> bool),
+      q = cpAnd (cpOrs (img (lambda x, lambda y, x = snd y) (Finite.toFSet (support d))))  (lambda x, fst x) =>
+      Pr[Rand(W).randAndWork() @ &m : res] = Pr[Rand(W).randAndWork() @ &m : q (res, Rand.x)].
+  intros &m W q qVal.
+  equiv_deno (_: ={glob W} ==> ={res} /\ in_supp Rand.x{2} d)=> //.
+    fun.
+    call (_: ={glob W, x} ==> ={res})=> //;first by fun true => //.
+    rnd=> //.
+  progress.
+  rewrite /cpOrs.
+  rewrite or_exists.
+  exists (lambda (y : (bool * base)), Rand.x{2} = snd y).
+  split.
+  rewrite img_def.
+  exists Rand.x{2}=> /=.
+  cut -> : mem Rand.x{2} ((Finite.toFSet (support d))).
+  rewrite mem
+  simplify.
+  apply fun_ext=> x.
+  apply mem_img.
+  apply cpOrs_true.
+smt.
+  admit.
+  progress=> //.
+  admit.
+  admit.
+  qed.
+
+op o : base.  
 
   lemma Mean :
     forall &m, forall (W<:Worker), Finite.finite (support d) =>
         Pr[Rand(W).randAndWork()@ &m:res] =
           Mrplus.sum (lambda (x:base), (mu_x d x)*Pr[W.work(x)@ &m:res]) (Finite.toFSet (support d)).
-    intros &m W fin.
-    
-  
+  proof strict.
+  intros &m W fin.
+  pose bs := Finite.toFSet (support d).
+  pose s := img (cpAnd (lambda x, fst x)) (img (lambda x, lambda y, x = snd y) bs).
+  rewrite(introOrs &m W (cpOrs s));first by rewrite /s /bs rw_eq_sym;apply distrOrs.
+  cut -> : Pr[Rand(W).randAndWork() @ &m : (cpOrs s) (res, Rand.x)] =
+    Mrplus.sum (lambda (p:(bool*base) cpred), Pr[Rand(W).randAndWork() @ &m : p (res, Rand.x)]) s
+    by admit.
+  pose f  := lambda (x:base), cpAnd (lambda x, fst x) (lambda y, x = snd y).
+  pose f' := lambda (x:(bool*base) cpred), o.
+  cut eqS : s = img f bs by (
+    rewrite /s;
+    apply FSet.set_ext=> x;
+    rewrite ! img_def;
+    delta f=> /=;
+    by apply iffI;[
+      intros [y [h1 ]];rewrite img_def=> [ y' [h3 h4]];
+      exists y';split=> //;subst=> // |
+      intros [y [h1 h2]];
+      exists (lambda (y0 : (bool * base)), y = snd y0);
+      split=> //;rewrite img_def /=;exists y;rewrite h2 //]
+  ).
+  cut bij1 : forall x, mem x s => f (f' x) = x;
+    first by admit.
+  cut bij2 : forall x, mem x bs => f' (f x) = x;
+    first by admit.
+  cut eqS2 : bs = img f' s.
+    rewrite eqS.
+    apply FSet.set_ext=> x /=.
+    apply iffI;
+      first by intros h;rewrite -bij2 // ! mem_img //.
+      rewrite img_def=> [p [h1]].
+      rewrite img_def=> [y [h2 h3]].
+      subst;rewrite bij2 //.
+  rewrite rw_eq_sym (Mrplus.sum_chind _ f' f) //.
+  congr.
+  apply fun_ext=> x /=.
+  delta f=> /=.
+  rewrite (prCond W &m x) //.
+  qed.
+
 end Mean.
 
 type input.
