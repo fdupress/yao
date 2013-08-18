@@ -40,15 +40,16 @@ lemma extractG :
       extractG f k ar = extractG f k (sub ar 0 k)
 by (delta extractG;progress;smt).
 
+(** begin correctionLemma *)
 lemma correct : 
-(forall (t k1 k2 m:Dkc.t),
-    DKC.decode t k1 k2 (DKC.encode t k1 k2 m) = m) =>
-forall (f : funct) (x : random) (i : input),
- functCorrect f =>
- randomCorrect f x =>
- inputCorrect f i =>
-    let (g, ki, ko) = garble x f in
-    eval f i = decrypt ko (evalG g (encrypt ki i)).
+  (forall (t k1 k2 m:Dkc.t), DKC.decode t k1 k2 (DKC.encode t k1 k2 m) = m) =>
+  forall (f : funct) (x : random) (i : input),
+    functCorrect f =>
+    randomCorrect f x =>
+    inputCorrect f i =>
+      let (g, ki, ko) = garble x f in
+      eval f i = decrypt ko (evalG g (encrypt ki i)).
+(** end correctionLemma *)
 proof.
   intros DKCHyp.
   intros f x i hypF hypX hypI.

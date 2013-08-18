@@ -3,6 +3,7 @@ require import Pair.
 require import Bool.
 require import INDCPA.
 
+(** begin definition *)
 theory Garble.
   type funct.
   type functG.
@@ -28,6 +29,7 @@ theory Garble.
   op phi : funct -> tPhi.
   op phiG : functG -> tPhi.
 end Garble.
+(** end definition *)
 
 theory Correct.
   clone import Garble.
@@ -40,6 +42,7 @@ theory Correct.
       eval f i = decrypt ko (evalG g (encrypt ki i)).
 end Correct.
 
+(** begin prvind *)
 theory PrvInd.
   clone import Garble.
 
@@ -60,5 +63,5 @@ theory PrvInd.
       let (f, x) = q in
       let (g, ki, ko) = garble r f in
       (g, encrypt ki x, ko).
-
 end PrvInd.
+(** end prvind *)
