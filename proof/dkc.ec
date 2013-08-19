@@ -1,40 +1,45 @@
 require import Bitstring.
 require import Map.
-require import Set.
+require import FSet.
 require import Pair.
 require import Int.
 require import Real.
 require import Bool.
 require import Array.
 require import Distr.
-require import MyRand.
+
+type t = bitstring.
+
+theory DKC_Abs.
+
+  op genRandKey : t distr.
+  op genRandKeyLast : t distr.
+  op addLast : t -> bool -> t.
+
+  op encode : t -> t -> t -> t -> t.
+  op decode : t -> t -> t -> t -> t.
+end DKC_Abs.
 
 theory DKC.
-  type number = bitstring.
-
-  type key = number.
-  type msg = number.
-  type cipher = number.
-  type tweak = number.
+  type t = bitstring.
 
   op k : int.
-  op tau : int.
-  op sb : int.
+  axiom kVal : k > 1.
 
   op genRandKey = Dbitstring.dbitstring k.
-  op genRandKeyLast = Dbitstringlast.dbitstringlast k.
+  op genRandKeyLast = Dbitstring.dbitstring (k-1).
+  op addLast : t -> bool -> t .
 
-  op encode : tweak -> key -> key -> msg -> cipher.
-  op decode : tweak -> key -> key -> cipher -> msg.
-  axiom inverse :
-    forall (t:tweak),
-    forall (k1:key),
-    forall (k2:key),
-    forall (m:msg),
-    decode t k1 k2 (encode t k1 k2 m) = m.
+  op encode : t -> t -> t -> t -> t.
+  op decode : t -> t -> t -> t -> t.
+end DKC.
 
-  type query = (int*bool)*(int*bool)*bool*tweak.
-  type answer = key*key*cipher.
+theory DKC_Sec.
+
+  clone export DKC_Abs.
+
+  type query = (int*bool)*(int*bool)*bool*t.
+  type answer = t*t*t.
 
   op defaultQ : query.
   op bad : answer.
@@ -46,23 +51,18 @@ theory DKC.
     fun get_challenge() : bool
   }.
 
-  module type Adv = {
+  module type Adv_t = {
     fun preInit() : unit
     fun gen_queries(info:bool) : (query array)
     fun get_challenge(answers: (answer array)) : bool
   }.
 
-  module type AdvAda(DKC:Dkc_t) = {
-    fun preInit() : unit {}
-    fun work(info:bool) : bool {DKC.encrypt}
-  }.
-
   module Dkc : Dkc_t = {
     var b : bool
-    var ksec : key
-    var r : (int*bool, msg) map
-    var kpub : (int*bool, key) map
-    var used : tweak set
+    var ksec : t
+    var r : (int*bool, t) map
+    var kpub : (int*bool, t) map
+    var used : t set
 
     fun preInit() : unit = {
       b = $Dbool.dbool;
@@ -71,9 +71,10 @@ theory DKC.
     fun initialize() : bool = {
       var t : bool;
       t = $Dbool.dbool;
-      ksec = $genRandKeyLast t;
+      ksec = $genRandKeyLast;
+      ksec = addLast ksec t;
       kpub = Map.empty;
-      used = Set.empty;
+      used = FSet.empty;
       r = Map.empty;
       return t;
     }
@@ -83,22 +84,30 @@ theory DKC.
     }
     
     fun encrypt(q:query) : answer = {
-      var keya : key;
-      var keyb : key;
-      var msg : msg;
+      var keya : t;
+      var keyb : t;
+      var msg : t;
       var i : int*bool;
       var j : int*bool;
       var pos : bool;
-      var t : tweak;
+      var t : t;
       var out : answer;
+      var temp : t;
       (i, j, pos, t) = q;
       out = bad;
       if ((!(mem t used)) /\ ((fst j) > (fst i)))
       {
         used = add t used;
-        if (! (in_dom i kpub)) kpub.[i] = $genRandKeyLast (snd i);
-        if (! (in_dom j kpub)) kpub.[j] = $genRandKeyLast (snd j);
-        if (! (in_dom i r)) r.[j] = $genRandKey;
+        if (! (in_dom i kpub)) {
+          temp = $genRandKeyLast;
+          kpub.[i] = addLast temp (snd i);
+        }
+        if (! (in_dom j kpub)) {
+          temp = $genRandKeyLast;
+          kpub.[j] = addLast temp (snd j);
+        }
+        if (! (in_dom j r))
+          r.[j] = $genRandKey;
         if (pos) {
           keya = ksec;
           keyb = proj kpub.[i];
@@ -119,7 +128,7 @@ theory DKC.
     fun main() : bool
   }.
 
-  module Game(D:Dkc_t, A:Adv) : Exp = {
+  module Game(D:Dkc_t, A:Adv_t) : Exp = {
 
     fun preInit() : unit = {
       D.preInit();
@@ -139,7 +148,7 @@ theory DKC.
       info = D.initialize();
       queries = A.gen_queries(info);
       nquery = Array.length queries;
-      answers = Array.init nquery bad;
+      answers = Array.create nquery bad;
       i = 0;
       while (i < nquery)
       {
@@ -159,7 +168,12 @@ theory DKC.
     }
   }.
 
-  module GameAda(D:Dkc_t, Adv:AdvAda) = {
+  module type AdvAda_t(DKC:Dkc_t) = {
+    fun preInit() : unit {}
+    fun work(info:bool) : bool {DKC.encrypt}
+  }.
+
+  module GameAda(D:Dkc_t, Adv:AdvAda_t) : Exp = {
 
     module A = Adv(Dkc)
 
@@ -186,12 +200,4 @@ theory DKC.
     }
   }.
 
-
-
-  axiom Security :
-    exists (epsilon:real), epsilon > 0%r /\
-      forall (A<:Adv), forall &m,
-        `|2%r * Pr[Game(Dkc, A).main()@ &m:res] - 1%r| <
-          epsilon.
-
-end DKC.
+end DKC_Sec.

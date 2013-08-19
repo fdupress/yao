@@ -7,25 +7,28 @@ require import Distr.
 require import List.
 require import Array.
 
-require import MyDkc.
-require import Garble.
 require import GarbleTools.
+
+require import PreProof.
 
 op eval(f:funct, i:input, k:int) = (evalComplete f i extract).[k].
 op void = (Bitstring.zeros 0).
 
-module AdvAda(A:Garble.Adv, Dkc:DKC.Dkc_t) (*: DKC.AdvAda*) = {
+(*
+lemma eval_val : forall f x i,
+  i >= (getN f) + (getQ f) - (getM f) => i < (getN f) + (getQ f) =>
+  eval f x i = (Garble.eval f x).[i-((getN f) + (getQ f) - (getM f))] by admit.*)
+
+module RedAda(A:PrvIndSec.Adv_t, Dkc:DKCS.Dkc_t) = {
 
   var c : bool
-  var fc : Garble.funct
-  var xc : Garble.input
+  var fc : funct
+  var xc : input
   var good : bool
   var tau : bool
   var l : int
-  var queries : DKC.query array
-  var ans : DKC.answer array
-  var answer : Garble.functG*Garble.inputG*Garble.keyOutput
-  var query : Garble.query
+  var answer : functG*inputG*keyOutput
+  var query : (PrvIndSec.INDCPA_Scheme.query * PrvIndSec.INDCPA_Scheme.query)
 
   var n : int
   var m : int
@@ -38,6 +41,7 @@ module AdvAda(A:Garble.Adv, Dkc:DKC.Dkc_t) (*: DKC.AdvAda*) = {
   var v : bool array
   var yy : token array
   var xx : tokens
+  var randG : (int*bool*bool, token) map
   var a : int
   var b : int
   var i : int
@@ -54,7 +58,7 @@ module AdvAda(A:Garble.Adv, Dkc:DKC.Dkc_t) (*: DKC.AdvAda*) = {
     var ko : token;
     var zz : token;
     ttt = tweak g (t.[a]^^alpha) (t.[b]^^bet);
-    gamma = v.[g]^^(evalGate gg.[g] ((v.[a]^^alpha),(v.[b]^^alpha)));
+    gamma = v.[g]^^(evalGate gg.[g] ((v.[a]^^alpha),(v.[b]^^bet)));
     if (a = l) {
       pos = true;
       input = (b, (t.[b]^^bet));
@@ -62,35 +66,39 @@ module AdvAda(A:Garble.Adv, Dkc:DKC.Dkc_t) (*: DKC.AdvAda*) = {
       pos = false;
       input = (a, (t.[a]^^alpha));
     }
+    ra = $Dbool.dbool;
     if (rand) {
-      ra = $Dbool.dbool;
       output = (g + n + q, ra);
     } else
       output = (g, (t.[g]^^gamma));
     (ki, ko, zz) = Dkc.encrypt((input, output, pos, ttt));
-    ans = sub ans 0 ((length ans) - 1);
     pp.[g] = setGateVal pp.[g] ((t.[a]^^alpha), (t.[b]^^bet)) zz;
     if (a=l)
-      xx = setTok xx g (v.[b]^^bet) ki;
+      xx = setTok xx g bet ki;
     else
-      xx = setTok xx g (v.[a]^^alpha) ki;
+      xx = setTok xx g alpha ki;
     if (! rand)
-      xx = setTok xx g (v.[g]^^gamma) ko;
+      xx = setTok xx g gamma ko;
     return ko;
   }
 
   fun garb(yy:token, alpha:bool, bet:bool) : unit = {
     pp.[g] = setGateVal pp.[g] ((t.[a]^^alpha), (t.[b]^^bet)) (DKC.encode
       (tweak g (t.[a]^^alpha) (t.[b]^^bet))
-      (getTok xx a (v.[a]^^alpha))
-      (getTok xx b (v.[b]^^alpha))
+      (getTok xx a alpha)
+      (getTok xx b bet)
       yy);
+  }
+
+  fun preGarbD(rand:bool, alpha:bool, bet:bool) : unit = {
+    var yy : token;
+    if (rand) randG.[(g,alpha,bet)] = $DKC.genRandKey;
   }
 
   fun garbD(rand:bool, alpha:bool, bet:bool) : token = {
     var yy : token;
     if (rand)
-      yy = $DKC.genRandKey;
+      yy = proj randG.[(g,alpha,bet)];
     else
       yy = getTok xx g (evalGate gg.[g] ((v.[a]^^alpha),(v.[b]^^alpha)));
     garb(yy, alpha, bet);
@@ -128,17 +136,41 @@ module AdvAda(A:Garble.Adv, Dkc:DKC.Dkc_t) (*: DKC.AdvAda*) = {
         tok = query(false, false, true);
         yy.[g] = query(true, true, true);
       }
+      if (a <> l /\ b <> l) {
+        preGarbD(a <= l, true, false);
+        preGarbD(b <= l, false, true);
+        preGarbD(a <= l, true, true);
+      } else {
+        if (a = l) {
+          preGarbD(false, false, true);
+        } else {
+          preGarbD(true, true, false);
+        }
+      tok = $DKC.genRandKeyLast;
+      tok = DKC.addLast tok (! t.[g]);
+      if (getTok xx g true = void) {
+        xx = setTok xx g true tok;
+      }
+      tok = $DKC.genRandKeyLast;
+      tok = DKC.addLast tok (t.[g]);
+      if (getTok xx g false = void) {
+        xx = setTok xx g false tok;
+      }
+      }
+      
       g = g + 1;
     }
 
     i = 0;
     while (i < n+q) {
-      if (getTok xx i true = void /\ i <> 0) {
-        tok = $DKC.genRandKeyLast (! t.[i]);
+      tok = $DKC.genRandKeyLast;
+      tok = DKC.addLast tok (! t.[i]);
+      if (getTok xx i true = void /\ i <> l) {
         xx = setTok xx i true tok;
       }
+      tok = $DKC.genRandKeyLast;
+      tok = DKC.addLast tok (t.[i]);
       if (getTok xx i false = void) {
-        tok = $DKC.genRandKeyLast (t.[i]);
         xx = setTok xx i false tok;
       }
       i = i + 1;
@@ -148,35 +180,37 @@ module AdvAda(A:Garble.Adv, Dkc:DKC.Dkc_t) (*: DKC.AdvAda*) = {
     while (g < n+q) {
       a = aa.[g];
       b = bb.[g];
-      garb(getTok xx g v.[g], false, false);
+      garb(getTok xx g false, false, false);
       if (a <> l /\ b <> l) {
-        tok = garbD(a <= l, true, false);
         tok = garbD(b <= l, false, true);
         yyt = garbD(a <= l, true, true);
-        if (a <= l /\ l <= b /\ evalGate gg.[g] ((!v.[a]), false) = evalGate gg.[g] ((!v.[a]), true))
+        if (a < l /\ l < b /\ evalGate gg.[g] ((!v.[a]), false) = evalGate gg.[g] ((!v.[a]), true))
           garb(yyt, true, false);
+        else
+          tok = garbD(a <= l, true, false);
       } else {
         if (a = l) {
           tok = garbD(false, false, true);
         } else {
-          tok = garbD(true, true, false);
           if (evalGate gg.[g] ((!v.[a]), false) = evalGate gg.[g] ((!v.[a]), true))
             garb(yy.[g], true, false);
+          else
+            tok = garbD(true, true, false);
         }
       }
       g = g + 1;
     }
-    answer = ((getN fc, getM fc, getQ fc, getA fc, getB fc, pp), encrypt (Array.sub xx 0 (getN fc)) xc,tt);
+    answer = ((getN fc, getM fc, getQ fc, getA fc, getB fc, pp), encrypt (Array.sub xx 0 (getN fc)) (Array.create (getN fc) false),tt);
   }
 
   
   fun preInit() : unit = {
-    l = $Dinter.dinter 0 borne;
+    l = $Dinter.dinter 0 (Cst.bound-1);
   }
 
   fun work(info:bool) : bool = {
     var challenge : bool;
-    var ret : bool;
+    var ret : bool; 
     query = A.gen_query();
     c = $Dbool.dbool;
     if (c) {
@@ -187,15 +221,14 @@ module AdvAda(A:Garble.Adv, Dkc:DKC.Dkc_t) (*: DKC.AdvAda*) = {
       xc = snd (snd query);
     }
     (n, m, q, aa, bb, gg) = fc;
-    queries = Array.empty;
-    t = Array.init (n+q) false;
-    v = Array.init (n+q) false;
-    xx = Array.init (n+q) (void, void);
-    yy = Array.init (n+q) void;
-    gg = Array.init (n+q) (false, false, false, false);
-    pp = Array.init (n+q) (void, void, void, void);
+    t = Array.create (n+q) false;
+    v = Array.create (n+q) false;
+    xx = Array.create (n+q) (void, void);
+    yy = Array.create (n+q) void;
+    pp = Array.create (n+q) (void, void, void, void);
+    randG = Map.empty;
     tau = info;
-    if (Garble.queryValid query)
+    if (PrvIndSec.INDCPA_Scheme.queryValid query)
     {
       garble();
       challenge = A.get_challenge(answer);
@@ -207,30 +240,13 @@ module AdvAda(A:Garble.Adv, Dkc:DKC.Dkc_t) (*: DKC.AdvAda*) = {
   }
 }.
 
-
-  module GameAda(D:DKC.Dkc_t, Adv:Garble.Adv) = {
-
-    module A = AdvAda(Adv, DKC.Dkc)
-
-    fun preInit() : unit = {
-      D.preInit();
-      A.preInit();
-    }
-
-    fun work() : bool = {
-      var info : bool;
-      var advChallenge : bool;
-      var realChallenge : bool;
-      info = D.initialize();
-      advChallenge = A.work(info);
-      realChallenge = D.get_challenge();
-      return advChallenge = realChallenge;
-    }
-    
-    fun main() : bool = {
-      var r : bool;
-      preInit();
-      r = work();
-      return r;
-    }
-  }.
+module PreInit(ADV:PrvIndSec.Adv_t) = {
+  module G = DKCS.GameAda(DKCS.Dkc, RedAda(ADV))
+  fun f(vl:int, vb:bool) : bool = {
+    var r : bool;
+    RedAda.l = vl;
+    DKCS.Dkc.b = vb;
+    r = G.work();
+    return r;
+  }
+}.

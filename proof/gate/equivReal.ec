@@ -56,15 +56,15 @@ proof.
 
   app 1 1 : (query{1} = query{2}).
   call ((glob ADV){1} = (glob ADV){2}) (res{1}=res{2} /\ (glob ADV){1} = (glob ADV){2}).
-    fun true;trivial.
-  skip;trivial.
+    fun true;smt.
+  skip;smt.
   
   rcondt {1} 11. admit.
   rcondt {1} 19. admit.
   rcondt {2} 1. admit.
   wp.
   call (answer{1}=answer{2} /\ (glob ADV){1} = (glob ADV){2}) (res{1}=res{2}).
-    fun true;trivial.
+    fun true;smt.
   
   case (Gate.eval AdvGate.Adv.fc AdvGate.Adv.xc).
     case (Gate.eval AdvGate.Adv.fc (fst AdvGate.Adv.xc, ! snd AdvGate.Adv.xc)).
