@@ -2,6 +2,7 @@ require import Real.
 require import Pair.
 require import Bool.
 require import INDCPA.
+require import Distr.
 
 (** begin definition *)
 theory Garble.
@@ -19,6 +20,7 @@ theory Garble.
 
   op functCorrect : funct -> bool.
   op inputCorrect : funct -> input -> bool.
+  op genRandom : random distr.
   pred randomCorrect : (funct, random).
 
   op eval : funct -> input -> output.
@@ -34,24 +36,25 @@ end Garble.
 theory Correct.
   clone import Garble.
 
+(** begin correct *)
   axiom Correct : forall (f:funct) (x:random) (i:input),
     functCorrect f =>
     randomCorrect f x =>
     inputCorrect f i =>
       let (g, ki, ko) = garble x f in
       eval f i = decrypt ko (evalG g (encrypt ki i)).
+(** end correct *)
 end Correct.
 
 (** begin prvind *)
 theory PrvInd.
   clone import Garble.
 
-  clone INDCPA_Scheme with
-    type query = funct*input,
-    type answer = functG*inputG*keyOutput,
-    type random = random,
+  clone INDCPA.Scheme with
+    type plain = funct*input,
+    type cipher = functG*inputG*keyOutput,
 
-    op queryValid(queries:query*query) =
+    op queryValid(queries:plain*plain) =
       let query0 = fst queries in
       let query1 = snd queries in
       functCorrect (fst query0) /\ functCorrect (fst query1) /\
@@ -59,9 +62,12 @@ theory PrvInd.
       eval (fst query0) (snd query0) = eval (fst query1) (snd query1) /\
       phi (fst query0) = phi (fst query1),
 
-    op work (q:query) (r:random) =
-      let (f, x) = q in
-      let (g, ki, ko) = garble r f in
-      (g, encrypt ki x, ko).
+    op enc (q:plain) = Dapply.dapply
+      (lambda (r:random),
+        let (f, x) = q in
+        let (g, ki, ko) = garble r f in
+        (g, encrypt ki x, ko))
+      genRandom
+   .
 end PrvInd.
 (** end prvind *)

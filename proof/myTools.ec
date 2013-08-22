@@ -31,11 +31,13 @@ intros ? ? ? ?.
 pose m := n.
 cut : (m <= n) by smt.
 elim/Induction.induction m;[smt| |smt].
-intros=> /= ? ? ? ?.
+intros=> /= j ? ? ?.
+rewrite /appendInit /=.
 rewrite range_ind /=;first smt.
+rewrite /appender.
 rewrite snoc_length.
-rewrite (_:length ar + j - 1 = length ar + (j - 1));first smt.
-rewrite (H1 _);smt.
+rewrite (_:length ar + (j + 1)- 1 = length ar + j);first smt.
+smt.
 save.
 
 
@@ -76,7 +78,7 @@ proof.
   rewrite (_: n = ((k-length ar)+1+(n-(k-length ar)-1)));[smt|].
   elim/Induction.induction (n-(k-length ar)-1);[|smt|smt].
   simplify appendInit.
-  rewrite (_:length ar + (k - length ar + 1 + 0) = k + 1);first smt.
+  rewrite (_:length ar + (k - length ar + 1) = k + 1);first smt.
   rewrite (_:length ar + (k - length ar) = k);first smt.
   rewrite range_ind;first smt.  
   rewrite (_:k + 1 - 1 = k);first smt.

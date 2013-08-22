@@ -66,10 +66,10 @@ require import INDCPA.
 clone PrvInd as PrvInd_Circuit with
   theory Garble = GarbleCircuit.
 
-clone INDCPA_Def as PrvIndSec with
-  theory INDCPA_Scheme = PrvInd_Circuit.INDCPA_Scheme.
+clone INDCPA as PrvIndSec with
+  theory Scheme = PrvInd_Circuit.Scheme.
 
-module RandGarble : PrvIndSec.Rand_t = {
+(*module RandGarble : PrvIndSec.Rand_t = {
   fun gen(query :funct*input) : random = {
     var i:int;
     var t:bool array;
@@ -105,4 +105,4 @@ module RandGarble : PrvIndSec.Rand_t = {
     }
     return xx;
   }
-}.
+}.*)

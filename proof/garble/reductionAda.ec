@@ -28,7 +28,7 @@ module RedAda(A:PrvIndSec.Adv_t, Dkc:DKCS.Dkc_t) = {
   var tau : bool
   var l : int
   var answer : functG*inputG*keyOutput
-  var query : (PrvIndSec.INDCPA_Scheme.query * PrvIndSec.INDCPA_Scheme.query)
+  var query : (PrvIndSec.Scheme.plain * PrvIndSec.Scheme.plain)
 
   var n : int
   var m : int
@@ -228,7 +228,7 @@ module RedAda(A:PrvIndSec.Adv_t, Dkc:DKCS.Dkc_t) = {
     pp = Array.create (n+q) (void, void, void, void);
     randG = Map.empty;
     tau = info;
-    if (PrvIndSec.INDCPA_Scheme.queryValid query)
+    if (PrvIndSec.Scheme.queryValid query)
     {
       garble();
       challenge = A.get_challenge(answer);
