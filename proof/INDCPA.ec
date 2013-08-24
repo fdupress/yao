@@ -12,8 +12,6 @@ theory INDCPA.
     op queryValid : plain*plain -> bool.
     op enc : plain -> cipher distr.
   end Scheme.
-  export Scheme.
-  type query = plain * plain.
 
   module type Adv_t = {
     fun gen_query() : query
@@ -22,7 +20,7 @@ theory INDCPA.
 
   module Game(ADV:Adv_t) = {
     fun main() : bool = {
-      var query : query;
+      var query : plain*plain;
       var p : plain;
       var c : cipher;
       var b, adv, ret : bool;

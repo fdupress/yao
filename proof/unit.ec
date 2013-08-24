@@ -64,8 +64,9 @@ lemma goal &m (A<:UNIT.Adv_t) :
   islossless A.get_challenge =>
   mu (UNIT.Scheme.enc tt) Fun.cpTrue = 1%r =>
     Pr[UNIT.Game(A).main() @ &m : res] = 1%r / 2%r.
-intros ll1 ll2 llenc.
-rewrite -(unitPr &m A)=> //.
-equiv_deno (unitEq A)=> //.
+proof.
+  intros ll1 ll2 llenc.
+  rewrite -(unitPr &m A)=> //.
+  equiv_deno (unitEq A)=> //.
 qed.
 (** end goal *)
