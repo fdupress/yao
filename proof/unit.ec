@@ -12,7 +12,7 @@ clone INDCPA as UNIT with theory Scheme = UNIT_Scheme.
 (** begin unitGame *)
 module Rnd(ADV:UNIT.Adv_t) = {
   fun main() : bool = {
-    var query : UNIT.query;
+    var query : UNIT.Scheme.plain*UNIT.Scheme.plain;
     var c : UNIT.Scheme.cipher;
     var b, adv, ret : bool;
     query = ADV.gen_query();
