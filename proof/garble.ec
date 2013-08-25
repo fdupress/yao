@@ -20,8 +20,9 @@ theory Garble.
 
   op functCorrect : funct -> bool.
   op inputCorrect : funct -> input -> bool.
-  op genRandom : random distr.
   pred randomCorrect : (funct, random).
+
+  op genRandom : random distr.
 
   op eval : funct -> input -> output.
   op garble : random -> funct -> functG*keyInput*keyOutput.
