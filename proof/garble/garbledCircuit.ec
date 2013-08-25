@@ -61,12 +61,12 @@ clone Garble as GarbleCircuit with
   op decrypt(k:keyOutput, o:outputG) = map lsb o.
 export GarbleCircuit.
 
-require import INDCPA.
+require import IND.
 
 clone PrvInd as PrvInd_Circuit with
   theory Garble = GarbleCircuit.
 
-clone INDCPA as PrvIndSec with
+clone IND as PrvIndSec with
   theory Scheme = PrvInd_Circuit.Scheme.
 
 (*module RandGarble : PrvIndSec.Rand_t = {

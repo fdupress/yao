@@ -1,12 +1,12 @@
 require import Real.
 require import Pair.
 require import Bool.
-require import INDCPA.
+require import IND.
 
 (** begin unitdef *)
-clone INDCPA.Scheme as UNIT_Scheme with type plain = unit.
+clone IND.Scheme as UNIT_Scheme with type plain = unit.
 
-clone INDCPA as UNIT with theory Scheme = UNIT_Scheme.
+clone IND as UNIT with theory Scheme = UNIT_Scheme.
 (** end unitdef *)
 
 (** begin unitGame *)

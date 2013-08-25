@@ -2,7 +2,6 @@ require import Int.
 
 require Dkc.
 require GarbledCircuit.
-require INDCPA.
 
 (* Security parameter and bound on circuit size*)
 theory Cst.

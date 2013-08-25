@@ -1,7 +1,7 @@
 require import Real.
 require import Pair.
 require import Bool.
-require import INDCPA.
+require import IND.
 require import Distr.
 
 (** begin definition *)
@@ -50,7 +50,7 @@ end Correct.
 theory PrvInd.
   clone import Garble.
 
-  clone INDCPA.Scheme with
+  clone IND.Scheme with
     type plain = funct*input,
     type cipher = functG*inputG*keyOutput,
 
