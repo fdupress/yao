@@ -3,14 +3,14 @@ require import Pair.
 require import Bool.
 
 (** begin def *)
-theory INDCPA.
+theory IND.
 
   theory Scheme.
     type plain.
     type cipher.
 
-    op queryValid : plain*plain -> bool.
     op enc : plain -> cipher distr.
+    op queryValid : plain*plain -> bool.
   end Scheme.
 
   module type Adv_t = {
@@ -40,5 +40,5 @@ theory INDCPA.
       return ret;
     }
   }.
-end INDCPA.
+end IND.
 (** end def *)
