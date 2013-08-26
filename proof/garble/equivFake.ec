@@ -23,7 +23,7 @@ module Fake(A:PrvIndSec.Adv_t) = {
   var queries : DKCS.query array
   var ans : DKCS.answer array
   var answer : functG*inputG*keyOutput
-  var query : PrvIndSec.INDCPA_Scheme.query*PrvIndSec.INDCPA_Scheme.query
+  var query : PrvIndSec.query
 
   var n : int
   var m : int
@@ -170,7 +170,7 @@ module Fake(A:PrvIndSec.Adv_t) = {
 
     query = A.gen_query();
   
-    if (PrvIndSec.INDCPA_Scheme.queryValid query)
+    if (PrvIndSec.Scheme.queryValid query)
     {
       tau = $Dbool.dbool;
       ksec = $DKC.genRandKeyLast;
@@ -210,14 +210,13 @@ bdhoare_deno (_ : (true) ==> (!res))=> //.
 fun.
 seq 1 : true (1%r) (1%r/2%r) 0%r 1%r=> //;
   first call (_ : true ==> true);[fun (true)|skip];progress;assumption.
-case (PrvIndSec.INDCPA_Scheme.queryValid Fake.query).
+case (PrvIndSec.Scheme.queryValid Fake.query).
   (* VALID *)
   rcondt 1;first skip;progress.
   wp.
   rnd (lambda b, ! (b = challenge) = false).
   call (_ : true ==> true);first fun (true);progress;assumption.
   kill 1!14;first admit.
-
  (*TERMINATE*)
   skip;progress;rewrite Dbool.mu_def /=;case (result);delta charfun;simplify;smt.
   (* INVALID *)
@@ -259,13 +258,14 @@ proof.
 
   swap{1} 11 -10.
 
-  seq 1 1 : ((glob ADV){1} = (glob ADV){2}/\RedAda.query{1} = Fake.query{2} /\ (!DKCS.Dkc.b{1}) /\ (RedAda.l{1}=bound-1)).
-    call (_ : (glob ADV){1} = (glob ADV){2} ==> res{1}=res{2} /\ (glob ADV){1} = (glob ADV){2});first (fun true;by progress).
-  skip;progress;assumption.
+  seq 1 1 : ((glob ADV){1} = (glob ADV){2}/\RedAda.query{1} = Fake.query{2} /\ (!vb{1}) /\ (vl{1}=Cst.bound-1));
+    first by call (_ : (glob ADV){1} = (glob ADV){2} ==> res{1}=res{2} /\ (glob ADV){1} = (glob ADV){2});
+             [fun true|skip;progress;assumption].
   
-  case (Garble.queryValid Fake.query{2}).
+  case (PrvIndSec.Scheme.queryValid Fake.query{2}).
 
   (*VALID*)
+  sp.
   rcondt {1} 19;first (intros _;wp;rnd;wp;rnd;rnd;skip;progress assumption).
   rcondt {2} 1;first (intros &m;skip;by progress).
 
@@ -273,16 +273,16 @@ proof.
   swap{2} 26 -25.
 
   wp.
-  call (_ : (glob ADV){1} = (glob ADV){2}/\answer{1}=answer{2} ==> res{1}=res{2});first (fun true;by progress).
+  call (_ : (glob ADV){1} = (glob ADV){2}/\ ={glob ADV, cipher} ==> res{1}=res{2});
+    first by fun true.
   wp.
 
 (*
        (forall i, i>= 0 => i < Fake.n{2} => RedAda.v{1}.[i] = RedAda.xc{1}.[i]) /\
        (forall i, i>= 0 => i < Fake.n{2} => Fake.v{2}.[i] = Fake.x1{2}.[i]) /\
 *)
-
   while (
-      Fake.ev{2} = Garble.eval RedAda.fc{1} RedAda.xc{1} /\
+      Fake.ev{2} = GC.GarbleCircuit.eval RedAda.fc{1} RedAda.xc{1} /\
       (glob ADV){1} = (glob ADV){2} /\
       length RedAda.xx{1} = RedAda.n{1}+RedAda.q{1} /\
       length RedAda.t{1} = RedAda.n{1}+RedAda.q{1} /\
@@ -299,13 +299,13 @@ proof.
       Fake.m{2} > 0/\
       Fake.q{2} > 0/\
       (*Fake.f1{2} = (Fake.n{2}, Fake.m{2}, Fake.q{2}, Fake.aa{2}, Fake.bb{2}, Fake.gg{2}) /\*)
-      Fake.n{2} + Fake.q{2} - Fake.m{2} = bound /\
-      RedAda.l{1} = bound-1 /\
+      Fake.n{2} + Fake.q{2} - Fake.m{2} = Cst.bound /\
+      RedAda.l{1} = Cst.bound-1 /\
     (forall i, i >= Fake.n{2} => i < Fake.n{2}+Fake.q{2} => Fake.aa{2}.[i] >= 0 /\ Fake.bb{2}.[i] < i /\
-           Fake.bb{2}.[i] < bound /\ Fake.aa{2}.[i] < Fake.bb{2}.[i]) /\
-    (forall g, g >= Fake.n{2} => g < Fake.n{2}+Fake.q{2} => RedAda.bb{1}.[g] = bound-1 /\ evalGate RedAda.gg{1}.[g]
+           Fake.bb{2}.[i] < Cst.bound /\ Fake.aa{2}.[i] < Fake.bb{2}.[i]) /\
+    (forall g, g >= Fake.n{2} => g < Fake.n{2}+Fake.q{2} => RedAda.bb{1}.[g] = Cst.bound-1 /\ evalGate RedAda.gg{1}.[g]
       ((!RedAda.v{1}.[RedAda.aa{1}.[g]]), false) = evalGate RedAda.gg{1}.[g] ((!RedAda.v{1}.[RedAda.aa{1}.[g]]), true) =>
-        RedAda.yy{1}.[g]=Fake.randG{2}.[(g, true, false)])/\
+        RedAda.yy{1}.[g]=proj Fake.randG{2}.[(g, true, false)])/\
 
     RedAda.g{1} = Fake.g{2} /\
       Fake.g{2} >= Fake.n{2} /\
@@ -313,7 +313,7 @@ proof.
   ).
 
     seq 6 6 : (
-      Fake.ev{2} = Garble.eval RedAda.fc{1} RedAda.xc{1} /\
+      Fake.ev{2} = GC.GarbleCircuit.eval RedAda.fc{1} RedAda.xc{1} /\
       (glob ADV){1} = (glob ADV){2} /\
       length RedAda.xx{1} = RedAda.n{1}+RedAda.q{1} /\
       length RedAda.t{1} = RedAda.n{1}+RedAda.q{1} /\
@@ -330,28 +330,63 @@ proof.
       Fake.m{2} > 0/\
       Fake.q{2} > 0/\
       (*Fake.f1{2} = (Fake.n{2}, Fake.m{2}, Fake.q{2}, Fake.aa{2}, Fake.bb{2}, Fake.gg{2}) /\*)
-      Fake.n{2} + Fake.q{2} - Fake.m{2} = bound /\
-      RedAda.l{1} = bound-1 /\
+      Fake.n{2} + Fake.q{2} - Fake.m{2} = Cst.bound /\
+      RedAda.l{1} = Cst.bound-1 /\
     (forall i, i >= Fake.n{2} => i < Fake.n{2}+Fake.q{2} => Fake.aa{2}.[i] >= 0 /\ Fake.bb{2}.[i] < i /\
-           Fake.bb{2}.[i] < bound /\ Fake.aa{2}.[i] < Fake.bb{2}.[i]) /\
-    (forall g, g >= Fake.n{2} => g < Fake.n{2}+Fake.q{2} => RedAda.bb{1}.[g] = bound-1 /\ evalGate RedAda.gg{1}.[g]
+           Fake.bb{2}.[i] < Cst.bound /\ Fake.aa{2}.[i] < Fake.bb{2}.[i]) /\
+    (forall g, g >= Fake.n{2} => g < Fake.n{2}+Fake.q{2} => RedAda.bb{1}.[g] = Cst.bound-1 /\ evalGate RedAda.gg{1}.[g]
       ((!RedAda.v{1}.[RedAda.aa{1}.[g]]), false) = evalGate RedAda.gg{1}.[g] ((!RedAda.v{1}.[RedAda.aa{1}.[g]]), true) =>
-        RedAda.yy{1}.[g]=Fake.randG{2}.[(g, true, false)])/\
+        RedAda.yy{1}.[g]=proj Fake.randG{2}.[(g, true, false)])/\
 
 
-    (RedAda.b{1} = bound-1 /\ evalGate RedAda.gg{1}.[Fake.g{2}]
+    (RedAda.b{1} = Cst.bound-1 /\ evalGate RedAda.gg{1}.[Fake.g{2}]
       ((!RedAda.v{1}.[RedAda.a{1}]), false) = evalGate RedAda.gg{1}.[Fake.g{2}] ((!RedAda.v{1}.[RedAda.a{1}]), true) =>
-        RedAda.yy{1}.[Fake.g{2}]=Fake.randG{2}.[(Fake.g{2}, true, false)])/\
+        RedAda.yy{1}.[Fake.g{2}]=proj Fake.randG{2}.[(Fake.g{2}, true, false)])/\
       RedAda.g{1} = Fake.g{2} /\
       Fake.g{2} >= Fake.n{2} /\
       RedAda.a{1} = Fake.a{2} /\
       RedAda.b{1} = Fake.b{2} /\
       Fake.a{2} >= 0 /\
       Fake.b{2} >= 0 /\
-      RedAda.a{1} < bound-1 /\
-      RedAda.b{1} <= bound-1 /\
+      RedAda.a{1} < Cst.bound-1 /\
+      RedAda.b{1} <= Cst.bound-1 /\
       true
-    );first wp;skip;(progress assumption;first apply H6);smt.
+    ). 
+wp.
+skip.
+progress.
+hhhh
+assumption.
+assumption.
+assumption.
+assumption.
+assumption.
+assumption.
+smt.
+smt.
+smt.
+smt.
+smt.
+smt.
+smt.
+smt.
+smt.
+smt.
+smt.
+assumption.
+assumption.
+assumption.
+
+assumption.
+assumption.
+assumption.
+
+assumption.
+assumption.
+assumption.
+
+
+;first wp;skip;(progress assumption;first apply H6).
     if;first smt.
       (*IF TRUE*)
       rcondt{1} 4;first (intros _;wp;skip;smt).

@@ -24,7 +24,7 @@ module Red(A:PrvIndSec.Adv_t) : DKCS.Adv_t = {
   var queries : DKCS.query array
   var ans : DKCS.answer array
   var answer : functG*inputG*keyOutput
-  var query : PrvIndSec.INDCPA_Scheme.query*PrvIndSec.INDCPA_Scheme.query
+  var query : PrvIndSec.query
 
   var n : int
   var m : int
@@ -241,7 +241,7 @@ module Red(A:PrvIndSec.Adv_t) : DKCS.Adv_t = {
     gg = Array.create (n+q) (false, false, false, false);
     pp = Array.create (n+q) (void, void, void, void);
     tau = info;
-    if (PrvIndSec.INDCPA_Scheme.queryValid query)
+    if (PrvIndSec.Scheme.queryValid query)
     {
       garble_queries();
       good = true;

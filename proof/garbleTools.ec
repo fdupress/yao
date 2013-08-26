@@ -55,7 +55,7 @@ lemma tweak_inj :
      tweak g a b = tweak gg aa bb => (g, a, b) = (gg, aa, bb).
 intros ? ? ? ? ? ? ? ?.
 simplify tweak.
-rewrite ! Bits.cons_inj=> [[? ?] ?].
+rewrite ! Bits.cons_inj=> [? [? ?]].
 subst;split=> //.
 apply intToBitstring_inj=> //.
 save.
@@ -102,6 +102,7 @@ op garbleGate(x:tokens, f:fGate, a:int, b:int, g:int) : gGate =
   ).
 
 lemma inverse_base :
+    (forall (t k1 k2 m:Dkc.t), DKC.decode t k1 k2 (DKC.encode t k1 k2 m) = m) =>
     forall (i: bool*bool) ,
     forall (n q m a b g : int) ,
     forall (f : fGate) ,
@@ -122,8 +123,9 @@ lemma inverse_base :
           (lsb gi1, lsb gi2)
         ) = getTok x g (evalGate f i).
 proof.
+  intros DKCinv.
   do intros ?.
-  rewrite -(DKC.inverse (tweak g (lsb gi1) (lsb gi2)) gi1 gi2 (getTok x g (evalGate f i))).
+  rewrite -(DKCinv (tweak g (lsb gi1) (lsb gi2)) gi1 gi2 (getTok x g (evalGate f i))).
   congr=> //. 
   simplify evalGate garbleGate enc.
   generalize H5.
@@ -196,8 +198,8 @@ lemma valid_wireinput :
            bb.[i] < n+q-m /\
            aa.[i] < bb.[i]).
 delta validCircuit.
-intros f.
-elimT tuple6_ind f.
+intros bound f.
+elim/tuple6_ind f.
 intros n m q aa bb gg valF.
 case (n > 1);last simplify;smt.
 case (m > 0);last simplify;split.
@@ -214,12 +216,12 @@ pose {1 3} j := q.
 elim/Induction.induction j;last first;first 2 smt.
 simplify => k hypJ hypRec.
 rewrite range_ind;first smt.
-rewrite (_:(n + k - 1 = n + (k - 1)));first smt.
+rewrite (_:(n + (k+1) - 1 = n + k));first smt.
 rewrite hypRec.
 simplify.
 split => h.
 elim h => h1 h2 i.
-case (i = n + (k - 1)).
+case (i = n + k).
   intros => -> _ _.
 apply h2.
 intros hh1 hh2 hh3.

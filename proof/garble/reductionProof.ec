@@ -3,6 +3,7 @@ require import Real.
 require import Int.
 require import Fun.
 require import FSet.
+require import Monoid.
 
 require import GarbleTools.
 require import PreProof.
@@ -24,7 +25,7 @@ lemma prReal :
   forall (ADV <: PrvIndSec.Adv_t{RedAda, DKCS.Dkc, PrvIndSec.Game}),
     forall &m,
     Pr[RedEspTrue.RedWork(ADV).work(0) @ &m : res] =
-      Pr[PrvIndSec.Game(RandGarble2, ADV).main() @ &m : res].
+      Pr[PrvIndSec.Game(ADV).main() @ &m : res].
 proof strict.
 intros=> ADV &m.
 cut := RedEspTrue.RemRedEsp (lambda x, x) ADV &m &m 0=> /= ->.
@@ -75,7 +76,7 @@ lemma RelDkcGarble :
     forall (ADV<:PrvIndSec.Adv_t{DKCS.Dkc,DKCS.Game,RedAda,Fake}),
       islossless ADV.gen_query =>
       islossless ADV.get_challenge =>
-      Pr[PrvIndSec.Game(RandGarble2, ADV).main()@ &m:res] =
+      Pr[PrvIndSec.Game(ADV).main()@ &m:res] =
         2%r * Cst.bound%r * Pr[DKCS.GameAda(DKCS.Dkc, RedAda(ADV)).main()@ &m:res]
           + 1%r / 2%r - Cst.bound%r.
 proof strict.
@@ -83,35 +84,36 @@ proof strict.
   rewrite (DkcEsp &m (RedAda(ADV))).
   cut := RedEspTrue.AdvEsp &m ADV;delta RedEspTrue.b=> /= ->.
   cut := RedEspFalse.AdvEsp &m ADV;delta RedEspFalse.b=> /= ->.
-  rewrite /MeanInt.support.
 
   cut -> : ((lambda (l : int), Pr[RedEspFalse.RedWork(ADV).work(l) @ &m : res] / (Cst.bound)%Cst%r) =
    (lambda (l : int), (1%r - Pr[RedEspFalse.RedWork(ADV).work(l) @ &m : !res]) / (Cst.bound)%Cst%r));
     first by apply fun_ext=> x /=;rewrite Pr mu_not;
              rewrite (RedEspFalse.RedEspT x &m ADV) //;smt.
 
-  rewrite (sum_rm _ _ 0) /=;first by rewrite Interval.mem_interval;smt.
-  rewrite (sum_chind _ (lambda (x:int), x - 1) (lambda (x:int), x + 1)) /=;
+  rewrite /suppInt.
+
+  rewrite (Mrplus.sum_rm _ _ 0) /=;first by rewrite Interval.mem_interval;smt.
+  rewrite (Mrplus.sum_chind _ (lambda (x:int), x - 1) (lambda (x:int), x + 1)) /=;
     first smt.
   rewrite (Interval.dec_interval 0 (Cst.bound-1) _);first smt.
-  rewrite (sum_rm _ (Interval.interval 0 (Cst.bound - 1)) ((Cst.bound)%Cst - 1)) /=;
+  rewrite (Mrplus.sum_rm _ (Interval.interval 0 (Cst.bound - 1)) ((Cst.bound)%Cst - 1)) /=;
     first rewrite Interval.mem_interval;first smt.
 
-  pose s1 := sum _ _.
-  pose s2 := sum _ _.
-  rewrite -(Mean.MReal.C s2) Mean.MReal.A -(Mean.MReal.A _ s1).
+  pose s1 := Mrplus.sum _ _.
+  pose s2 := Mrplus.sum _ _.
+  rewrite -(Mrplus.Base.addmC s2) Mrplus.Base.addmA -(Mrplus.Base.addmA _ s1).
   delta s1 s2.
   clear s1 s2.
-  rewrite sum_add2 /=.
+  rewrite Mrplus.sum_add2 /=.
 
   rewrite -(prReal ADV &m).
   cut := prFake ADV &m=> /= -> //.
 
-  rewrite (Mean.MReal.NatMul.sum_const (1%r/Cst.bound%r));
+  rewrite (Mrplus.NatMul.sum_const (1%r/Cst.bound%r));
     first by intros=> x;
     rewrite mem_rm Interval.mem_interval=> [h1 h2];
     cut := prHybrid ADV &m x=> /= -> //;smt.
-  delta Mean.MReal.NatMul.( * ) Mean.MReal.( + )=> /=.
+  delta Mrplus.NatMul.( * ) Mrplus.Base.( + )=> /=.
 
 rewrite card_rm_in.
 rewrite Interval.mem_interval;
@@ -121,6 +123,7 @@ rewrite (_:(max ((Cst.bound)%Cst - 1 - 0 + 1) 0) = Cst.bound);first smt.
 pose a := Pr[RedEspTrue.RedWork(ADV).work(0) @ &m : res].
 rewrite Sub.
 pose b := (Cst.bound)%r.
+delta Brplus.(+).
 rewrite sub_div;first smt.
 rewrite Real.Comm.Comm.
 rewrite assoc_mul_div;first smt.
@@ -138,16 +141,14 @@ smt.
 save.
 
 lemma _PrvIndDkc :
-  exists (Rand<:PrvIndSec.Rand_t),
-    forall (ADVG<:PrvIndSec.Adv_t{DKCS.Dkc,DKCS.Game,RedAda,Red,Fake}),
-      islossless ADVG.gen_query =>
-      islossless ADVG.get_challenge =>
-      exists (ADVD<:DKCS.Adv_t),
-        forall &m,
-          `|Pr[PrvIndSec.Game(Rand, ADVG).main()@ &m:res] - 1%r / 2%r| =
-             2%r * Cst.bound%r * `|Pr[DKCS.Game(DKCS.Dkc, ADVD).main()@ &m:res] - 1%r / 2%r|.
+  forall (ADVG<:PrvIndSec.Adv_t{DKCS.Dkc,DKCS.Game,RedAda,Red,Fake}),
+    islossless ADVG.gen_query =>
+    islossless ADVG.get_challenge =>
+    exists (ADVD<:DKCS.Adv_t),
+      forall &m,
+        `|Pr[PrvIndSec.Game(ADVG).main()@ &m:res] - 1%r / 2%r| =
+           2%r * Cst.bound%r * `|Pr[DKCS.Game(DKCS.Dkc, ADVD).main()@ &m:res] - 1%r / 2%r|.
 proof strict.
-  exists RandGarble2.
   intros ADVG ? ?.
   exists (Red(ADVG)).
   intros &m.
@@ -161,14 +162,13 @@ save.
 
 
 lemma PrvIndDkc :
-  exists (Rand<:PrvIndSec.Rand_t),
-    forall (ADVG<:PrvIndSec.Adv_t{PrvIndSec.Game}),
-      islossless ADVG.gen_query =>
-      islossless ADVG.get_challenge =>
-      exists (ADVD<:DKCS.Adv_t),
-        forall &m,
-          `|Pr[PrvIndSec.Game(Rand, ADVG).main()@ &m:res] - 1%r / 2%r| =
-             2%r * Cst.bound%r * `|Pr[DKCS.Game(DKCS.Dkc, ADVD).main()@ &m:res] - 1%r / 2%r|.
+  forall (ADVG<:PrvIndSec.Adv_t{PrvIndSec.Game}),
+    islossless ADVG.gen_query =>
+    islossless ADVG.get_challenge =>
+    exists (ADVD<:DKCS.Adv_t),
+      forall &m,
+        `|Pr[PrvIndSec.Game(ADVG).main()@ &m:res] - 1%r / 2%r| =
+           2%r * Cst.bound%r * `|Pr[DKCS.Game(DKCS.Dkc, ADVD).main()@ &m:res] - 1%r / 2%r|.
 proof strict.
   admit.
 save.

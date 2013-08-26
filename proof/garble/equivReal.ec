@@ -44,6 +44,7 @@ lemma add_mem_2: forall (x y:'a) X,
 
 lemma equ : forall a b, (a <=> b) => !b => !a by [].
 
+(*
 module RandGarble2 : PrvIndSec.Rand_t = {
   fun gen(query:funct*input) : random = {
     var f : funct;
@@ -142,12 +143,12 @@ module RandGarble2 : PrvIndSec.Rand_t = {
     xx = setTok xx 0 (!v) dkckey;
     return xx;
   }
-}.
+}.*)
 
 lemma realEq :
   forall (ADV <: PrvIndSec.Adv_t{RedAda, DKCS.Dkc, PrvIndSec.Game}),
     equiv [PreInit(ADV).f ~
-      PrvIndSec.Game(RandGarble2, ADV).main
+      PrvIndSec.Game(ADV).main
       : (glob ADV){1} = (glob ADV){2} /\
       vb{1} /\ (vl{1}=0) ==> res{1} = res{2}
     ].
