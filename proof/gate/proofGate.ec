@@ -89,11 +89,11 @@ wp.
 call (Dkc.Dkc.b{1} = Dkc.Dkc.b{2}/\((glob ADV){1}=(glob ADV){2})) (res{1}=res{2}).
   admit.
 call ((glob ADV){1}=(glob ADV){2}) ((glob ADV){1}=(glob ADV){2}).
-  fun true;trivial.
+  fun true;smt.
 wp.
 rnd.
 skip.
-trivial.
+smt.
 
 cut lem2 : (equiv[
   Dkc.Game(Dkc.Dkc, ADV).work ~ DkcWork(ADV).work :
@@ -143,7 +143,7 @@ lemma real :
           Pr[Gate.Game(Gate.PrvInd(RandGate), Adv).main()@ &mGate:res].
 proof.
 intros _ _ ADV _ _.
-equiv_deno (realEq (<:ADV));trivial.
+equiv_deno (realEq (<:ADV));smt.
 save.
 
 
@@ -160,9 +160,9 @@ lemma middle :
 proof.
 intros _ _ ADV _ _ _ _.
 equiv_deno (hybridEq (<:ADV)).
-trivial.
+smt.
 intros &1 &2 h.
-trivial.
+smt.
 save.
 
 lemma fake :
@@ -174,7 +174,7 @@ lemma fake :
 proof.
 intros &m Adv _ _.
 rewrite <- (fakePr &m (<:Adv)).
-equiv_deno (fakeEq (<:Adv));trivial.
+equiv_deno (fakeEq (<:Adv));smt.
 save.
 
 lemma DkcEspFalse :
@@ -226,9 +226,9 @@ elim h. clear h. intros l01 h.
 elim h. clear h. intros l02 rew.
 rewrite rew.
 clear rew.
-rewrite (real &mDKC10 &mGAR (<:Adv) _ _);[trivial|trivial|].
-rewrite (middle &mDKC00 &mDKC11 (<:Adv) _ _ _ _);[trivial|trivial|trivial|trivial|].
-rewrite (fake &mDKC01 (<:Adv) _ _);[trivial|trivial|].
+rewrite (real &mDKC10 &mGAR (<:Adv) _ _);[smt|smt|].
+rewrite (middle &mDKC00 &mDKC11 (<:Adv) _ _ _ _);[smt|smt|smt|smt|].
+rewrite (fake &mDKC01 (<:Adv) _ _);[smt|smt|].
 apply (math Pr[Gate.Game(Gate.PrvInd(RandGate), Adv).main()@ &mGAR:res]
 Pr[Dkc.Game(Dkc.Dkc, AdvGate.Adv(Adv)).work()@ &mDKC11: res]).
 save.

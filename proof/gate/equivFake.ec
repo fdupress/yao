@@ -146,17 +146,17 @@ proof.
     AdvGate.Adv.l{1}=1
   );wp.
     call ((glob ADV){1} = (glob ADV){2}) (res{1} = res{2} /\ (glob ADV){1} = (glob ADV){2});[
-      fun true;trivial|
-      wp;rnd;wp;rnd;rnd;skip;intros &1 &2;simplify;trivial
+      fun true;smt|
+      wp;rnd;wp;rnd;rnd;skip;intros &1 &2;simplify;smt
     ].
 
   case (Gate.queryValid query{1}).
 
-  (rcondt {1} 1;[intros &m;skip;trivial|]). (* good *)
-  (rcondt {2} 1;[intros &m;skip;trivial|]). (* good *)
+  (rcondt {1} 1;[intros &m;skip;smt|]). (* good *)
+  (rcondt {2} 1;[intros &m;skip;smt|]). (* good *)
 
-  (rcondf {1} 2;[intros &m;wp;skip;trivial|]). (* l condition *)
-  (rcondt {1} 2;[intros &m;wp;skip;trivial|]). (* l condition *)
+  (rcondf {1} 2;[intros &m;wp;skip;smt|]). (* l condition *)
+  (rcondt {1} 2;[intros &m;wp;skip;smt|]). (* l condition *)
   (rcondt {1} 10;[intros &m;wp;rnd;rnd;wp;skip;intros &1 b c d e f;admit|]). (* While *)
   (rcondt {1} 16;[admit|]). (* While *)
   (rcondf {1} 22;[admit|]). (* While *)
@@ -166,7 +166,7 @@ proof.
   (rcondf {1} 23;[admit|]). (* l condition *)
   (rcondt {1} 23;[admit|]). (* l condition *)
   
-  (call (answer{1}=answer{2}/\(glob ADV){1} = (glob ADV){2}) (res{1} = res{2});[fun true;trivial|]). (* Call Adv get_challenge *)
+  (call (answer{1}=answer{2}/\(glob ADV){1} = (glob ADV){2}) (res{1} = res{2});[fun true;smt|]). (* Call Adv get_challenge *)
   wp.
   rnd. (* key_nt_ntau *)
   rnd. (* keyntau *)
@@ -202,10 +202,10 @@ proof.
 
   skip.
   progress.
-  trivial.
-  trivial.
-  trivial.
-  trivial.
+  smt.
+  smt.
+  smt.
+  smt.
   cut test : ((x1, x2, x3, x4) = ((0, tL ^^ fst Adv.xc{1}),
              (1, Gate.eval Adv.fc{1} (fst Adv.xc{1}, !(snd Adv.xc{1}))),
              false, tweak 0 (!(tL ^^ fst Adv.xc{1})) tau{2})).
@@ -220,28 +220,28 @@ intros x.
 intros y.
 intros z.
 intros hhh.
-  trivial.
-trivial.
+  smt.
+smt.
 import Array.
-trivial.
+smt.
   cut test : ((tL ^^ fst Adv.xc{1}) = snd x1).
   
-  trivial.
+  smt.
 
 idtac.
-  trivial.
+  smt.
   admit.
   admit.
-  trivial.
-  admit.
-  admit.
-  admit.
+  smt.
   admit.
   admit.
   admit.
-  trivial.
-  trivial.
-  trivial.
+  admit.
+  admit.
+  admit.
+  smt.
+  smt.
+  smt.
 
   intros &1 &2 pre.
   elim pre; clear pre; intros pre eqeval.
@@ -260,14 +260,14 @@ idtac.
   rewrite kpubval.
   simplify.
   intros t1 t2.
-  split;[cut lem : (forall (a b:bool), b ^^ a ^^ a = b);trivial|].
+  split;[cut lem : (forall (a b:bool), b ^^ a ^^ a = b);smt|].
   intros int eqt.
   intros rand inrand.
   simplify.
   elimT elim_p 
 
 
-    intros keyt1 keyt2;(split;[trivial|]);intros eqkeyt inkeyt;
+    intros keyt1 keyt2;(split;[smt|]);intros eqkeyt inkeyt;
     intros key_t_tau inkey_t_tau.
 
     (* UGLY *)
@@ -297,9 +297,9 @@ idtac.
       (2, rand), false, tweak 0 (!t1 ^^ fst (snd (snd query{1}))) AdvGate.Adv.tau{1}) __nil);
     (* END UGLY *)
 
-    (rewrite (_:Dkc.Dkc.b{1} = false);[trivial|]);
+    (rewrite (_:Dkc.Dkc.b{1} = false);[smt|]);
     simplify;
-    intros keynt1 keynt2; (split;[trivial|]);intros eqkeynt inkeynt;
+    intros keynt1 keynt2; (split;[smt|]);intros eqkeynt inkeynt;
     intros key_nt_tau inkey_nt_tau;
 
     (* UGLY *)
@@ -526,23 +526,23 @@ rewrite (hd_def<:Dkc.key*Dkc.key*Dkc.cipher>
 
 simplify;
 
-    intros key_t_ntau1 key_t_ntau2;(split;[(*trivial*)admit|]);intros eqkey_t_ntau inkey_t_ntau;
-    intros key_ntau1 key_ntau2;(split;[trivial|]);intros eqkey_ntau inkey_ntau;
+    intros key_t_ntau1 key_t_ntau2;(split;[(*smt*)admit|]);intros eqkey_t_ntau inkey_t_ntau;
+    intros key_ntau1 key_ntau2;(split;[smt|]);intros eqkey_ntau inkey_ntau;
     intros key_nt_ntau inkey_nt_ntau;
     (split;[admit(*TODO*)|]);
     intros h;
     clear h;
-    trivial.
+    smt.
 
 (*case else : BAD*)
-  (rcondf {1} 1;[intros &m;skip;trivial|]).
-  (rcondf {1} 7;[intros &m;wp;skip;trivial|]).
-  (rcondf {1} 9;[intros &m;wp;skip;trivial|]).
-  (rcondf {2} 1;[intros &m;wp;skip;trivial|]).
+  (rcondf {1} 1;[intros &m;skip;smt|]).
+  (rcondf {1} 7;[intros &m;wp;skip;smt|]).
+  (rcondf {1} 9;[intros &m;wp;skip;smt|]).
+  (rcondf {2} 1;[intros &m;wp;skip;smt|]).
   rnd.
   wp.
   skip.
   intros _ _ _.
   simplify.
-  trivial.
+  smt.
 save.

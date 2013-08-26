@@ -66,9 +66,9 @@ proof.
   ).
     delta garble decrypt eval evalG encrypt.
     simplify.
-  apply (inverse_base i 2 1 1 0 1 2 f x _ _ _ _ _ _ _);trivial.
+  apply (inverse_base i 2 1 1 0 1 2 f x _ _ _ _ _ _ _);smt.
   cut main2 : (let (g, ki, ko) = garble x f in
-    eval f i = decrypt ko (getTok x 2 (eval f i)));trivial.
+    eval f i = decrypt ko (getTok x 2 (eval f i)));smt.
 save.
 
 module RandGate : Rand_t = {
