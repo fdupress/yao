@@ -61,7 +61,7 @@ clone Garble as GarbleCircuit with
   op decrypt(k:keyOutput, o:outputG) = map lsb o.
 export GarbleCircuit.
 
-require import IND.
+(*require import IND.*)
 
 clone PrvInd as PrvInd_Circuit with
   theory Garble = GarbleCircuit.
