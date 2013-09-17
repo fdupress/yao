@@ -122,7 +122,7 @@ lemma inverse_base :
           (garbleGate x f a b g)
           (lsb gi1, lsb gi2)
         ) = getTok x g (evalGate f i).
-proof.
+proof strict.
   intros DKCinv.
   do intros ?.
   rewrite -(DKCinv (tweak g (lsb gi1) (lsb gi2)) gi1 gi2 (getTok x g (evalGate f i))).

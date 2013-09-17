@@ -5,6 +5,7 @@ require import Bool.
 
 require import Garble.
 require import GarbleTools.
+require import IND.
 
 require Dkc.
 

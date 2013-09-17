@@ -24,7 +24,7 @@ module Red(A:PrvIndSec.Adv_t) : DKCS.Adv_t = {
   var queries : DKCS.query array
   var ans : DKCS.answer array
   var answer : functG*inputG*keyOutput
-  var query : PrvIndSec.query
+  var query : PrvIndSec.Scheme.plain * PrvIndSec.Scheme.plain
 
   var n : int
   var m : int
