@@ -12,7 +12,7 @@ lemma encrypt_len :
   forall (k:keyInput, i:input),
     Array.length i > 0 =>
     Array.length (encrypt k i) = Array.length i.
-proof.
+proof strict.
   simplify encrypt=> ? ? ?.
   apply init_length;smt.
 save.
@@ -50,7 +50,7 @@ lemma correct :
       let (g, ki, ko) = garble x f in
       eval f i = decrypt ko (evalG g (encrypt ki i)).
 (** end correctionLemma *)
-proof.
+proof strict.
   intros DKCHyp.
   intros f x i hypF hypX hypI.
   elimT tuple3_ind (garble x f)=> g ki ko h.
@@ -61,13 +61,14 @@ proof.
   pose q := (getQ f).
   pose ig := (encrypt ki i).
 
+admit.
+(*TODO
 
   cut main :(forall (j:int), 0 <= j < n+q =>
     (appendInit ig (n+q) (extractG g)).[j]
     = getTok x j (appendInit i (n+q) (extract f)).[j]
   ).
-
-(*TODO*)
+admit.
 
   cut introVar : (forall (nn n m q:int) (g:functG) (ig:inputG),
     nn = (getN f) + 1 =>
@@ -365,4 +366,5 @@ proof.
   admit.
 (*GROS BUG
   apply (main2 (n+q-m+w) _ _);smt.*)
+*)
   save.

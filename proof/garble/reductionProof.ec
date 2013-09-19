@@ -72,15 +72,15 @@ equiv_deno (adaEq ADV)=> //.
 save.
 
 lemma RelDkcGarble :
-  forall &m,
-    forall (ADV<:PrvIndSec.Adv_t{DKCS.Dkc,DKCS.Game,RedAda,Fake}),
-      islossless ADV.gen_query =>
-      islossless ADV.get_challenge =>
-      Pr[PrvIndSec.Game(ADV).main()@ &m:res] =
-        2%r * Cst.bound%r * Pr[DKCS.GameAda(DKCS.Dkc, RedAda(ADV)).main()@ &m:res]
-          + 1%r / 2%r - Cst.bound%r.
+  forall (ADV<:PrvIndSec.Adv_t{DKCS.Dkc,DKCS.Game,RedAda,Fake,MeanBool.Rand,MeanInt.Rand}),
+    islossless ADV.gen_query =>
+    islossless ADV.get_challenge =>
+      forall &m,
+        Pr[PrvIndSec.Game(ADV).main()@ &m:res] =
+          2%r * Cst.bound%r * Pr[DKCS.GameAda(DKCS.Dkc, RedAda(ADV)).main()@ &m:res]
+            + 1%r / 2%r - Cst.bound%r.
 proof strict.
-  intros &m ADV ? ?.
+  intros ADV ? ? &m .
   rewrite (DkcEsp &m (RedAda(ADV))).
   cut := RedEspTrue.AdvEsp &m ADV;delta RedEspTrue.b=> /= ->.
   cut := RedEspFalse.AdvEsp &m ADV;delta RedEspFalse.b=> /= ->.
@@ -141,7 +141,7 @@ smt.
 save.
 
 lemma _PrvIndDkc :
-  forall (ADVG<:PrvIndSec.Adv_t{DKCS.Dkc,DKCS.Game,RedAda,Red,Fake}),
+  forall (ADVG<:PrvIndSec.Adv_t{DKCS.Dkc,DKCS.Game,RedAda,Red,Fake,MeanBool.Rand,MeanInt.Rand}),
     islossless ADVG.gen_query =>
     islossless ADVG.get_challenge =>
     exists (ADVD<:DKCS.Adv_t),
@@ -152,7 +152,7 @@ proof strict.
   intros ADVG ? ?.
   exists (Red(ADVG)).
   intros &m.
-  rewrite (RelDkcGarble &m ADVG) //.
+  rewrite (RelDkcGarble ADVG _ _ &m) //.
   rewrite (prAda ADVG &m).
   pose p := Pr[DKCS.GameAda(DKCS.Dkc, RedAda(ADVG)).main() @ &m : res].
   cut -> : forall y z c, 2%r * y * z + c - y - c = 2%r * y * (z - (1%r / 2%r)) by smt.
@@ -170,5 +170,5 @@ lemma PrvIndDkc :
         `|Pr[PrvIndSec.Game(ADVG).main()@ &m:res] - 1%r / 2%r| =
            2%r * Cst.bound%r * `|Pr[DKCS.Game(DKCS.Dkc, ADVD).main()@ &m:res] - 1%r / 2%r|.
 proof strict.
-  admit.
+  admit. (* Need section *)
 save.

@@ -20,6 +20,6 @@ lemma adaEq :
       DKCS.GameAda(DKCS.Dkc, RedAda(ADV)).main
       : (glob ADV){1} = (glob ADV){2} ==> res{1} = res{2}
     ].
-proof.
+proof strict.
   admit.
 save.

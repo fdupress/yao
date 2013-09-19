@@ -23,7 +23,7 @@ module Fake(A:PrvIndSec.Adv_t) = {
   var queries : DKCS.query array
   var ans : DKCS.answer array
   var answer : functG*inputG*keyOutput
-  var query : PrvIndSec.query
+  var query : PrvIndSec.Scheme.plain*PrvIndSec.Scheme.plain
 
   var n : int
   var m : int
@@ -205,6 +205,7 @@ lemma fakePr :
     islossless ADV.gen_query =>
     islossless ADV.get_challenge =>
     Pr [Fake(ADV).work() @ &m : !res] = 1%r / 2%r.
+proof strict.
 intros ADV &m h1 h2.
 bdhoare_deno (_ : (true) ==> (!res))=> //.
 fun.
@@ -216,8 +217,7 @@ case (PrvIndSec.Scheme.queryValid Fake.query).
   wp.
   rnd (lambda b, ! (b = challenge) = false).
   call (_ : true ==> true);first fun (true);progress;assumption.
-  kill 1!14;first admit.
- (*TERMINATE*)
+  kill 1!14;first admit. (*TERMINATE*)
   skip;progress;rewrite Dbool.mu_def /=;case (result);delta charfun;simplify;smt.
   (* INVALID *)
   rcondf 1;first skip;progress.
@@ -234,7 +234,7 @@ lemma fakeEq :
       : (glob ADV){1} = (glob ADV){2} /\
       (!vb{1}) /\ (vl{1}=Cst.bound-1) ==> res{1} = res{2}
     ].
-proof.
+proof strict.
   intros ADV.
   fun.
   inline {1} PreInit(ADV).G.work.
@@ -351,42 +351,7 @@ proof.
       RedAda.a{1} < Cst.bound-1 /\
       RedAda.b{1} <= Cst.bound-1 /\
       true
-    ). 
-wp.
-skip.
-progress.
-hhhh
-assumption.
-assumption.
-assumption.
-assumption.
-assumption.
-assumption.
-smt.
-smt.
-smt.
-smt.
-smt.
-smt.
-smt.
-smt.
-smt.
-smt.
-smt.
-assumption.
-assumption.
-assumption.
-
-assumption.
-assumption.
-assumption.
-
-assumption.
-assumption.
-assumption.
-
-
-;first wp;skip;(progress assumption;first apply H6).
+    );first by wp;skip;(progress assumption;smt).
     if;first smt.
       (*IF TRUE*)
       rcondt{1} 4;first (intros _;wp;skip;smt).
@@ -402,7 +367,7 @@ assumption.
   wp.
 
   while (
-      Fake.ev{2} = Garble.eval RedAda.fc{1} RedAda.xc{1} /\
+      Fake.ev{2} = GC.GarbleCircuit.eval RedAda.fc{1} RedAda.xc{1} /\
       (glob ADV){1} = (glob ADV){2} /\
       length RedAda.xx{1} = RedAda.n{1}+RedAda.q{1} /\
       length RedAda.t{1} = RedAda.n{1}+RedAda.q{1} /\
@@ -419,13 +384,13 @@ assumption.
       Fake.m{2} > 0/\
       Fake.q{2} > 0/\
       (*Fake.f1{2} = (Fake.n{2}, Fake.m{2}, Fake.q{2}, Fake.aa{2}, Fake.bb{2}, Fake.gg{2}) /\*)
-      Fake.n{2} + Fake.q{2} - Fake.m{2} = bound /\
-      RedAda.l{1} = bound-1 /\
+      Fake.n{2} + Fake.q{2} - Fake.m{2} = Cst.bound /\
+      RedAda.l{1} = Cst.bound-1 /\
     (forall i, i >= Fake.n{2} => i < Fake.n{2}+Fake.q{2} => Fake.aa{2}.[i] >= 0 /\ Fake.bb{2}.[i] < i /\
-           Fake.bb{2}.[i] < bound /\ Fake.aa{2}.[i] < Fake.bb{2}.[i]) /\
-    (forall g, g >= Fake.n{2} => g < Fake.n{2}+Fake.q{2} => RedAda.bb{1}.[g] = bound-1 /\ evalGate RedAda.gg{1}.[g]
+           Fake.bb{2}.[i] < Cst.bound /\ Fake.aa{2}.[i] < Fake.bb{2}.[i]) /\
+    (forall g, g >= Fake.n{2} => g < Fake.n{2}+Fake.q{2} => RedAda.bb{1}.[g] = Cst.bound-1 /\ evalGate RedAda.gg{1}.[g]
       ((!RedAda.v{1}.[RedAda.aa{1}.[g]]), false) = evalGate RedAda.gg{1}.[g] ((!RedAda.v{1}.[RedAda.aa{1}.[g]]), true) =>
-        RedAda.yy{1}.[g]=Fake.randG{2}.[(g, true, false)])/\
+        RedAda.yy{1}.[g]=proj Fake.randG{2}.[(g, true, false)])/\
 
     RedAda.i{1} = Fake.i{2} /\
       0 <= Fake.i{2} /\
@@ -435,7 +400,7 @@ assumption.
   wp.
 
   while (
-      Fake.ev{2} = Garble.eval RedAda.fc{1} RedAda.xc{1} /\
+      Fake.ev{2} = GC.GarbleCircuit.eval RedAda.fc{1} RedAda.xc{1} /\
       (glob ADV){1} = (glob ADV){2} /\
       length RedAda.xx{1} = RedAda.n{1}+RedAda.q{1} /\
       length RedAda.t{1} = RedAda.n{1}+RedAda.q{1} /\
@@ -452,20 +417,20 @@ assumption.
       Fake.m{2} > 0/\
       Fake.q{2} > 0/\
       (*Fake.f1{2} = (Fake.n{2}, Fake.m{2}, Fake.q{2}, Fake.aa{2}, Fake.bb{2}, Fake.gg{2}) /\*)
-      Fake.n{2} + Fake.q{2} - Fake.m{2} = bound /\
-      RedAda.l{1} = bound-1 /\
+      Fake.n{2} + Fake.q{2} - Fake.m{2} = Cst.bound /\
+      RedAda.l{1} = Cst.bound-1 /\
     (forall i, i >= Fake.n{2} => i < Fake.n{2}+Fake.q{2} => Fake.aa{2}.[i] >= 0 /\ Fake.bb{2}.[i] < i /\
-           Fake.bb{2}.[i] < bound /\ Fake.aa{2}.[i] < Fake.bb{2}.[i]) /\
-    (forall g, g >= Fake.n{2} => g < Fake.g{2} => RedAda.bb{1}.[g] = bound-1 /\ evalGate RedAda.gg{1}.[g]
+           Fake.bb{2}.[i] < Cst.bound /\ Fake.aa{2}.[i] < Fake.bb{2}.[i]) /\
+    (forall g, g >= Fake.n{2} => g < Fake.g{2} => RedAda.bb{1}.[g] = Cst.bound-1 /\ evalGate RedAda.gg{1}.[g]
       ((!RedAda.v{1}.[RedAda.aa{1}.[g]]), false) = evalGate RedAda.gg{1}.[g] ((!RedAda.v{1}.[RedAda.aa{1}.[g]]), true) =>
-        RedAda.yy{1}.[g]=Fake.randG{2}.[(g, true, false)])/\
-      (forall g a b, g >= Fake.g{2} => !(mem (tweak g a b) DKC.Dkc.used{1})) /\
-      (forall g (x:bool), g < Fake.n{2} + Fake.q{2} => g >= Fake.g{2} => !in_dom (g, x) DKC.Dkc.r{1}) /\
-      (forall g (x:bool), g >= Fake.n{2} + Fake.q{2} + Fake.g{2} => !in_dom (g, x) DKC.Dkc.r{1}) /\
-      (forall g (x:bool), g < bound-1 => in_dom (g, x) DKC.Dkc.kpub{1} = in_dom (g, x) DKC.Dkc.kpub{2}) /\
-      (forall g (x:bool), g < Fake.n{2} + Fake.q{2} => g >= Fake.g{2} => !in_dom (g, x) DKC.Dkc.kpub{1}) /\
-      (forall g (x:bool), g >= Fake.n{2} + Fake.q{2} + Fake.g{2} => !in_dom (g, x) DKC.Dkc.kpub{1}) /\
-    (!DKC.Dkc.b{1}) /\
+        RedAda.yy{1}.[g]=proj Fake.randG{2}.[(g, true, false)])/\
+      (forall g a b, g >= Fake.g{2} => !(mem (tweak g a b) DKCS.Dkc.used{1})) /\
+      (forall g (x:bool), g < Fake.n{2} + Fake.q{2} => g >= Fake.g{2} => !in_dom (g, x) DKCS.Dkc.r{1}) /\
+      (forall g (x:bool), g >= Fake.n{2} + Fake.q{2} + Fake.g{2} => !in_dom (g, x) DKCS.Dkc.r{1}) /\
+      (forall g (x:bool), g < Cst.bound-1 => in_dom (g, x) DKCS.Dkc.kpub{1} = in_dom (g, x) DKCS.Dkc.kpub{2}) /\
+      (forall g (x:bool), g < Fake.n{2} + Fake.q{2} => g >= Fake.g{2} => !in_dom (g, x) DKCS.Dkc.kpub{1}) /\
+      (forall g (x:bool), g >= Fake.n{2} + Fake.q{2} + Fake.g{2} => !in_dom (g, x) DKCS.Dkc.kpub{1}) /\
+    (!DKCS.Dkc.b{1}) /\
 
     RedAda.g{1} = Fake.g{2} /\
       Fake.g{2} >= Fake.n{2} /\
@@ -473,7 +438,7 @@ assumption.
   ).
 
     seq 2 2 : (
-      Fake.ev{2} = Garble.eval RedAda.fc{1} RedAda.xc{1} /\
+      Fake.ev{2} = GC.GarbleCircuit.eval RedAda.fc{1} RedAda.xc{1} /\
       (glob ADV){1} = (glob ADV){2} /\
       length RedAda.xx{1} = RedAda.n{1}+RedAda.q{1} /\
       length RedAda.t{1} = RedAda.n{1}+RedAda.q{1} /\
@@ -490,19 +455,19 @@ assumption.
       Fake.m{2} > 0/\
       Fake.q{2} > 0/\
       (*Fake.f1{2} = (Fake.n{2}, Fake.m{2}, Fake.q{2}, Fake.aa{2}, Fake.bb{2}, Fake.gg{2}) /\*)
-      Fake.n{2} + Fake.q{2} - Fake.m{2} = bound /\
-      RedAda.l{1} = bound-1 /\
+      Fake.n{2} + Fake.q{2} - Fake.m{2} = Cst.bound /\
+      RedAda.l{1} = Cst.bound-1 /\
     (forall i, i >= Fake.n{2} => i < Fake.n{2}+Fake.q{2} => Fake.aa{2}.[i] >= 0 /\ Fake.bb{2}.[i] < i /\
-           Fake.bb{2}.[i] < bound /\ Fake.aa{2}.[i] < Fake.bb{2}.[i]) /\
-    (forall g, g >= Fake.n{2} => g < Fake.g{2} => RedAda.bb{1}.[g] = bound-1 /\ evalGate RedAda.gg{1}.[g]
+           Fake.bb{2}.[i] < Cst.bound /\ Fake.aa{2}.[i] < Fake.bb{2}.[i]) /\
+    (forall g, g >= Fake.n{2} => g < Fake.g{2} => RedAda.bb{1}.[g] = Cst.bound-1 /\ evalGate RedAda.gg{1}.[g]
       ((!RedAda.v{1}.[RedAda.aa{1}.[g]]), false) = evalGate RedAda.gg{1}.[g] ((!RedAda.v{1}.[RedAda.aa{1}.[g]]), true) =>
-        RedAda.yy{1}.[g]=Fake.randG{2}.[(g, true, false)])/\
-      (forall g (x:bool), g < Fake.n{2} + Fake.q{2} => g >= Fake.g{2} => !in_dom (g, x) DKC.Dkc.r{1}) /\
-      (forall g (x:bool), g >= Fake.n{2} + Fake.q{2} + Fake.g{2} => !in_dom (g, x) DKC.Dkc.r{1}) /\
-      (forall g (x:bool), g < bound-1 => in_dom (g, x) DKC.Dkc.kpub{1} = in_dom (g, x) DKC.Dkc.kpub{2}) /\
-      (forall g (x:bool), g < Fake.n{2} + Fake.q{2} => g >= Fake.g{2} => !in_dom (g, x) DKC.Dkc.kpub{1}) /\
-      (forall g (x:bool), g >= Fake.n{2} + Fake.q{2} + Fake.g{2} => !in_dom (g, x) DKC.Dkc.kpub{1}) /\
-    (!DKC.Dkc.b{1}) /\
+        RedAda.yy{1}.[g]=proj Fake.randG{2}.[(g, true, false)])/\
+      (forall g (x:bool), g < Fake.n{2} + Fake.q{2} => g >= Fake.g{2} => !in_dom (g, x) DKCS.Dkc.r{1}) /\
+      (forall g (x:bool), g >= Fake.n{2} + Fake.q{2} + Fake.g{2} => !in_dom (g, x) DKCS.Dkc.r{1}) /\
+      (forall g (x:bool), g < Cst.bound-1 => in_dom (g, x) DKCS.Dkc.kpub{1} = in_dom (g, x) DKCS.Dkc.kpub{2}) /\
+      (forall g (x:bool), g < Fake.n{2} + Fake.q{2} => g >= Fake.g{2} => !in_dom (g, x) DKCS.Dkc.kpub{1}) /\
+      (forall g (x:bool), g >= Fake.n{2} + Fake.q{2} + Fake.g{2} => !in_dom (g, x) DKCS.Dkc.kpub{1}) /\
+    (!DKCS.Dkc.b{1}) /\
 
 
 
@@ -515,9 +480,9 @@ assumption.
       Fake.b{2} >= 0 /\
       RedAda.a{1} < Fake.g{2} /\
       RedAda.b{1} < Fake.g{2} /\
-      RedAda.a{1} < bound-1 /\
-      RedAda.b{1} <= bound-1 /\
-      (forall g a b, g >= Fake.g{2} => !(mem (tweak g a b) DKC.Dkc.used{1})) /\
+      RedAda.a{1} < Cst.bound-1 /\
+      RedAda.b{1} <= Cst.bound-1 /\
+      (forall g a b, g >= Fake.g{2} => !(mem (tweak g a b) DKCS.Dkc.used{1})) /\
       true
     );first wp;skip;progress assumption;smt.
   rcondf{1} 1;first intros ?;wp;skip;progress assumption;smt.
@@ -545,8 +510,7 @@ assumption.
   rcondt{1} 21;first intros ?;(kill 1!20;first admit);wp;skip;progress assumption;smt.
   rcondf{1} 25;first intros ?;(kill 1!24;first admit);wp;skip;progress assumption;smt.
   rcondt{1} 28;first intros ?;(kill 1!27;first admit);wp;skip;progress assumption;smt.
-  rcondt{1} 32;first intros ?;wp;rnd;wp;(kill 11!3;first admit);wp;rnd;wp;skip;(progress assumption;
-    first rewrite Set.add_mem;rewrite tweak_inj2);smt.
+  rcondt{1} 32;first intros ?;wp;rnd;wp;(kill 11!3;first admit);wp;rnd;wp;skip;progress assumption;smt.
   rcondf{1} 36;first intros ?;wp;(kill 31!5;first admit);wp;rnd;wp;(kill 1!13;first admit);skip;by progress assumption.
   rcondf{1} 38;first intros ?;(kill 1!37;first admit);skip;by progress assumption.
   rcondf{1} 42;first intros ?;(kill 1!41;first admit);skip;progress assumption;smt.
@@ -557,10 +521,10 @@ assumption.
   rcondt{1} 13;first intros ?;(kill 9!4;first admit);wp;rnd;wp;skip;progress assumption;smt.
   rcondt{1} 35;first intros ?;(kill 31!4;first admit);wp;rnd;wp;rnd;(kill 11!2;first admit); wp;rnd;wp;skip;progress assumption;smt.
 
-  kill{1} 5;first rnd 1%r cpTrue;skip;smt.
+  kill{1} 5;first rnd cpTrue;skip;smt.
 
   seq 9 2 : (
-      Fake.ev{2} = Garble.eval RedAda.fc{1} RedAda.xc{1} /\
+      Fake.ev{2} = GC.GarbleCircuit.eval RedAda.fc{1} RedAda.xc{1} /\
       (glob ADV){1} = (glob ADV){2} /\
       length RedAda.xx{1} = RedAda.n{1}+RedAda.q{1} /\
       length RedAda.t{1} = RedAda.n{1}+RedAda.q{1} /\
@@ -577,19 +541,19 @@ assumption.
       Fake.m{2} > 0/\
       Fake.q{2} > 0/\
       (*Fake.f1{2} = (Fake.n{2}, Fake.m{2}, Fake.q{2}, Fake.aa{2}, Fake.bb{2}, Fake.gg{2}) /\*)
-      Fake.n{2} + Fake.q{2} - Fake.m{2} = bound /\
-      RedAda.l{1} = bound-1 /\
+      Fake.n{2} + Fake.q{2} - Fake.m{2} = Cst.bound /\
+      RedAda.l{1} = Cst.bound-1 /\
     (forall i, i >= Fake.n{2} => i < Fake.n{2}+Fake.q{2} => Fake.aa{2}.[i] >= 0 /\ Fake.bb{2}.[i] < i /\
-           Fake.bb{2}.[i] < bound /\ Fake.aa{2}.[i] < Fake.bb{2}.[i]) /\
-    (forall g, g >= Fake.n{2} => g < Fake.g{2} => RedAda.bb{1}.[g] = bound-1 /\ evalGate RedAda.gg{1}.[g]
+           Fake.bb{2}.[i] < Cst.bound /\ Fake.aa{2}.[i] < Fake.bb{2}.[i]) /\
+    (forall g, g >= Fake.n{2} => g < Fake.g{2} => RedAda.bb{1}.[g] = Cst.bound-1 /\ evalGate RedAda.gg{1}.[g]
       ((!RedAda.v{1}.[RedAda.aa{1}.[g]]), false) = evalGate RedAda.gg{1}.[g] ((!RedAda.v{1}.[RedAda.aa{1}.[g]]), true) =>
-        RedAda.yy{1}.[g]=Fake.randG{2}.[(g, true, false)])/\
-      (forall g (x:bool), g < Fake.n{2} + Fake.q{2} => g >= Fake.g{2} => !in_dom (g, x) DKC.Dkc.r{1}) /\
-      (forall g (x:bool), g >= Fake.n{2} + Fake.q{2} + Fake.g{2} => !in_dom (g, x) DKC.Dkc.r{1}) /\
-      (forall g (x:bool), g < bound-1 => in_dom (g, x) DKC.Dkc.kpub{1} = in_dom (g, x) DKC.Dkc.kpub{2}) /\
-    (!DKC.Dkc.b{1}) /\
-      (forall g (x:bool), g < Fake.n{2} + Fake.q{2} => g >= Fake.g{2} => !in_dom (g, x) DKC.Dkc.kpub{1}) /\
-      (forall g (x:bool), g >= Fake.n{2} + Fake.q{2} + Fake.g{2} => !in_dom (g, x) DKC.Dkc.kpub{1}) /\
+        RedAda.yy{1}.[g]=proj Fake.randG{2}.[(g, true, false)])/\
+      (forall g (x:bool), g < Fake.n{2} + Fake.q{2} => g >= Fake.g{2} => !in_dom (g, x) DKCS.Dkc.r{1}) /\
+      (forall g (x:bool), g >= Fake.n{2} + Fake.q{2} + Fake.g{2} => !in_dom (g, x) DKCS.Dkc.r{1}) /\
+      (forall g (x:bool), g < Cst.bound-1 => in_dom (g, x) DKCS.Dkc.kpub{1} = in_dom (g, x) DKCS.Dkc.kpub{2}) /\
+    (!DKCS.Dkc.b{1}) /\
+      (forall g (x:bool), g < Fake.n{2} + Fake.q{2} => g >= Fake.g{2} => !in_dom (g, x) DKCS.Dkc.kpub{1}) /\
+      (forall g (x:bool), g >= Fake.n{2} + Fake.q{2} + Fake.g{2} => !in_dom (g, x) DKCS.Dkc.kpub{1}) /\
 
 
 
@@ -602,11 +566,11 @@ assumption.
       Fake.b{2} >= 0 /\
       RedAda.a{1} < Fake.g{2} /\
       RedAda.b{1} < Fake.g{2} /\
-      RedAda.a{1} < bound-1 /\
-      RedAda.b{1} <= bound-1 /\
+      RedAda.a{1} < Cst.bound-1 /\
+      RedAda.b{1} <= Cst.bound-1 /\
       i1{1} = input{2} /\
       input{2} = (Fake.a{2}, Fake.t{2}.[Fake.a{2}] ^^ false) /\
-      (forall g a b, g > Fake.g{2} => !(mem (tweak g a b) DKC.Dkc.used{1})) /\
+      (forall g a b, g > Fake.g{2} => !(mem (tweak g a b) DKCS.Dkc.used{1})) /\
 
       gamma1{1} = RedAda.v{1}.[RedAda.g{1}] ^^ evalGate RedAda.gg{1}.[RedAda.g{1}] (RedAda.v{1}.[RedAda.a{1}] ^^ false, RedAda.v{1}.[RedAda.b{1}] ^^ true) /\
       j1{1} = (RedAda.g{1}, RedAda.t{1}.[RedAda.g{1}] ^^ gamma1{1}) /\
@@ -616,7 +580,7 @@ assumption.
 
 
   seq 1 1 : (
-      Fake.ev{2} = Garble.eval RedAda.fc{1} RedAda.xc{1} /\
+      Fake.ev{2} = GC.GarbleCircuit.eval RedAda.fc{1} RedAda.xc{1} /\
       (glob ADV){1} = (glob ADV){2} /\
       length RedAda.xx{1} = RedAda.n{1}+RedAda.q{1} /\
       length RedAda.t{1} = RedAda.n{1}+RedAda.q{1} /\
@@ -633,19 +597,19 @@ assumption.
       Fake.m{2} > 0/\
       Fake.q{2} > 0/\
       (*Fake.f1{2} = (Fake.n{2}, Fake.m{2}, Fake.q{2}, Fake.aa{2}, Fake.bb{2}, Fake.gg{2}) /\*)
-      Fake.n{2} + Fake.q{2} - Fake.m{2} = bound /\
-      RedAda.l{1} = bound-1 /\
+      Fake.n{2} + Fake.q{2} - Fake.m{2} = Cst.bound /\
+      RedAda.l{1} = Cst.bound-1 /\
     (forall i, i >= Fake.n{2} => i < Fake.n{2}+Fake.q{2} => Fake.aa{2}.[i] >= 0 /\ Fake.bb{2}.[i] < i /\
-           Fake.bb{2}.[i] < bound /\ Fake.aa{2}.[i] < Fake.bb{2}.[i]) /\
-    (forall g, g >= Fake.n{2} => g < Fake.g{2} => RedAda.bb{1}.[g] = bound-1 /\ evalGate RedAda.gg{1}.[g]
+           Fake.bb{2}.[i] < Cst.bound /\ Fake.aa{2}.[i] < Fake.bb{2}.[i]) /\
+    (forall g, g >= Fake.n{2} => g < Fake.g{2} => RedAda.bb{1}.[g] = Cst.bound-1 /\ evalGate RedAda.gg{1}.[g]
       ((!RedAda.v{1}.[RedAda.aa{1}.[g]]), false) = evalGate RedAda.gg{1}.[g] ((!RedAda.v{1}.[RedAda.aa{1}.[g]]), true) =>
-        RedAda.yy{1}.[g]=Fake.randG{2}.[(g, true, false)])/\
-      (forall g (x:bool), g < Fake.n{2} + Fake.q{2} => g >= Fake.g{2} => !in_dom (g, x) DKC.Dkc.r{1}) /\
-      (forall g (x:bool), g >= Fake.n{2} + Fake.q{2} + Fake.g{2} => !in_dom (g, x) DKC.Dkc.r{1}) /\
-      (forall g (x:bool), g < bound-1 => in_dom (g, x) DKC.Dkc.kpub{1} = in_dom (g, x) DKC.Dkc.kpub{2}) /\
-    (!DKC.Dkc.b{1}) /\
-      (forall g (x:bool), g < Fake.n{2} + Fake.q{2} => g >= Fake.g{2} => !in_dom (g, x) DKC.Dkc.kpub{1}) /\
-      (forall g (x:bool), g >= Fake.n{2} + Fake.q{2} + Fake.g{2} => !in_dom (g, x) DKC.Dkc.kpub{1}) /\
+        RedAda.yy{1}.[g]=proj Fake.randG{2}.[(g, true, false)])/\
+      (forall g (x:bool), g < Fake.n{2} + Fake.q{2} => g >= Fake.g{2} => !in_dom (g, x) DKCS.Dkc.r{1}) /\
+      (forall g (x:bool), g >= Fake.n{2} + Fake.q{2} + Fake.g{2} => !in_dom (g, x) DKCS.Dkc.r{1}) /\
+      (forall g (x:bool), g < Cst.bound-1 => in_dom (g, x) DKCS.Dkc.kpub{1} = in_dom (g, x) DKCS.Dkc.kpub{2}) /\
+    (!DKCS.Dkc.b{1}) /\
+      (forall g (x:bool), g < Fake.n{2} + Fake.q{2} => g >= Fake.g{2} => !in_dom (g, x) DKCS.Dkc.kpub{1}) /\
+      (forall g (x:bool), g >= Fake.n{2} + Fake.q{2} + Fake.g{2} => !in_dom (g, x) DKCS.Dkc.kpub{1}) /\
 
 
 
@@ -658,11 +622,11 @@ assumption.
       Fake.b{2} >= 0 /\
       RedAda.a{1} < Fake.g{2} /\
       RedAda.b{1} < Fake.g{2} /\
-      RedAda.a{1} < bound-1 /\
-      RedAda.b{1} <= bound-1 /\
+      RedAda.a{1} < Cst.bound-1 /\
+      RedAda.b{1} <= Cst.bound-1 /\
       i1{1} = input{2} /\
       input{2} = (Fake.a{2}, Fake.t{2}.[Fake.a{2}] ^^ false) /\
-      (forall g a b, g > Fake.g{2} => !(mem (tweak g a b) DKC.Dkc.used{1})) /\
+      (forall g a b, g > Fake.g{2} => !(mem (tweak g a b) DKCS.Dkc.used{1})) /\
 
       gamma1{1} = RedAda.v{1}.[RedAda.g{1}] ^^ evalGate RedAda.gg{1}.[RedAda.g{1}] (RedAda.v{1}.[RedAda.a{1}] ^^ false, RedAda.v{1}.[RedAda.b{1}] ^^ true) /\
       j1{1} = (RedAda.g{1}, RedAda.t{1}.[RedAda.g{1}] ^^ gamma1{1}) /\
@@ -684,14 +648,14 @@ assumption.
     rcondt{1} 1;first intros ?;skip;progress;smt.
 
     rcondt{1} 26;first intros ?;
-seq 24 : ((! in_dom j2 DKC.Dkc.kpub) /\ (i2 = (RedAda.a, RedAda.t.[RedAda.a] ^^ true))/\(j2 = (RedAda.g + RedAda.n + RedAda.q, ra2))/\RedAda.g + RedAda.n + RedAda.q<>RedAda.a);
+seq 24 : ((! in_dom j2 DKCS.Dkc.kpub) /\ (i2 = (RedAda.a, RedAda.t.[RedAda.a] ^^ true))/\(j2 = (RedAda.g + RedAda.n + RedAda.q, ra2))/\RedAda.g + RedAda.n + RedAda.q<>RedAda.a);
 [ |if];do ? (wp;rnd);skip;progress;rewrite ? in_dom_set;smt.
 
   alias{1} 26 with leftpart.
   swap{1} 26 -6.
 
   seq 25 9 : (
-      Fake.ev{2} = Garble.eval RedAda.fc{1} RedAda.xc{1} /\
+      Fake.ev{2} = GC.GarbleCircuit.eval RedAda.fc{1} RedAda.xc{1} /\
       (glob ADV){1} = (glob ADV){2} /\
       length RedAda.xx{1} = RedAda.n{1}+RedAda.q{1} /\
       length RedAda.t{1} = RedAda.n{1}+RedAda.q{1} /\
@@ -708,19 +672,19 @@ seq 24 : ((! in_dom j2 DKC.Dkc.kpub) /\ (i2 = (RedAda.a, RedAda.t.[RedAda.a] ^^ 
       Fake.m{2} > 0/\
       Fake.q{2} > 0/\
       (*Fake.f1{2} = (Fake.n{2}, Fake.m{2}, Fake.q{2}, Fake.aa{2}, Fake.bb{2}, Fake.gg{2}) /\*)
-      Fake.n{2} + Fake.q{2} - Fake.m{2} = bound /\
-      RedAda.l{1} = bound-1 /\
+      Fake.n{2} + Fake.q{2} - Fake.m{2} = Cst.bound /\
+      RedAda.l{1} = Cst.bound-1 /\
     (forall i, i >= Fake.n{2} => i < Fake.n{2}+Fake.q{2} => Fake.aa{2}.[i] >= 0 /\ Fake.bb{2}.[i] < i /\
-           Fake.bb{2}.[i] < bound /\ Fake.aa{2}.[i] < Fake.bb{2}.[i]) /\
-    (forall g, g >= Fake.n{2} => g < Fake.g{2} => RedAda.bb{1}.[g] = bound-1 /\ evalGate RedAda.gg{1}.[g]
+           Fake.bb{2}.[i] < Cst.bound /\ Fake.aa{2}.[i] < Fake.bb{2}.[i]) /\
+    (forall g, g >= Fake.n{2} => g < Fake.g{2} => RedAda.bb{1}.[g] = Cst.bound-1 /\ evalGate RedAda.gg{1}.[g]
       ((!RedAda.v{1}.[RedAda.aa{1}.[g]]), false) = evalGate RedAda.gg{1}.[g] ((!RedAda.v{1}.[RedAda.aa{1}.[g]]), true) =>
-        RedAda.yy{1}.[g]=Fake.randG{2}.[(g, true, false)])/\
-      (forall g (x:bool), g < Fake.n{2} + Fake.q{2} => g >= Fake.g{2} => !in_dom (g, x) DKC.Dkc.r{1}) /\
-      (forall g (x:bool), g >= Fake.n{2} + Fake.q{2} + Fake.g{2} => !in_dom (g, x) DKC.Dkc.r{1}) /\
-      (forall g (x:bool), g < bound-1 => in_dom (g, x) DKC.Dkc.kpub{1} = in_dom (g, x) DKC.Dkc.kpub{2}) /\
-    (!DKC.Dkc.b{1}) /\
-      (forall g (x:bool), g < Fake.n{2} + Fake.q{2} => g >= Fake.g{2} => !in_dom (g, x) DKC.Dkc.kpub{1}) /\
-      (forall g (x:bool), g >= Fake.n{2} + Fake.q{2} + Fake.g{2} => !in_dom (g, x) DKC.Dkc.kpub{1}) /\
+        RedAda.yy{1}.[g]=proj Fake.randG{2}.[(g, true, false)])/\
+      (forall g (x:bool), g < Fake.n{2} + Fake.q{2} => g >= Fake.g{2} => !in_dom (g, x) DKCS.Dkc.r{1}) /\
+      (forall g (x:bool), g >= Fake.n{2} + Fake.q{2} + Fake.g{2} => !in_dom (g, x) DKCS.Dkc.r{1}) /\
+      (forall g (x:bool), g < Cst.bound-1 => in_dom (g, x) DKCS.Dkc.kpub{1} = in_dom (g, x) DKCS.Dkc.kpub{2}) /\
+    (!DKCS.Dkc.b{1}) /\
+      (forall g (x:bool), g < Fake.n{2} + Fake.q{2} => g >= Fake.g{2} => !in_dom (g, x) DKCS.Dkc.kpub{1}) /\
+      (forall g (x:bool), g >= Fake.n{2} + Fake.q{2} + Fake.g{2} => !in_dom (g, x) DKCS.Dkc.kpub{1}) /\
 
 
 
@@ -733,11 +697,11 @@ seq 24 : ((! in_dom j2 DKC.Dkc.kpub) /\ (i2 = (RedAda.a, RedAda.t.[RedAda.a] ^^ 
       Fake.b{2} >= 0 /\
       RedAda.a{1} < Fake.g{2} /\
       RedAda.b{1} < Fake.g{2} /\
-      RedAda.a{1} < bound-1 /\
-      RedAda.b{1} <= bound-1 /\
+      RedAda.a{1} < Cst.bound-1 /\
+      RedAda.b{1} <= Cst.bound-1 /\
       i2{1} = input0{2} /\ 
       input0{2} = (Fake.a{2}, Fake.t{2}.[Fake.a{2}] ^^ true) /\
-      (forall g a b, g > Fake.g{2} => !(mem (tweak g a b) DKC.Dkc.used{1})) /\
+      (forall g a b, g > Fake.g{2} => !(mem (tweak g a b) DKCS.Dkc.used{1})) /\
 
       gamma1{1} = RedAda.v{1}.[RedAda.g{1}] ^^ evalGate RedAda.gg{1}.[RedAda.g{1}] (RedAda.v{1}.[RedAda.a{1}] ^^ false, RedAda.v{1}.[RedAda.b{1}] ^^ true) /\
       j1{1} = (RedAda.g{1}, RedAda.t{1}.[RedAda.g{1}] ^^ gamma1{1}) /\
@@ -746,7 +710,7 @@ seq 24 : ((! in_dom j2 DKC.Dkc.kpub) /\ (i2 = (RedAda.a, RedAda.t.[RedAda.a] ^^ 
     );first last.
 
   seq 1 1 : (
-      Fake.ev{2} = Garble.eval RedAda.fc{1} RedAda.xc{1} /\
+      Fake.ev{2} = GC.GarbleCircuit.eval RedAda.fc{1} RedAda.xc{1} /\
       (glob ADV){1} = (glob ADV){2} /\
       length RedAda.xx{1} = RedAda.n{1}+RedAda.q{1} /\
       length RedAda.t{1} = RedAda.n{1}+RedAda.q{1} /\
@@ -763,19 +727,19 @@ seq 24 : ((! in_dom j2 DKC.Dkc.kpub) /\ (i2 = (RedAda.a, RedAda.t.[RedAda.a] ^^ 
       Fake.m{2} > 0/\
       Fake.q{2} > 0/\
       (*Fake.f1{2} = (Fake.n{2}, Fake.m{2}, Fake.q{2}, Fake.aa{2}, Fake.bb{2}, Fake.gg{2}) /\*)
-      Fake.n{2} + Fake.q{2} - Fake.m{2} = bound /\
-      RedAda.l{1} = bound-1 /\
+      Fake.n{2} + Fake.q{2} - Fake.m{2} = Cst.bound /\
+      RedAda.l{1} = Cst.bound-1 /\
     (forall i, i >= Fake.n{2} => i < Fake.n{2}+Fake.q{2} => Fake.aa{2}.[i] >= 0 /\ Fake.bb{2}.[i] < i /\
-           Fake.bb{2}.[i] < bound /\ Fake.aa{2}.[i] < Fake.bb{2}.[i]) /\
-    (forall g, g >= Fake.n{2} => g < Fake.g{2} => RedAda.bb{1}.[g] = bound-1 /\ evalGate RedAda.gg{1}.[g]
+           Fake.bb{2}.[i] < Cst.bound /\ Fake.aa{2}.[i] < Fake.bb{2}.[i]) /\
+    (forall g, g >= Fake.n{2} => g < Fake.g{2} => RedAda.bb{1}.[g] = Cst.bound-1 /\ evalGate RedAda.gg{1}.[g]
       ((!RedAda.v{1}.[RedAda.aa{1}.[g]]), false) = evalGate RedAda.gg{1}.[g] ((!RedAda.v{1}.[RedAda.aa{1}.[g]]), true) =>
-        RedAda.yy{1}.[g]=Fake.randG{2}.[(g, true, false)])/\
-      (forall g (x:bool), g < Fake.n{2} + Fake.q{2} => g >= Fake.g{2} => !in_dom (g, x) DKC.Dkc.r{1}) /\
-      (forall g (x:bool), g >= Fake.n{2} + Fake.q{2} + Fake.g{2} => !in_dom (g, x) DKC.Dkc.r{1}) /\
-      (forall g (x:bool), g < bound-1 => in_dom (g, x) DKC.Dkc.kpub{1} = in_dom (g, x) DKC.Dkc.kpub{2}) /\
-    (!DKC.Dkc.b{1}) /\
-      (forall g (x:bool), g < Fake.n{2} + Fake.q{2} => g >= Fake.g{2} => !in_dom (g, x) DKC.Dkc.kpub{1}) /\
-      (forall g (x:bool), g >= Fake.n{2} + Fake.q{2} + Fake.g{2} => !in_dom (g, x) DKC.Dkc.kpub{1}) /\
+        RedAda.yy{1}.[g]=proj Fake.randG{2}.[(g, true, false)])/\
+      (forall g (x:bool), g < Fake.n{2} + Fake.q{2} => g >= Fake.g{2} => !in_dom (g, x) DKCS.Dkc.r{1}) /\
+      (forall g (x:bool), g >= Fake.n{2} + Fake.q{2} + Fake.g{2} => !in_dom (g, x) DKCS.Dkc.r{1}) /\
+      (forall g (x:bool), g < Cst.bound-1 => in_dom (g, x) DKCS.Dkc.kpub{1} = in_dom (g, x) DKCS.Dkc.kpub{2}) /\
+    (!DKCS.Dkc.b{1}) /\
+      (forall g (x:bool), g < Fake.n{2} + Fake.q{2} => g >= Fake.g{2} => !in_dom (g, x) DKCS.Dkc.kpub{1}) /\
+      (forall g (x:bool), g >= Fake.n{2} + Fake.q{2} + Fake.g{2} => !in_dom (g, x) DKCS.Dkc.kpub{1}) /\
 
 
 
@@ -788,28 +752,26 @@ seq 24 : ((! in_dom j2 DKC.Dkc.kpub) /\ (i2 = (RedAda.a, RedAda.t.[RedAda.a] ^^ 
       Fake.b{2} >= 0 /\
       RedAda.a{1} < Fake.g{2} /\
       RedAda.b{1} < Fake.g{2} /\
-      RedAda.a{1} < bound-1 /\
-      RedAda.b{1} <= bound-1 /\
-      (forall g a b, g > Fake.g{2} => !(mem (tweak g a b) DKC.Dkc.used{1})) /\
+      RedAda.a{1} < Cst.bound-1 /\
+      RedAda.b{1} <= Cst.bound-1 /\
+      (forall g a b, g > Fake.g{2} => !(mem (tweak g a b) DKCS.Dkc.used{1})) /\
 
       gamma1{1} = RedAda.v{1}.[RedAda.g{1}] ^^ evalGate RedAda.gg{1}.[RedAda.g{1}] (RedAda.v{1}.[RedAda.a{1}] ^^ false, RedAda.v{1}.[RedAda.b{1}] ^^ true) /\
       j1{1} = (RedAda.g{1}, RedAda.t{1}.[RedAda.g{1}] ^^ gamma1{1}) /\
 
       true
-    );first if;[ |wp;rnd;skip|skip].
+    );first if;[ |wp;rnd;skip|skip];progress assumption;smt.
+   wp.
+    cfold{1} 12.
+    cfold{1} 12.
+    cfold{1} 12.
+    cfold{2} 6.
+    cfold{2} 6.
+   wp.
 admit.
-progress (by trivial).
-
-progress assumption;rewrite ? in_dom_set;smt.
-
-
-   wp.
-    cfold{1} 12.
-    cfold{1} 12.
-    cfold{1} 12.
-    cfold{2} 6.
-    cfold{2} 6.
-   wp.
+admit.
+admit.
+(*WORKING
 
       case (evalGate RedAda.gg{1}.[Fake.g{2}]
       ((!RedAda.v{1}.[RedAda.aa{1}.[Fake.g{2}]]), false) = evalGate RedAda.gg{1}.[Fake.g{2}] ((!RedAda.v{1}.[RedAda.aa{1}.[Fake.g{2}]]), true)).
@@ -1015,9 +977,11 @@ skip;progress assumption.
 (kill 8;first admit);wp;skip;progress assumption;smt.
   wp.
 
+END WORKING
+*)
   wp.
   while (
-      Fake.ev{2} = Garble.eval RedAda.fc{1} RedAda.xc{1} /\
+      Fake.ev{2} = GC.GarbleCircuit.eval RedAda.fc{1} RedAda.xc{1} /\
       (glob ADV){1} = (glob ADV){2} /\
       length RedAda.xx{1} = RedAda.n{1}+RedAda.q{1} /\
       length RedAda.t{1} = RedAda.n{1}+RedAda.q{1} /\
@@ -1038,10 +1002,10 @@ skip;progress assumption.
       Fake.m{2} > 0/\
       Fake.q{2} > 0/\
       (*Fake.f1{2} = (Fake.n{2}, Fake.m{2}, Fake.q{2}, Fake.aa{2}, Fake.bb{2}, Fake.gg{2}) /\*)
-      Fake.n{2} + Fake.q{2} - Fake.m{2} = bound /\
-      RedAda.l{1} = bound-1 /\
+      Fake.n{2} + Fake.q{2} - Fake.m{2} = Cst.bound /\
+      RedAda.l{1} = Cst.bound-1 /\
     (forall i, i >= Fake.n{2} => i < Fake.n{2}+Fake.q{2} => Fake.aa{2}.[i] >= 0 /\ Fake.bb{2}.[i] < i /\
-           Fake.bb{2}.[i] < bound /\ Fake.aa{2}.[i] < Fake.bb{2}.[i]) /\
+           Fake.bb{2}.[i] < Cst.bound /\ Fake.aa{2}.[i] < Fake.bb{2}.[i]) /\
 
     RedAda.i{1} = Fake.i{2} /\
       Fake.i{2} >= Fake.n{2} + Fake.q{2} - Fake.m{2} /\
@@ -1049,7 +1013,7 @@ skip;progress assumption.
   );first (wp;skip;progress assumption;first (rewrite ! set_length;try assumption));smt.
 
   while (
-      Fake.ev{2} = Garble.eval RedAda.fc{1} RedAda.xc{1} /\
+      Fake.ev{2} = GC.GarbleCircuit.eval RedAda.fc{1} RedAda.xc{1} /\
       (glob ADV){1} = (glob ADV){2} /\
       length RedAda.xx{1} = RedAda.n{1}+RedAda.q{1} /\
       length RedAda.t{1} = RedAda.n{1}+RedAda.q{1} /\
@@ -1069,10 +1033,10 @@ skip;progress assumption.
       Fake.m{2} > 0/\
       Fake.q{2} > 0/\
       (*Fake.f1{2} = (Fake.n{2}, Fake.m{2}, Fake.q{2}, Fake.aa{2}, Fake.bb{2}, Fake.gg{2}) /\*)
-      Fake.n{2} + Fake.q{2} - Fake.m{2} = bound /\
-      RedAda.l{1} = bound-1 /\
+      Fake.n{2} + Fake.q{2} - Fake.m{2} = Cst.bound /\
+      RedAda.l{1} = Cst.bound-1 /\
     (forall i, i >= Fake.n{2} => i < Fake.n{2}+Fake.q{2} => Fake.aa{2}.[i] >= 0 /\ Fake.bb{2}.[i] < i /\
-           Fake.bb{2}.[i] < bound /\ Fake.aa{2}.[i] < Fake.bb{2}.[i]) /\
+           Fake.bb{2}.[i] < Cst.bound /\ Fake.aa{2}.[i] < Fake.bb{2}.[i]) /\
 
     RedAda.i{1} = Fake.i{2} /\
       Fake.i{2} >= 0 /\
@@ -1090,10 +1054,13 @@ rnd.
 rnd.
 skip.
 
-
   cut lem : (forall (x:int), x <= x);first smt.
-  delta queryValid.
+  delta PrvIndSec.Scheme.queryValid.
+  delta PrvInd_Circuit.Scheme.queryValid.
   delta phi.
+  delta PrvInd_Circuit.Garble.functCorrect.
+  delta functCorrect.
+  simplify.
   rewrite ! valid_wireinput.
   delta fst snd getN getM getQ.
   intros &1 &2.
@@ -1112,40 +1079,60 @@ skip.
 
   intros h.
 
-    cut rew : (length x1 = length x2);first smt.
+    cut rew : (length x1 = length x2);first generalize h;simplify delta;smt.
     cut lem0 : (0 <= 0);first smt.
     cut lem1 : (0 >= 0);first smt.
     cut lem2 : (length x2 >= length x2);first smt.
-    cut lem3 : (length x2 >= 1);first smt.
+    cut lem3 : (length x2 >= 1);first generalize h;simplify delta;smt.
     cut lem4 : (0 <= length x2 + q2);first smt.
 
   generalize h.
 
-  generalize bound.
+  generalize Cst.bound.
   intros bound.
 
-  subst;simplify.
+  subst;simplify PrvInd_Circuit.Garble.inputCorrect inputCorrect.
+
   rewrite rew.
 
-  progress ((try rewrite rew);(try apply init_length);(try rewrite rew);assumption).
+  delta.
+
+  progress assumption.
+
   smt.
   smt.
   smt.
   smt.
-  apply H48;smt.
+  smt.
+  smt.
+  smt.
+  smt.
+admit.
+  smt.
+  smt.
+rewrite H64;smt.
+  smt.
+
   smt.
   smt.
   smt.
   smt.
   smt.
-  apply H51;smt.
+  smt.
+  smt.
+  smt.
+admit.
+  smt.
+  smt.
+rewrite H64;smt.
   smt.
 
   (*INVALID*)
-  rcondf {1} 19;first (intros _;wp;rnd;wp;rnd;rnd;skip;smt).
+  rcondf {1} 21;first (intros _;wp;rnd;wp;rnd;rnd;wp;skip;smt).
   rcondf {2} 1;[intros &m;skip;smt|].
   wp.
-  kill{1} 1!18;first (wp;rnd 1%r cpTrue;wp;rnd 1%r cpTrue;rnd 1%r cpTrue;skip;progress;smt).
+  sp.
+  kill{1} 1!18;first admit.
   rnd;skip;progress assumption;smt.
 
 save.
