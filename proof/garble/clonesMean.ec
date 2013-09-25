@@ -21,11 +21,11 @@ clone Mean as MeanBool with
 op suppBool = add false (add true FSet.empty).
 lemma suppBool : forall x, in_supp x MeanBool.d <=> mem x suppBool
   by (intros=> x;rewrite /suppBool /MeanBool.d ! mem_add Dbool.supp_def;case x=> ? //).
-lemma mem_suppBool : forall x, ISet.mem x (ISet.support MeanBool.d) <=> mem x suppBool
-  by (intros x;rewrite /ISet.support ISet.mem_create /= suppBool //).
-lemma suppBoolF : ISet.Finite.finite (ISet.support (MeanBool.d))
+lemma mem_suppBool : forall x, ISet.mem x (ISet.create (support MeanBool.d)) <=> mem x suppBool
+  by (intros x;rewrite /support ISet.mem_create /= suppBool //).
+lemma suppBoolF : ISet.Finite.finite (ISet.create (support (MeanBool.d)))
   by (exists suppBool=> x;rewrite /ISet.Finite.finite mem_suppBool //).
-lemma suppBoolV : ISet.Finite.toFSet (ISet.support (MeanBool.d)) = suppBool.
+lemma suppBoolV : ISet.Finite.toFSet (ISet.create (support (MeanBool.d))) = suppBool.
 proof strict.
   apply set_ext=> x.
   rewrite ISet.Finite.mem_toFSet;
@@ -40,11 +40,11 @@ clone Mean as MeanInt with
 op suppInt = interval 0 (Cst.bound-1).
 lemma suppInt : forall x,in_supp x MeanInt.d <=> mem x suppInt
   by (intros=> x;rewrite /suppInt mem_interval /MeanInt.d Dinter.supp_def //).
-lemma mem_suppInt : forall x, ISet.mem x (ISet.support MeanInt.d) <=> mem x suppInt
-  by (intros x;rewrite /ISet.support ISet.mem_create /= suppInt //).
-lemma suppIntF : ISet.Finite.finite (ISet.support (MeanInt.d))
-  by  (exists suppInt=> x;rewrite /ISet.Finite.finite /ISet.support ISet.mem_create /= suppInt //).
-lemma suppIntV : ISet.Finite.toFSet (ISet.support (MeanInt.d)) = suppInt.
+lemma mem_suppInt : forall x, ISet.mem x (ISet.create (support MeanInt.d)) <=> mem x suppInt
+  by (intros x;rewrite /support ISet.mem_create /= suppInt //).
+lemma suppIntF : ISet.Finite.finite (ISet.create (support (MeanInt.d)))
+  by  (exists suppInt=> x;rewrite /ISet.Finite.finite /support ISet.mem_create /= suppInt //).
+lemma suppIntV : ISet.Finite.toFSet (ISet.create (support (MeanInt.d))) = suppInt.
 proof strict.
   apply set_ext=> x.
   rewrite ISet.Finite.mem_toFSet;

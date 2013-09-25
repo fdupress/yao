@@ -23,6 +23,6 @@ lemma hybridEq :
       (!vb{1}) /\ (vl{1}=l) /\
       (vb{2}) /\ (vl{2}=l+1) ==> !res{1} = res{2}
     ].
-proof.
+proof strict.
 admit.
 save.

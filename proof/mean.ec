@@ -3,6 +3,7 @@ require import Real.
 require import Distr.
 
 require import Monoid.
+require import MyMonoid.
 
 theory Mean.
   type base.
@@ -43,7 +44,7 @@ require import Pair.
   fun.
   seq 1 : (v = Rand.x) (mu_x d v) Pr[A.work(v) @ &m : res] 1%r 0%r true.
     by trivial.
-    by (rnd;skip;progress;delta mu_x;smt).
+    by (rnd;skip;progress;simplify mu_x;rewrite (_: ((=) v) = (lambda (x : base), v = x)) //;first by apply fun_ext=> //).
     simplify cpAnd fst snd.
     admit. (*by pr*)
     by hoare;call (_:! v = Rand.x ==> !v = Rand.x)=> //;[
@@ -53,8 +54,8 @@ require import Pair.
   qed.
 
   lemma introOrs : 
-    forall &m, forall (W<:Worker{Rand}) (q:(bool*base) -> bool), Finite.finite (support d) =>
-      q = cpAnd (cpOrs (img (lambda x, lambda y, x = snd y) (Finite.toFSet (support d))))  (lambda x, fst x) =>
+    forall &m, forall (W<:Worker{Rand}) (q:(bool*base) -> bool), Finite.finite (create (support d)) =>
+      q = cpAnd (cpOrs (img (lambda x, lambda y, x = snd y) (Finite.toFSet (create (support d)))))  (lambda x, fst x) =>
       Pr[Rand(W).randAndWork() @ &m : res] = Pr[Rand(W).randAndWork() @ &m : q (res, Rand.x)].
   intros &m W q finite qVal.
   equiv_deno (_: ={glob W} ==> ={res} /\ in_supp Rand.x{2} d)=> //.
@@ -69,7 +70,7 @@ require import Pair.
   split=> //.
   rewrite img_def;
   exists Rand.x{2}=> /=;
-  cut : mem Rand.x{2} ((Finite.toFSet (support d)))
+  cut : mem Rand.x{2} ((Finite.toFSet (create (support d))))
     by rewrite Finite.mem_toFSet // /support mem_create //
   => -> /=; apply fun_ext=> x //.
   smt.
@@ -111,12 +112,12 @@ smt.
 save.
 
   lemma Mean :
-    forall &m, forall (W<:Worker), Finite.finite (support d) =>
+    forall &m, forall (W<:Worker {Rand}), Finite.finite (create (support d)) =>
         Pr[Rand(W).randAndWork()@ &m:res] =
-          Mrplus.sum (lambda (x:base), (mu_x d x)*Pr[W.work(x)@ &m:res]) (Finite.toFSet (support d)).
+          Mrplus.sum (lambda (x:base), (mu_x d x)*Pr[W.work(x)@ &m:res]) (Finite.toFSet (create (support d))).
   proof strict.
   intros &m W fin.
-  pose bs := Finite.toFSet (support d).
+  pose bs := Finite.toFSet (create (support d)).
   pose s := img (cpAnd (lambda x, fst x)) (img (lambda x, lambda y, x = snd y) bs).
   rewrite(introOrs &m W (cpOrs s)) //;first by rewrite /s /bs rw_eq_sym;apply distrOrs.
   cut -> : Pr[Rand(W).randAndWork() @ &m : (cpOrs s) (res, Rand.x)] =

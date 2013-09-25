@@ -26,7 +26,7 @@ lemma appendInit_length :
   forall (ar:'a array) (n:int) (extract:int -> 'a array -> 'a),
     0 <= n =>
     Array.length (appendInit ar n extract) = (Array.length ar) + n.
-proof.
+proof strict.
 intros ? ? ? ?.
 pose m := n.
 cut : (m <= n) by smt.
@@ -47,7 +47,7 @@ lemma appendInit_ind :
       0 <= k /\ k < (Array.length ar) + n - 1 =>
       n > 0 =>
       (appendInit ar n extract).[k] = (appendInit ar (n-1) extract).[k].
-proof.
+proof strict.
   intros ? ? ? ? ? ?.
   simplify appendInit.
   rewrite range_ind;smt.
@@ -59,7 +59,7 @@ lemma appendInit_get1 :
       0 <= k /\ k < Array.length ar =>
       n >= 0 =>
       (appendInit ar n extract).[k] = ar.[k].
-proof.
+proof strict.
 intros ? ? ? ? ? ?.
 pose m := n.
 cut : (m <= n);first smt.
@@ -73,7 +73,7 @@ lemma appendInit_get2 :
       Array.length ar <= k /\ k < (Array.length ar) + n - 1 =>
       n > 0 =>
       (appendInit ar n extract).[k] = (extract (k-1) (appendInit ar (k-length ar) extract)).
-proof.
+proof strict.
   intros ? ? ? ? ? ?.
   rewrite (_: n = ((k-length ar)+1+(n-(k-length ar)-1)));[smt|].
   elim/Induction.induction (n-(k-length ar)-1);[|smt|smt].
@@ -82,12 +82,9 @@ proof.
   rewrite (_:length ar + (k - length ar) = k);first smt.
   rewrite range_ind;first smt.  
   rewrite (_:k + 1 - 1 = k);first smt.
-  cut h : (length (range (length ar) k ar (appender extract)) = k).
-    admit.
-  generalize h.
-  generalize (range (length ar) k ar (appender extract))=> xs h.
-  simplify appender.
-  rewrite snoc_get;smt.
+  cut hh : (length (range (length ar) k ar (appender extract)) = k)
+    by (cut : (length (appendInit ar (k-length ar) extract) = k) by smt;smt).
+  smt.
 save.
 
 lemma appendInit_getFinal :
@@ -95,9 +92,9 @@ lemma appendInit_getFinal :
     forall (k:int),
       Array.length ar <= k /\ k < (Array.length ar) + n - 1 =>
       n > 0 =>
-      extract k (appendInit ar n extract) = extract k (sub (appendInit ar n extract) 0 k) =>
+      extract (k-1) (appendInit ar n extract) = extract (k-1) (sub (appendInit ar n extract) 0 k) =>
       (appendInit ar n extract).[k] = (extract (k-1) (appendInit ar n extract)).
-proof.
+proof strict.
   intros ar n extract k hypK hypN hypExtract.
   
   cut temp : ((appendInit ar n extract).[k] = (extract (k-1) (appendInit ar (k-length ar) extract)));[smt|].
@@ -112,5 +109,5 @@ proof.
     elim/Induction.induction j;smt.
   apply extensionality;smt.
   rewrite - temp2.
-  admit.
+  rewrite -hypExtract //.
 save.
