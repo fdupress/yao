@@ -8,25 +8,24 @@ require import GarbleTools.
 
 require import PreProof.
 
-lemma encrypt_len :
-  forall (k:keyInput, i:input),
-    Array.length i > 0 =>
-    Array.length (encrypt k i) = Array.length i.
+lemma encrypt_len (k:keyInput) (i:input):
+  0 < Array.length i =>
+  Array.length (encrypt k i) = Array.length i.
 proof strict.
-  simplify encrypt=> ? ? ?.
-  apply init_length;smt.
-save.
+by intros=> leq0_len; rewrite /encrypt /= init_length //; first smt.
+qed.
 
+(*
 lemma extract :
   forall (ar:bool array),
-    forall (f:funct, k:int),
-      0 <= k /\
+    forall (f:funct, k:int), let k = k + 1 in
+      0 < k /\
       k <= length ar /\
       0 <= (getA f).[k] /\
       0 <= (getB f).[k] /\
       (getA f).[k] < k /\
       (getB f).[k] < k =>
-      extract f k ar = extract f k (sub ar 0 k) by [].
+      extract f k ar = extract f k (sub ar 0 (k-1)) by [].
   
 lemma extractG :
   forall (ar:token array),
@@ -38,11 +37,11 @@ lemma extractG :
       (getA f).[k] < k /\
       (getB f).[k] < k =>
       extractG f k ar = extractG f k (sub ar 0 k)
-by (delta extractG;progress;smt).
+by (delta extractG;progress;smt).*)
 
 (** begin correctionLemma *)
-lemma correct : 
-  (forall (t k1 k2 m:Dkc.t), DKC.decode t k1 k2 (DKC.encode t k1 k2 m) = m) =>
+lemma correct:
+  (forall (t k1 k2 m:Dkc.t), Dkc.DKC.decode t k1 k2 (Dkc.DKC.encode t k1 k2 m) = m) =>
   forall (f : funct) (x : random) (i : input),
     functCorrect f =>
     randomCorrect f x =>
@@ -52,319 +51,124 @@ lemma correct :
 (** end correctionLemma *)
 proof strict.
   intros DKCHyp.
-  intros f x i hypF hypX hypI.
-  elimT tuple3_ind (garble x f)=> g ki ko h.
-  delta eval evalG evalGen garble.
-  simplify.
+  intros f x i.
+
+  elimT tuple3_ind (garble x f)=> g ki ko.
+  elim/tuple6_ind f=> n' m' q' A' B' F' fVal.
+  elim/tuple6_ind g=> n m q A B F gVal.
+
+  simplify eval evalG evalGen garble getN getM getQ randomCorrect tokenCorrect functCorrect garble inputCorrect.
+  rewrite valid_wireinput.
+  progress.
+
+  pose n := length i.
+
+  pose ki := (sub x 0 n).
+
+timeout 20.
+
+  cut lengthEval : length (evalComplete g (encrypt ki i) extractG) = n + q.
+    simplify evalComplete.
+    rewrite appendInit_length;first smt.
+    rewrite encrypt_len;first smt.
+    rewrite gVal.
+    simplify getQ.
+    smt.
+
+  cut lengthEval2 : length (evalComplete f i extract) = n + q.
+    simplify evalComplete.
+    rewrite appendInit_length;first smt.
+    rewrite fVal.
+    simplify getQ.
+    smt.
+  rewrite /n -fVal -/n.
   
-  pose n := (getN f).
-  pose q := (getQ f).
-  pose ig := (encrypt ki i).
+  cut -> : (n, m, q, getA f, getB f, init (n + q) (garbMap x f)) = g by smt.
 
-admit.
-(*TODO
+  cut main : (forall (j:int), 0 <= j < n+q =>
+    (evalComplete g (encrypt ki i) extractG).[j]
+    = getTok x j (evalComplete f i extract).[j]
+  );first last.
 
-  cut main :(forall (j:int), 0 <= j < n+q =>
-    (appendInit ig (n+q) (extractG g)).[j]
-    = getTok x j (appendInit i (n+q) (extract f)).[j]
-  ).
-admit.
-
-  cut introVar : (forall (nn n m q:int) (g:functG) (ig:inputG),
-    nn = (getN f) + 1 =>
-    n  = getN f =>
-    m  = getM f =>
-    q  = getQ f =>
-    g  = (getN f, getM f, getQ f, getA f, getB f, init ((getN f)+(getQ f)) (garbMap x f)) =>
-    ig = encrypt (sub x 0 (getN f)) i =>
-    let (g, ki, ko) = garble x f in eval f i = decrypt ko (evalG g (encrypt ki i)));
-  [|apply (introVar (*BUG*)
-    ((getN f)+1)
-    (getN f)
-    (getM f)
-    (getQ f)
-    (getN f, getM f, getQ f, getA f, getB f, init ((getN f)+(getQ f)) (garbMap x f))
-    (encrypt (sub x 0 (getN f)) i)
-  )].
-  intros nn n m q g ig valNN valN valM valQ valG valIG.
-
-  delta eval evalG evalGen garble.
-  simplify.
-  rewrite - valG.
-  rewrite - valIG.
-  rewrite - valNN.
-  rewrite - valN.
-  rewrite - valM.
-  rewrite - valQ.
-
-  cut valN2 : (n = (getN g));[smt|].
-  cut valM2 : (m = (getM g));[smt|].
-  cut valQ2 : (q = (getQ g));[smt|].
-  rewrite - valN2.
-  rewrite - valM2.
-  rewrite - valQ2.
-  
-  cut main :(forall (j:int), j >= 0 => j < n+q =>
-    (appendInit ig (n+q) (extractG g)).[j]
-    = getTok x j (appendInit i (n+q) (extract f)).[j]
-  ).
-
-
-(*TODO*)
-
-  cut introVar : (forall (nn n m q:int) (g:functG) (ig:inputG),
-    nn = (getN f) + 1 =>
-    n  = getN f =>
-    m  = getM f =>
-    q  = getQ f =>
-    g  = (getN f, getM f, getQ f, getA f, getB f, init ((getN f)+(getQ f)) (garbMap x f)) =>
-    ig = encrypt (sub x 0 (getN f)) i =>
-    let (g, ki, ko) = garble x f in eval f i = decrypt ko (evalG g (encrypt ki i)));
-  [|apply (introVar (*BUG*)
-    ((getN f)+1)
-    (getN f)
-    (getM f)
-    (getQ f)
-    (getN f, getM f, getQ f, getA f, getB f, init ((getN f)+(getQ f)) (garbMap x f))
-    (encrypt (sub x 0 (getN f)) i)
-  )].
-  intros nn n m q g ig valNN valN valM valQ valG valIG.
-
-  delta eval evalG evalGen garble.
-  simplify.
-  rewrite - valG.
-  rewrite - valIG.
-  rewrite - valNN.
-  rewrite - valN.
-  rewrite - valM.
-  rewrite - valQ.
-
-  cut valN2 : (n = (getN g));[smt|].
-  cut valM2 : (m = (getM g));[smt|].
-  cut valQ2 : (q = (getQ g));[smt|].
-  rewrite - valN2.
-  rewrite - valM2.
-  rewrite - valQ2.
-  
-
-(*TODO*)
-
-  cut introVar : (forall (nn n m q:int) (g:functG) (ig:inputG),
-    nn = (getN f) + 1 =>
-    n  = getN f =>
-    m  = getM f =>
-    q  = getQ f =>
-    g  = (getN f, getM f, getQ f, getA f, getB f, init ((getN f)+(getQ f)) (garbMap x f)) =>
-    ig = encrypt (sub x 0 (getN f)) i =>
-    let (g, ki, ko) = garble x f in eval f i = decrypt ko (evalG g (encrypt ki i)));
-  [|apply (introVar (*BUG*)
-    ((getN f)+1)
-    (getN f)
-    (getM f)
-    (getQ f)
-    (getN f, getM f, getQ f, getA f, getB f, init ((getN f)+(getQ f)) (garbMap x f))
-    (encrypt (sub x 0 (getN f)) i)
-  )].
-  intros nn n m q g ig valNN valN valM valQ valG valIG.
-
-  delta eval evalG evalGen garble.
-  simplify.
-  rewrite - valG.
-  rewrite - valIG.
-  rewrite - valNN.
-  rewrite - valN.
-  rewrite - valM.
-  rewrite - valQ.
-
-  cut valN2 : (n = (getN g));[smt|].
-  cut valM2 : (m = (getM g));[smt|].
-  cut valQ2 : (q = (getQ g));[smt|].
-  rewrite - valN2.
-  rewrite - valM2.
-  rewrite - valQ2.
-  
-  cut main :(forall (j:int), j >= 0 => j < n+q =>
-    (appendInit ig (n+q) (extractG g)).[j]
-    = getTok x j (appendInit i (n+q) (extract f)).[j]
-  ).
-    intros jj.
-    intros hypJJ1.
-    intros hypJJ2.
-
-    delta garble.
-    simplify.
-    rewrite - valG.
-    rewrite - valIG.
-
- (*BUG*)
-    apply (Induction.strongInduction
-      (lambda j, j < n+q =>
-        (appendInit ig ((+) n q) (extractG g)).[j]
-        = getTok x j (appendInit i ((+) n q) (extract f)).[j])
-      _ jj _ _
-    );[|smt|smt].
-
-    intros j hypJ hypRec hypJ2.
-    simplify.
-  
-    case (j < (getN f)).
-    (*Cas de base*)
-      intros valJ.
-      delta evalGen.
-      simplify.
-      cut temp : ((appendInit i (n+q) (extract f)).[j] = i.[j]);[smt|].
-      cut tempG : ((appendInit ig (n+q) (extractG g)).[j] = ig.[j]);
-      [apply appendInit_get1;smt|].
-      rewrite temp.
-      rewrite tempG.
-      rewrite valIG.
-      delta encrypt.
-      simplify.
-      cut cre : ((init2 (length i) (choose (sub x 0 (getN f)) i)).[j] = choose (sub x 0 n) i j);[smt|].
-      rewrite cre.
-      delta choose getTok.
-      simplify.
-      cut sub : ((sub x 0 n).[j] = x.[j]);[smt|].
-      rewrite sub.
-      cut test : (j >= 0 /\ j<n+q);[smt|].
-      cut test2 : (lsb (fst x.[j]) <> (lsb (snd x.[j])));[|smt].
-      cut pre : (forall (i:int), 0 <= i => i < n + q =>
-        (lsb (getTok x i false)) <> (lsb (getTok x i true)));[smt|].
-    apply (pre j _ _);smt. (*BUG*)
-    (*End cas de base*)
-    
-    (*Induction*)
-      intros valJ.
-        cut extr : (
-        forall (ar1:bool array), forall (ar2:token array), forall (a b:int),
-           ar1 = appendInit i (n+q) (extract f) =>
-           ar2 = appendInit ig (n+q) (extractG g) =>
-           a = (getA f).[j] =>
-           b = (getB f).[j] =>
-             extractG g j ar2 = getTok x j (extract f j ar1)
-      ).
-        intros ar1 ar2 a b ar1Val ar2Val aVal bVal.
-        delta extract extractG.
-        simplify.
-        cut hypRecSimpl : (
-          forall (k : int),
-            k >= 0 => k < j =>
-            ar2.[k] = getTok x k ar1.[k]
-        ).
-          rewrite ar1Val.
-          rewrite ar2Val.
-          intros k h1 h2.
-        apply hypRec;smt.
-
-        cut aVal2 : (a = (getA g).[j]);[smt|].
-        cut bVal2 : (b = (getB g).[j]);[smt|].
-        rewrite - aVal.
-        rewrite - bVal.
-        rewrite - aVal2.
-        rewrite - bVal2.
-  
-        cut ar2aVal : (ar2.[a] = (getTok x a (fst (ar1.[a], ar1.[b])))).
-          rewrite ar2Val.
-          rewrite ar1Val.
-          apply (hypRec a _ _ _);smt. (*BUG*)
-        cut ar2bVal : (ar2.[b] = (getTok x b (snd (ar1.[a], ar1.[b])))).
-          rewrite ar2Val.
-          rewrite ar1Val.
-          apply (hypRec b _ _ _);smt. (*BUG*)
-        cut getGVal : ((getG g).[j] = garbleGate x (getG f).[j] a b j);[smt|].
-
-        rewrite ar2aVal.
-        rewrite ar2bVal.
-        rewrite getGVal.
-
-        cut fCor : (forall (i:int),
-          (getN f) <= i /\ i < (getQ f)+(getN f) =>
-            0 <= (getA f).[i] /\ (getA f).[i] < i /\
-            0 <= (getB f).[i] /\ (getB f).[i] < i);[smt|].
-
-(*GROS BUG*) admit. (*
-      apply (inverse_base (ar1.[a], ar1.[b]) n q m a b j (getG f).[j] x _ _ _ _ _ _ _);
-        try split;smt.*)
-
-      cut app1 : (forall ex, ex = extract f =>
-        (appendInit i (n+q) ex).[j] = ex j (appendInit i (n+q) ex)).
-        intros ex exVal.
-        apply appendInit_getFinal;[smt|smt|].
-        cut intro : (
-          forall ar, ar = appendInit i ((+) n q) ex =>
-            ex j ar = ex j (sub ar 0 j)
-        ).
-          intros ar arVal.
-          rewrite exVal.
-        apply extract;smt.
+    apply extensionality.
+    cut len : (length (sub (evalComplete f i extract) (n + q - m) m) =
+      length (decrypt tt (sub (evalComplete g (encrypt ki i) extractG) (n + q - m) m))).
+      simplify decrypt.
+      rewrite sub_length;first 3 smt.
       smt.
-      rewrite (app1 (extract f) _);[smt|].
-
-      cut app2 : (forall ex, ex = extractG g =>
-        (appendInit ig (n+q) ex).[j] = ex j (appendInit ig (n+q) ex)).
-        intros ex exVal.
-        apply appendInit_getFinal;[smt|smt|].
-        cut intro : (
-          forall ar, ar = appendInit ig ((+) n q) ex =>
-          ex j ar = ex j (sub ar 0 j)
-        ).
-          intros ar arVal.
-          rewrite exVal.
-        apply extractG;smt.
+    split;first smt.
+    intros k kmin kmax.
+    cut km : length (sub (evalComplete f i extract) (n + q - m) m) = m by smt.
+    rewrite sub_get;first 5 smt.
+    simplify decrypt.
+    rewrite map_get;first 2 smt.
+    rewrite sub_get;first 5 smt.
+    rewrite main;first smt.
+    generalize ((evalComplete f i extract).[k + (n + q - m)])=> b.
+    case b;
+      (cut := H9 (k + (n+q-m)) _ _;first 2 smt);
+      (cut := H10 (k + (n+q-m)) _ _;first 2 smt);
       smt.
-      rewrite (app2 (extractG g) _);[smt|].
 
-      apply (extr (*BUG*)
-        (appendInit i ((+) n q) (extract f))
-        (appendInit ig ((+) n q) (extractG g))
-        (getA f).[j]
-        (getB f).[j]
-      ).
-    (*End induction*)
+  intros j boundJ.
+  cut : j < n + q;first smt.
+  elim/ Induction.strongInduction j;last smt.
+  intros k kPos hypRec kbound.
+  simplify evalComplete.
+  case (k < n)=> hyp;
+    first by (rewrite ! appendInit_get1;first 4 smt);
+             simplify encrypt choose getTok;
+             rewrite init_get;smt.
+  cut hh := H7 k.
+  cut h : (getA g) = A' by smt.
+  cut := hypRec (getA g).[k] _ _;first 2 rewrite h;clear h;smt.
+  clear h.
+  cut h : (getB g) = (getB f) by smt.
+  cut := hypRec (getB g).[k] _ _;first 2 rewrite h;clear h;smt.
+  clear h hh.
 
-  cut lValue : (forall w, 0 <= w /\ w < m =>
-    (sub (appendInit i ((+) n q) (extract f)) (n+q-m) m).[w]
-     = (appendInit i ((+) n q) (extract f)).[n+q-m+w]
-  );[smt|].
-  cut rValue : (forall w, 0 <= w /\ w < m =>
-    (map lsb (sub (appendInit ig ((+) n q) (extractG g)) (n+q-m) m)).[w]
-    = lsb (appendInit ig ((+) n q) (extractG g)).[n+q-m+w]
-  ).
-    intros w hypW.
-    cut rValue_lem : (
-      (sub (appendInit ig ((+) n q) (extractG g)) (n+q-m) m).[w]
-      = (appendInit ig ((+) n q) (extractG g)).[n+q-m+w]
-    );[smt|].
-  smt.
+  cut hhhhh : extractG g (k - 1) (appendInit (encrypt ki i) (getQ g) (extractG g)) =
+extractG g (k - 1)
+  (sub (appendInit (encrypt ki i) (getQ g) (extractG g)) 0 k).
+    pose ar := ((appendInit (encrypt ki i) (getQ g) (extractG g))).
+    delta extractG;progress.
+    rewrite ! sub_get;smt.
 
-  cut main2 :(forall (j:int), j >= n+q-m => j < n+q =>
-    (appendInit i (n+q) (extract f)).[j] =
-    lsb (appendInit ig (n+q) (extractG g)).[j]).
-    intros j hypJ1 hypJ2.
-    cut output : (!(lsb (getTok x j false)));[smt|].
-  smt.
+cut hhhhhh : 
+extract f (k - 1) (appendInit i (getQ f) (extract f)) =
+extract f (k - 1) (sub (appendInit i (getQ f) (extract f)) 0 k).
+    pose ar := ((appendInit i (getQ f) (extract f))).
+    delta extract;progress.
+    rewrite ! sub_get;smt.
 
-  cut indices : (
-    forall (ar1:bool array),
-    forall (ar2:bool array),
-    length ar1 = length ar2 =>
-    (forall i,
-      0 <= i /\ i < length ar1 =>
-      ar1.[i] = ar2.[i]) =>
-    ar1 = ar2
-  ).
-    intros ar1 ar2 len h.
-  apply extensionality;smt.
-  apply indices;[smt|]. (*STRANGE
-  apply (indices
-    (sub (appendInit i (n+q) (extract f)) (n+q-m) m)
-    (map lsb (sub (appendInit ig (n+q) (extractG g)) (n+q-m) m)) _ _
-  );[smt|].*)
-  intros w hypW.
-  rewrite (lValue w _);[smt|].
-  rewrite (rValue w _);[smt|].
-  admit.
-(*GROS BUG
-  apply (main2 (n+q-m+w) _ _);smt.*)
-*)
-  save.
+cut h : length (encrypt ki i) = n by smt.
+cut hh : getQ g = q by smt.
+  rewrite appendInit_getFinal;first 3 smt.
+  rewrite appendInit_getFinal;first 3 smt.
+rewrite {3} /extractG.
+rewrite {3} /extract.
+simplify evalComplete.
+generalize ((appendInit (encrypt ki i) (getQ g) (extractG g)))=> X.
+generalize (appendInit i (getQ f) (extract f))=> Y.
+cut -> : k - 1 + 1 = k by smt.
+intros -> ->.
+cut -> : (getG g) = init (n + q) (garbMap x (n, m, q, A', B', F')) by smt.
+rewrite init_get;first 2 smt.
+simplify garbMap.
+cut -> : (n, m, q, A', B', F') = f by smt.
+cut -> : (getA f = getA g) by smt.
+cut -> : (getB f = getB g) by smt.
+pose a := (getA g).[k].
+pose b := (getB g).[k].
+pose i1 := (Y.[a]).
+pose i2 := (Y.[b]).
+  cut hhh := H7 k.
+cut hhhh : (getA g) = A' by smt.
+cut hhhh2 : (getB g) = B' by smt.
+apply (inverse_base _ i1 i2 n q m (getA g).[k] (getB g).[k] k ((getG f).[k]) x _ _ _ _ _ _ _)=> //.
+smt.
+smt.
+smt.
+smt.
+simplify tokenCorrect;smt.
+save.

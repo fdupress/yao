@@ -23,17 +23,16 @@ theory IND.
       var query : Scheme.plain*Scheme.plain;
       var p : Scheme.plain;
       var c : Scheme.cipher;
-      var b, adv, ret : bool;
+      var b, b', ret : bool;
     
       query = ADV.gen_query();
       if (Scheme.queryValid query)
       {
         b = ${0,1};
-        if (b) p = fst query;
-        else   p = snd query;
+        p = if b then fst query else snd query;
         c = $Scheme.enc p;
-        adv = ADV.get_challenge(c);
-        ret = (b = adv);
+        b' = ADV.get_challenge(c);
+        ret = (b = b');
       }
       else
         ret = ${0,1};
