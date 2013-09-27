@@ -12,12 +12,12 @@ type t = bitstring.
 
 theory DKC_Abs.
 
-  op genRandKey : t distr.
-  op genRandKeyLast : t distr.
-  op addLast : t -> bool -> t.
+  op genRandKey: t distr.
+  op genRandKeyLast: t distr.
+  op addLast: t -> bool -> t.
 
-  op encode : t -> t -> t -> t -> t.
-  op decode : t -> t -> t -> t -> t.
+  op E: t -> t -> t -> t -> t.
+  op D: t -> t -> t -> t -> t.
 end DKC_Abs.
 
 theory DKC.
@@ -30,19 +30,18 @@ theory DKC.
   op genRandKeyLast = Dbitstring.dbitstring (k-1).
   op addLast : t -> bool -> t .
 
-  op encode : t -> t -> t -> t -> t.
-  op decode : t -> t -> t -> t -> t.
+  op E: t -> t -> t -> t -> t.
+  op D: t -> t -> t -> t -> t.
 end DKC.
 
 theory DKC_Sec.
-
   clone export DKC_Abs.
 
-  type query = (int*bool)*(int*bool)*bool*t.
-  type answer = t*t*t.
+  type query = (int*bool) * (int*bool) * bool * t.
+  type answer = t * t * t.
 
-  op defaultQ : query.
-  op bad : answer.
+  op defaultQ: query.
+  op bad: answer.
 
   module type Dkc_t = {
     fun preInit() : unit
@@ -57,78 +56,127 @@ theory DKC_Sec.
     fun get_challenge(answers: (answer array)) : bool
   }.
 
-  module Dkc : Dkc_t = {
-    var b : bool
-    var ksec : t
-    var r : (int*bool, t) map
-    var kpub : (int*bool, t) map
-    var used : t set
+  module DKCm = {
+    var b:bool
+    var ksec:t
+    var r:(int * bool,t) map
+    var kpub:(int * bool,t) map
+    var used:t set
+  }.
 
+  module Dkc : Dkc_t = {
     fun preInit() : unit = {
-      b = $Dbool.dbool;
+      DKCm.b = $Dbool.dbool;
     }
       
     fun initialize() : bool = {
       var t : bool;
       t = $Dbool.dbool;
-      ksec = $genRandKeyLast;
-      ksec = addLast ksec t;
-      kpub = Map.empty;
-      used = FSet.empty;
-      r = Map.empty;
+      DKCm.ksec = $genRandKeyLast;
+      DKCm.ksec = addLast DKCm.ksec t;
+      DKCm.kpub = Map.empty;
+      DKCm.used = FSet.empty;
+      DKCm.r = Map.empty;
       return t;
     }
 
     fun get_challenge() : bool = {
-      return b;
+      return DKCm.b;
     }
-    
+
+    fun get_k(i:int * bool): t = {
+      var r:t;
+
+      r = $genRandKeyLast;
+      if (!in_dom i DKCm.kpub) DKCm.kpub.[i] = addLast r (snd i);
+      return proj DKCm.kpub.[i];
+    }
+
+    fun get_r(i:int * bool): t = {
+      var r:t;
+
+      r = $genRandKey;
+      if (!in_dom i DKCm.kpub) DKCm.kpub.[i] = r;
+      return proj DKCm.kpub.[i];
+    }
+
     fun encrypt(q:query) : answer = {
-      var keya : t;
-      var keyb : t;
-      var msg : t;
-      var i : int*bool;
-      var j : int*bool;
-      var pos : bool;
-      var t : t;
-      var out : answer;
-      var temp : t;
-      (i, j, pos, t) = q;
+      var ka, kb, ki, kj, rj, msg, t:t;
+      var i, j:int * bool;
+      var pos:bool;
+      var out:answer;
+
+      (i,j,pos,t) = q;
       out = bad;
-      if ((!(mem t used)) /\ ((fst j) > (fst i)))
+      if ((!(mem t DKCm.used)) /\ ((fst j) > (fst i)))
       {
-        used = add t used;
-        if (! (in_dom i kpub)) {
-          temp = $genRandKeyLast;
-          kpub.[i] = addLast temp (snd i);
-        }
-        if (! (in_dom j kpub)) {
-          temp = $genRandKeyLast;
-          kpub.[j] = addLast temp (snd j);
-        }
-        if (! (in_dom j r))
-          r.[j] = $genRandKey;
-        if (pos) {
-          keya = ksec;
-          keyb = proj kpub.[i];
-        } else {
-          keyb = ksec;
-          keya = proj kpub.[i];
-        }
-        if (b) msg = proj kpub.[j]; else msg = proj r.[j];
-        out = (proj kpub.[i], proj kpub.[j], encode t keya keyb msg);
+        DKCm.used = add t DKCm.used;
+
+        ki = get_k(i);
+        kj = get_k(j);
+        rj = get_r(j);
+        (ka,kb) = if pos then (DKCm.ksec,ki) else (ki,DKCm.ksec);
+        msg = if (DKCm.b) then kj else rj;
+        out = (ki,kj,E t ka kb msg);
       }
       return out;
     }
   }.
 
+  lemma get_kL:
+    weight genRandKeyLast = 1%r =>
+    islossless Dkc.get_k.
+  proof strict.
+  by intros=> genRandKeyLastL; fun; wp; rnd.
+  qed.
+
+  lemma get_rL:
+    weight genRandKey = 1%r =>
+    islossless Dkc.get_r.
+  proof strict.
+  by intros=> genRandKeyL; fun; wp; rnd.
+  qed.
+
+  lemma encryptL:
+    weight genRandKey = 1%r =>
+    weight genRandKeyLast = 1%r =>
+    islossless Dkc.encrypt.
+  proof strict.
+  intros genRandKeyL genRandKeyLastL; fun; seq 2: (q = (i,j,pos,t) /\ out = bad)=> //; first by wp.
+  by if=> //; wp; call (get_rL _)=> //; do !(call (get_kL _)=> //); wp.
+  by hoare; wp.
+  qed.
+
   module type Exp = {
-    fun preInit() : unit
-    fun work() : bool
-    fun main() : bool
+    fun preInit():unit
+    fun work():bool
+    fun main():bool
+  }.
+
+  module type Batch_t = {
+    fun encrypt(qs:query array): answer array
+  }.
+
+  module BatchDKC (D:Dkc_t): Batch_t = {
+    fun encrypt(qs:query array): answer array = {
+      var i, n:int;
+      var answers:answer array;
+
+      i = 0;
+      n = length qs;
+      answers = Array.create n bad;
+      while (i < n)
+      {
+        answers.[i] = D.encrypt(qs.[i]);
+        i = i + 1;
+      }
+
+      return answers;
+    }
   }.
 
   module Game(D:Dkc_t, A:Adv_t) : Exp = {
+    module B = BatchDKC(D)
 
     fun preInit() : unit = {
       D.preInit();
@@ -145,21 +193,15 @@ theory DKC_Sec.
       var realChallenge : bool;
       var nquery : int;
       var answer : answer;
+
       info = D.initialize();
       queries = A.gen_queries(info);
-      nquery = Array.length queries;
-      answers = Array.create nquery bad;
-      i = 0;
-      while (i < nquery)
-      {
-        answers.[i] = D.encrypt (queries.[i]);
-        i = i + 1;
-      }
+      answers = B.encrypt(queries);
       advChallenge = A.get_challenge(answers);
       realChallenge = D.get_challenge();
       return advChallenge = realChallenge;
     }
-    
+
     fun main() : bool = {
       var r : bool;
       preInit();
@@ -168,13 +210,15 @@ theory DKC_Sec.
     }
   }.
 
+
+  (** Adaptive adversary: is it possible to find an expressible
+      condition on A.work that guarantees the desired equivalence? *)
   module type AdvAda_t(DKC:Dkc_t) = {
     fun preInit() : unit {}
     fun work(info:bool) : bool {DKC.encrypt}
   }.
 
   module GameAda(D:Dkc_t, Adv:AdvAda_t) : Exp = {
-
     module A = Adv(Dkc)
 
     fun preInit() : unit = {
@@ -186,18 +230,19 @@ theory DKC_Sec.
       var info : bool;
       var advChallenge : bool;
       var realChallenge : bool;
+
       info = D.initialize();
       advChallenge = A.work(info);
       realChallenge = D.get_challenge();
       return advChallenge = realChallenge;
     }
-    
+
     fun main() : bool = {
       var r : bool;
+
       preInit();
       r = work();
       return r;
     }
   }.
-
 end DKC_Sec.

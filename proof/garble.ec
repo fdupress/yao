@@ -68,7 +68,6 @@ theory PrvInd.
         let (f, x) = q in
         let (g, ki, ko) = garble r f in
         (g, encrypt ki x, ko))
-      genRandom
-   .
+      genRandom.
 end PrvInd.
 (** end prvind *)

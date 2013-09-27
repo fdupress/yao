@@ -7,13 +7,12 @@ require import Int.
 require import Bool.
 require import Array.
 
-
 require import GarbleTools.
 require import PreProof.
 require import ReductionAda.
 
 lemma hybridEq :
-  forall (ADV <: PrvIndSec.Adv_t{RedAda, DKCS.Dkc, PrvIndSec.Game}),
+  forall (ADV <: PrvIndSec.Adv_t {RedAda, DKCS.Dkc, PrvIndSec.Game}),
     forall (l:int),
       0 <= l <= Cst.bound - 1 =>
     equiv [
