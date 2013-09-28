@@ -14,7 +14,7 @@ theory IND.
   end Scheme.
 
   module type Adv_t = {
-    fun gen_query() : Scheme.plain*Scheme.plain
+    fun gen_query() : Scheme.plain*Scheme.plain { * }
     fun get_challenge(cipher:Scheme.cipher) : bool
   }.
 
