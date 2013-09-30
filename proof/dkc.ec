@@ -11,7 +11,6 @@ require import Distr.
 type t = bitstring.
 
 theory DKC_Abs.
-
   op genRandKey: t distr.
   op genRandKeyLast: t distr.
   op addLast: t -> bool -> t.
@@ -20,8 +19,7 @@ theory DKC_Abs.
   op E: t -> t -> t -> t -> t.
   op D: t -> t -> t -> t -> t.
 
-  axiom lsb_addLast : forall x b, lsb (addLast x b) = b.
-
+  axiom lsb_addLast x b: lsb (addLast x b) = b.
 end DKC_Abs.
 
 theory DKC.
@@ -32,36 +30,35 @@ theory DKC.
 
   op genRandKey = Dbitstring.dbitstring k.
   op genRandKeyLast = Dbitstring.dbitstring (k-1).
-  op addLast : t -> bool -> t .
+  op addLast : t -> bool -> t.
   op lsb: t -> bool.
 
   op E: t -> t -> t -> t -> t.
   op D: t -> t -> t -> t -> t.
 
-  axiom lsb_addLast : forall x b, lsb (addLast x b) = b.
-
+  axiom lsb_addLast x b: lsb (addLast x b) = b.
 end DKC.
 
 theory DKC_Sec.
   clone export DKC_Abs.
 
-  type query = (int*bool) * (int*bool) * bool * t.
+  type query = (int * bool) * (int * bool) * bool * t.
   type answer = t * t * t.
 
-  op defaultQ: query.
-  op bad: answer.
+  op defaultQ: query. (* Why use this instead of option? What happens if the adversary queries defaultQ? *)
+  op bad: answer.     (* Same question: can any query other than defaultQ return bad? *)
 
   module type Dkc_t = {
-    fun preInit() : unit
-    fun initialize() : bool
-    fun encrypt(q:query) : answer
-    fun get_challenge() : bool
+    fun preInit(): unit
+    fun initialize(): bool
+    fun encrypt(q:query): answer
+    fun get_challenge(): bool
   }.
 
   module type Adv_t = {
-    fun preInit() : unit
-    fun gen_queries(info:bool) : (query array)
-    fun get_challenge(answers: (answer array)) : bool
+    fun preInit(): unit
+    fun gen_queries(info:bool): query array
+    fun get_challenge(answers:answer array) : bool
   }.
 
   module DKCm = {
@@ -73,7 +70,7 @@ theory DKC_Sec.
   }.
 
   module Dkc : Dkc_t = {
-    fun preInit() : unit = {
+    fun preInit(): unit = {
       DKCm.b = $Dbool.dbool;
     }
       
@@ -108,7 +105,7 @@ theory DKC_Sec.
       return proj DKCm.kpub.[i];
     }
 
-    fun encrypt(q:query) : answer = {
+    fun encrypt(q:query): answer = {
       var ka, kb, ki, kj, rj, msg, t:t;
       var i, j:int * bool;
       var pos:bool;
@@ -116,13 +113,13 @@ theory DKC_Sec.
 
       (i,j,pos,t) = q;
       out = bad;
-      if ((!(mem t DKCm.used)) /\ ((fst j) > (fst i)))
+      if (!(mem t DKCm.used) /\ fst i < fst j)
       {
         DKCm.used = add t DKCm.used;
-
         ki = get_k(i);
         kj = get_k(j);
         rj = get_r(j);
+
         (ka,kb) = if pos then (DKCm.ksec,ki) else (ki,DKCm.ksec);
         msg = if (DKCm.b) then kj else rj;
         out = (ki,kj,E t ka kb msg);
@@ -183,6 +180,16 @@ theory DKC_Sec.
     }
   }.
 
+  lemma encryptBatchL (D <: Dkc_t { BatchDKC }):
+    islossless D.encrypt =>
+    islossless BatchDKC(D).encrypt.
+  proof strict.
+  intros=> encryptL; fun.
+  while true (n - i);
+    first by intros=> z; wp; call encryptL; skip; smt.
+  by wp; skip; smt.
+  qed.
+
   module Game(D:Dkc_t, A:Adv_t) : Exp = {
     module B = BatchDKC(D)
 
@@ -218,35 +225,44 @@ theory DKC_Sec.
     }
   }.
 
-
   (** Adaptive adversary: is it possible to find an expressible
-      condition on A.work that guarantees the desired equivalence? *)
+      condition on A.work that guarantees the desired equivalence?
+   INSIGHT: it looks like it should be sufficient to look at Query
+      to prove the adaptive -> non-adaptive result:
+        1) it is never called with a = b;
+        2) for a given g, it is called three times with rnd = false,
+           but different (alpha,beta) pairs (hence different tweaks);
+        3) for a given g, it is called once with rnd = true (fresh tweak, random j)
+        4) for different g, the tweaks are necessarily different
+      **5) the queries (i,j,pos,T) depend only on a, b, g, the two constants alpha and beta,
+           and pre-initialized variables (the circuit and the t.[i]s) *)
   module type AdvAda_t(DKC:Dkc_t) = {
     fun preInit() : unit {}
     fun work(info:bool) : bool {DKC.encrypt}
   }.
 
-  module GameAda(D:Dkc_t, Adv:AdvAda_t) : Exp = {
+  module GameAda(D:Dkc_t, Adv:AdvAda_t): Exp = {
     module A = Adv(Dkc)
 
-    fun preInit() : unit = {
+    fun preInit(): unit = {
       D.preInit();
       A.preInit();
     }
 
-    fun work() : bool = {
-      var info : bool;
-      var advChallenge : bool;
-      var realChallenge : bool;
+    fun work(): bool = {
+      var info: bool;
+      var advChallenge: bool;
+      var realChallenge: bool;
 
       info = D.initialize();
+
       advChallenge = A.work(info);
       realChallenge = D.get_challenge();
       return advChallenge = realChallenge;
     }
 
-    fun main() : bool = {
-      var r : bool;
+    fun main(): bool = {
+      var r: bool;
 
       preInit();
       r = work();

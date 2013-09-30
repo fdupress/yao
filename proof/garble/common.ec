@@ -38,25 +38,42 @@ module C = {
   }
 }.
 
-lemma CinitL: bd_hoare[C.init: true ==> true] = 1%r by (fun;(while true (C.n + C.q - i);first intros z);wp;skip;smt).
-lemma CinitH : forall (plain:PrvIndSec.Scheme.plain), functCorrect (fst plain) =>
-  hoare[C.init: p=plain ==>
-    C.f = fst plain /\ C.x = snd plain /\ (C.n, C.m, C.q, C.aa, C.bb, C.gg) = fst plain /\ Array.length C.v = (C.n+C.q) /\ functCorrect C.f]
-  by (intros _ _;fun;while (Array.length C.v = (C.n+C.q));wp;skip;smt).
-lemma CinitE : equiv[C.init ~ C.init : ={p} ==> ={glob C}]
-  by (fun;while (={glob C, i});wp;skip;smt).
+lemma CinitL: bd_hoare[C.init: true ==> true] = 1%r.
+proof strict.
+by fun; while true (C.n + C.q - i); [intros z | ];
+   wp; skip; smt.
+qed.
 
+lemma CinitH (plain:PrvIndSec.Scheme.plain):
+  functCorrect (fst plain) =>
+  hoare[C.init: p = plain ==>
+                C.f = fst plain /\
+                C.x = snd plain /\
+                (C.n, C.m, C.q, C.aa, C.bb, C.gg) = C.f /\
+                Array.length C.v = (C.n + C.q) /\
+                functCorrect C.f].
+proof strict.
+by intros=> fCor; fun;
+   while (Array.length C.v = C.n + C.q); wp; skip; smt.
+qed.
 
+equiv CinitE: C.init ~ C.init: ={p} ==> ={glob C}.
+(* It is highly probable that you want the hoare invariant
+   for free out of the equiv lemma *)
+proof strict.
+by fun; while (={glob C, i}); wp; skip; smt.
+qed.
 
-(*Contains the random used for a normal garbling*)
+(*Contains the random used for a normal garbling *)
 module R = {
   var t:bool array
   var xx:tokens
 
-  fun init(useVisible:bool) : unit = {
-    var i : int;
-    var tok1, tok2 : token;
-    var v, trnd : bool;
+  fun init(useVisible:bool): unit = {
+    var i:int;
+    var tok1,tok2:token;
+    var v,trnd:bool;
+
     t = Array.create (C.n + C.q) false;
     xx = Array.create (C.n + C.q) (void, void);
     i = 0;
@@ -64,60 +81,79 @@ module R = {
       trnd = $Dbool.dbool;
       tok1 = $Dkc.DKC.genRandKeyLast;
       tok2 = $Dkc.DKC.genRandKeyLast;
+
       v = if useVisible then C.v.[i] else false;
-      t.[i] = if (i >= C.n + C.q - C.m) then false^^v else trnd;
+      t.[i] = if (i >= C.n + C.q - C.m) then false ^^ v else trnd;
+
       xx = setTok xx i (false^^v) (Dkc.DKC.addLast tok1 ( t.[i]));
       xx = setTok xx i ( true^^v) (Dkc.DKC.addLast tok2 (!t.[i]));
+
       i = i + 1;
     }
   }
 }.
 
-lemma RgenInitL: bd_hoare[R.init: true ==> true] = 1%r
-  by (fun;while true (C.n + C.q - i);[intros z;wp;do 3 ! rnd;skip;smt|wp];skip;smt).
+lemma RgenInitL: bd_hoare[R.init: true ==> true] = 1%r.
+proof strict.
+by fun; while true (C.n + C.q - i); [intros=> z; wp; do 3!rnd | wp];
+   skip; smt.
+qed.
 
-lemma RinitH: hoare[R.init: 0 <= C.m <= C.n + C.q ==>
-  tokenCorrect C.n C.q C.m R.xx /\
-  Array.length R.xx = (C.n+C.q) /\
-  Array.length R.t = (C.n+C.q)].
-fun.
-(while (0 <= C.m <= C.n + C.q /\
-  Array.length R.xx = (C.n+C.q) /\
-  Array.length R.t = (C.n+C.q) /\
-  (forall (j:int), 0 <= j => j < i =>
-    (Dkc.DKC.lsb (getTok R.xx j false)) <> (Dkc.DKC.lsb (getTok R.xx j true))) /\
-  (forall (j:int), C.n + C.q - C.m <= j => j < i =>
-    !(Dkc.DKC.lsb (getTok R.xx j false)) ) /\
-  Array.length R.xx = (C.n+C.q) /\
-  Array.length R.t = (C.n+C.q)
-  );wp;first do 3 ! rnd);skip;progress assumption;rewrite ? set_get_tok ? length_setTok;smt.
-save.
+lemma RinitH:
+  hoare[R.init: 0 <= C.m <= C.n + C.q ==>
+                tokenCorrect C.n C.q C.m R.xx /\
+                Array.length R.xx = (C.n+C.q) /\
+                Array.length R.t = (C.n+C.q)].
+proof strict.
+fun; while (0 <= C.m <= C.n + C.q /\
+            Array.length R.xx = C.n + C.q /\
+            Array.length R.t = C.n + C.q /\
+            (forall (j:int), 0 <= j => j < i =>
+              Dkc.DKC.lsb (getTok R.xx j false) <> Dkc.DKC.lsb (getTok R.xx j true)) /\
+            (forall (j:int), C.n + C.q - C.m <= j => j < i =>
+              !Dkc.DKC.lsb (getTok R.xx j false)));
+  first by wp; do 3!rnd; skip; progress=> //;
+           rewrite ?set_get_tok ?length_setTok; smt.
+by wp; skip; smt.
+qed.
 
-lemma RinitE: equiv[R.init ~ R.init : ={useVisible, glob C} ==> ={glob R}]
-  by (fun;(while (={useVisible, glob R, i});wp;first do 3 ! rnd)).
+equiv RinitE: R.init ~ R.init: ={useVisible, glob C} ==> ={glob R}.
+proof strict.
+by fun; while (={useVisible, glob R, i}); [wp; do 3!rnd | wp].
+qed.
 
-pred t_xor (sup:int) (t1 t2 v:bool array) = (forall i, 0 <= i < sup => t1.[i] = t2.[i] ^^ v.[i]).
+pred t_xor (sup:int) (t1 t2 v:bool array) = forall i,
+  0 <= i < sup =>
+  t1.[i] = t2.[i] ^^ v.[i].
 
-lemma RgenClassicVisibleE: equiv[R.init ~ R.init : 0 <= C.n{2} + C.q{2} /\ ={glob C} /\ useVisible{1} = true /\ useVisible{2} = false ==> t_xor (C.n{1} + C.q{1}) R.t{1} R.t{2} C.v{1} /\ ={R.xx}].
-fun.
-while (={i, R.xx, glob C} /\ useVisible{1} = true /\ useVisible{2} = false /\ t_xor i{1} R.t{1} R.t{2} C.v{1} /\ 0 <= i{2} /\ length R.t{1} = C.n{2} + C.q{2} /\ length R.t{2} = C.n{2} + C.q{2} /\ length R.xx{2} = C.n{2} + C.q{2}).
-case (C.v{1}.[i{1}] = false).
-  wp;rnd;rnd;wp;rnd;skip;((progress assumption;first smt);first simplify t_xor;progress;cut := H i0;smt);smt.
-  wp;swap{1} 2 1.
-rnd;rnd;wp;rnd (lambda x, !x);skip.
-    progress assumption.
-smt.
-smt.
-rewrite set_tokC;smt.
-simplify t_xor;progress;cut := H i0;smt.
-smt.
-smt.
-smt.
-smt.
-wp.
-skip.
-smt.
-save.
+equiv RgenClassicVisibleE:
+  R.init ~ R.init:
+    ={glob C} /\
+    0 <= C.n{2} + C.q{2} /\
+    useVisible{1} = true /\
+    useVisible{2} = false ==>
+    ={R.xx} /\
+    t_xor (C.n{1} + C.q{1}) R.t{1} R.t{2} C.v{1}.
+proof strict.
+fun; while (={i, R.xx, glob C} /\
+            useVisible{1} = true /\
+            useVisible{2} = false /\
+            t_xor i{1} R.t{1} R.t{2} C.v{1} /\
+            0 <= i{2} /\
+            length R.t{1} = C.n{2} + C.q{2} /\
+            length R.t{2} = C.n{2} + C.q{2} /\
+            length R.xx{2} = C.n{2} + C.q{2}).
+  case (C.v{1}.[i{1}] = false).
+    by do !(wp; rnd); skip; progress=> //;
+       rewrite /t_xor //=; progress=> //; try (cut := H i0); smt.
+    swap{1} 2 1; do 2!(wp; rnd); rnd (lambda x, !x); skip; progress=> //;
+      last 4 smt.
+      smt.
+      smt.
+      admit. (* rewrite set_tokC; smt. ?? *)
+      by simplify t_xor; progress; cut:= H i0; smt.
+by wp; skip; smt.
+qed.
 
 module type Flag_t = { fun gen() : unit }.
 
@@ -129,50 +165,60 @@ module G = {
   var b:int
   var g:int
 
-  fun garb(yy:token, alpha:bool, bet:bool) : unit = {
-    pp.[g] = setGateVal pp.[g] ((R.t.[a]^^alpha), (R.t.[b]^^bet)) (Dkc.DKC.E
-      (tweak g (R.t.[a]^^alpha) (R.t.[b]^^bet))
-      (getTok R.xx a alpha)
-      (getTok R.xx b bet)
-      yy);
+  fun garb(yy:token, alpha:bool, bet:bool): unit = {
+    pp.[g] =
+      setGateVal pp.[g] ((R.t.[a]^^alpha), (R.t.[b]^^bet))
+                 (Dkc.DKC.E
+                   (tweak g (R.t.[a]^^alpha) (R.t.[b]^^bet))
+                   (getTok R.xx a alpha)
+                   (getTok R.xx b bet)
+                   yy);
   }
 
-  fun garbD1(rand:bool, alpha:bool, bet:bool) : unit = {
-    var tok : token;
+  fun garbD1(rand:bool, alpha:bool, bet:bool): unit = {
+    var tok:token;
+
     tok = $DKC.genRandKey;
     if (rand) randG.[(g,alpha,bet)] = tok;
   }
 
   fun garbD2(rand:bool, alpha:bool, bet:bool) : token = {
-    var yy : token;
-    if (rand)
-      yy = proj randG.[(g,alpha,bet)];
-    else
-      yy = getTok R.xx g (evalGate C.gg.[g] ((C.v.[a]^^alpha),(C.v.[b]^^alpha)));
+    var yy:token;
+
+    yy = if (rand)
+         then proj randG.[(g,alpha,bet)]
+         else getTok R.xx g (evalGate C.gg.[g] ((C.v.[a]^^alpha),(C.v.[b]^^alpha)));
     garb(yy, alpha, bet);
     return yy;
   }
 
   fun garbD(rand:bool, alpha:bool, bet:bool) : token = {
     var yy : token;
+
     garbD1(rand, alpha, bet);
     yy = garbD2(rand, alpha, bet);
     return yy;
   }
 }.
 
-lemma GgarbL   : bd_hoare[G.garb  : true ==> true] = 1%r by (fun;wp).
-lemma GgarbD1L : bd_hoare[G.garbD1: true ==> true] = 1%r by (fun;wp;rnd;skip;smt).
-lemma GgarbD2L : bd_hoare[G.garbD2: true ==> true] = 1%r by (fun;call GgarbL;wp).
-lemma GgarbDL  : bd_hoare[G.garbD : true ==> true] = 1%r by (fun;call GgarbD2L;call GgarbD1L).
+lemma GgarbL   : bd_hoare[G.garb  : true ==> true] = 1%r by (fun; wp).
 
-lemma GgarbE   : equiv[G.garb   ~ G.garb  : ={glob G, glob C, glob R, yy, alpha, bet} ==> ={glob G, glob C, glob R}]
+lemma GgarbD1L : bd_hoare[G.garbD1: true ==> true] = 1%r by (fun; wp; rnd; skip; smt).
+
+lemma GgarbD2L : bd_hoare[G.garbD2: true ==> true] = 1%r by (fun; call GgarbL; wp).
+
+lemma GgarbDL  : bd_hoare[G.garbD : true ==> true] = 1%r by (fun; call GgarbD2L; call GgarbD1L).
+
+equiv GgarbE   : G.garb   ~ G.garb  : ={glob G, glob C, glob R, yy, alpha, bet} ==> ={glob G, glob C, glob R}
   by (fun;wp).
-lemma GgarbD1E : equiv[G.garbD1 ~ G.garbD1: ={glob G, glob C, glob R, rand, alpha, bet} ==> ={glob G, glob C, glob R}]
+
+equiv GgarbD1E : G.garbD1 ~ G.garbD1: ={glob G, glob C, glob R, rand, alpha, bet} ==> ={glob G, glob C, glob R}
   by (fun;wp;rnd;skip;smt).
-lemma GgarbD2E : equiv[G.garbD2 ~ G.garbD2: ={glob G, glob C, glob R, rand, alpha, bet} ==> ={glob G, glob C, glob R, res}]
+
+equiv GgarbD2E : G.garbD2 ~ G.garbD2: ={glob G, glob C, glob R, rand, alpha, bet} ==> ={glob G, glob C, glob R, res}
   by (fun;call GgarbE;wp).
-lemma GgarbDE  : equiv[G.garbD  ~ G.garbD : ={glob G, glob C, glob R, rand, alpha, bet} ==> ={glob G, glob C, glob R, res}]
+
+equiv GgarbDE  : G.garbD  ~ G.garbD : ={glob G, glob C, glob R, rand, alpha, bet} ==> ={glob G, glob C, glob R, res}
   by (fun;call GgarbD2E;call GgarbD1E).
 
 module F = {
@@ -186,12 +232,14 @@ module F = {
 module GInit(Flag:Flag_t) = {
   fun init() : unit = {
     var tok : token;
+
     G.yy = Array.create (C.n + C.q) void;
     G.pp = Array.create (C.n + C.q) (void, void, void, void);
     G.randG = Map.empty;
     G.g = C.n;
     G.a = 0;
     G.b = 0;
+
     while (G.g < C.n + C.q)
     {
       Flag.gen();
@@ -207,7 +255,7 @@ module GInit(Flag:Flag_t) = {
   }
 }.
 
-lemma GinitL (F<:Flag_t): islossless F.gen => bd_hoare[GInit(F).init: true ==> true] = 1%r by admit.
+lemma GinitL (F <: Flag_t): islossless F.gen => bd_hoare[GInit(F).init: true ==> true] = 1%r by admit.
 
 op todo = true. (*Need to find condition necessary for profing equality of flag
            aa.[i] >= 0 /\
