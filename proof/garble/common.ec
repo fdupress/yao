@@ -3,9 +3,17 @@ require import Map.
 require import Pair.
 require import Int.
 require import Bool.
+require import FSet.
+require import Monoid.
+require import Real.
 
 require import GarbleTools.
 require import PreProof.
+
+(* This modules contains values set at the beginning and always remains the same *)
+module CV = {
+  var l : int
+}.
 
 (* This is the circuit to garble (fixed after the adversary runs and the challenge is chosen) *)
 module C = {
@@ -150,13 +158,12 @@ fun; while (={i, R.xx, glob C} /\
       last 4 smt.
       smt.
       smt.
-      admit. (* rewrite set_tokC; smt. ?? *)
+      by (rewrite set_tokC;first 3 smt);congr=> //;smt.
       by simplify t_xor; progress; cut:= H i0; smt.
 by wp; skip; smt.
 qed.
 
-module type Flag_t = { fun gen() : unit }.
-
+(* handle low level part of garbling *)
 module G = {
   var pp:token g2v
   var yy:token array
@@ -221,6 +228,8 @@ equiv GgarbD2E : G.garbD2 ~ G.garbD2: ={glob G, glob C, glob R, rand, alpha, bet
 equiv GgarbDE  : G.garbD  ~ G.garbD : ={glob G, glob C, glob R, rand, alpha, bet} ==> ={glob G, glob C, glob R, res}
   by (fun;call GgarbD2E;call GgarbD1E).
 
+(* Contains the flag variables used by GInit, their value depends
+   of the type of the garbling : Fake, Real, Hybrid *)
 module F = {
   var flag_ff : bool
   var flag_ft : bool
@@ -228,7 +237,11 @@ module F = {
   var flag_tt : bool
   var flag_sp : bool
 }.
- 
+
+(* Type of a module that fill the F modules *)
+module type Flag_t = { fun gen() : unit }.
+
+(*handle high level part of garbling *)
 module GInit(Flag:Flag_t) = {
   fun init() : unit = {
     var tok : token;
@@ -255,18 +268,21 @@ module GInit(Flag:Flag_t) = {
   }
 }.
 
-lemma GinitL (F <: Flag_t): islossless F.gen => bd_hoare[GInit(F).init: true ==> true] = 1%r by admit.
+lemma GinitL (F <: Flag_t): islossless F.gen => bd_hoare[GInit(F).init: true ==> true] = 1%r
+  by admit. (* TODO: BUG in easycrypt for while loops, bug reported *)
 
-op todo = true. (*Need to find condition necessary for profing equality of flag
+op todo = true. (* TODO: Need to find condition necessary for profing equality of flag
            aa.[i] >= 0 /\
            bb.[i] < i /\
            bb.[i] < n+q-m /\
            aa.[i] < bb.[i] 
 *)
 
-lemma GinitE (F1<:Flag_t) (F2<:Flag_t):
-  equiv[F1.gen ~ F2.gen : todo /\ ={glob C, glob R, glob G} ==> ={glob C, glob R, glob G, glob F} ] =>
-    equiv[GInit(F1).init ~ GInit(F2).init : ={glob C, glob R} ==> ={glob G}] by admit.
+lemma GinitE (F1<:Flag_t) (F2<:Flag_t) gCV1:
+  equiv[F1.gen ~ F2.gen : (glob CV){1} = gCV1 /\ todo /\ ={glob C, glob R, glob G} ==> ={glob C, glob R, glob G, glob F} ] =>
+    equiv[GInit(F1).init ~ GInit(F2).init : (glob CV){1} = gCV1 /\ ={glob C, glob R} ==> ={glob G}]
+  by admit. (* TODO: Main part of both equivReal and equivFake need to find the condition that flags need to be equal *)
+
 (*  by (intros h;fun;(while (={glob G, glob C, glob R});last by wp);wp;seq 7 7 : (={glob G, glob C, glob R, glob F});[
     do 4 ! call GgarbDE;wp;call h|
     if;[|call GgarbE|]
@@ -301,7 +317,9 @@ pred qCorrect p = PrvInd_Circuit.Garble.inputCorrect (fst p) (snd p) /\ PrvInd_C
 
 lemma Garble2E (F1<:Flag_t) (F2<:Flag_t):
   equiv[F1.gen ~ F2.gen : todo /\ ={glob C, glob R, glob G} ==> ={glob C, glob R, glob G, glob F} ] =>
-    equiv[Garble2(F1).enc ~ Garble2(F2).enc : ={p} /\ qCorrect p{1} ==> ={res}] by admit.
+    equiv[Garble2(F1).enc ~ Garble2(F2).enc : ={p} /\ qCorrect p{1} ==> ={res}]
+  by admit. (*TODO: Easycrypt Bug ? mail to François *)
+
 
 module FR : Flag_t = {
   fun gen() : unit = {
@@ -338,16 +356,18 @@ module FH : Flag_t = {
 lemma FHybrid_genL : bd_hoare[FH.gen  : true ==> true] = 1%r by (fun;wp).
 
 lemma equiv_FH_FR :
-  equiv[FH.gen ~ FR.gen : todo /\ ={glob C, glob R, glob G} ==> ={glob C, glob R, glob G, glob F} ] by admit.
+  equiv[FH.gen ~ FR.gen : todo /\ ={glob C, glob R, glob G} ==> ={glob C, glob R, glob G, glob F} ]7
+  by admit. (* TODO: Core part of equivReal with flags *)
 
 lemma equiv_FH_FF :
-  equiv[FH.gen ~ FF.gen : todo /\ ={glob C, glob R, glob G} ==> ={glob C, glob R, glob G, glob F} ] by admit.
+  equiv[FH.gen ~ FF.gen : todo /\ ={glob C, glob R, glob G} ==> ={glob C, glob R, glob G, glob F} ]
+  by admit. (* TODO: Core part of equivFake with flags *)
 
 lemma equivGReal : equiv[Garble2(FH).enc ~ Garble2(FR).enc : ={p} /\ qCorrect p{1} ==> ={res}]
   by (apply (Garble2E FH FR);apply equiv_FH_FR).
 
 lemma equivGarble1 : equiv[Garble1.enc ~ Garble2(FR).enc : ={p} /\ qCorrect p{1} ==> ={res}]
-  by admit.
+  by admit. (* TODO: main part of equivReal where logic equivalent to code *)
 
 lemma equivGFake : equiv[Garble2(FH).enc ~ Garble2(FF).enc : ={p} /\ qCorrect p{1} ==> ={res}]
   by (apply (Garble2E FH FF);apply equiv_FH_FF).
@@ -379,34 +399,33 @@ module PrvInd(A:PrvIndSec.Adv_t) = {
   }
 }.
 
-lemma equivFake (A<:GC.PrvIndSec.Adv_t) :
-  equiv[ GC.PrvIndSec.Game(Garble2(FH), A).main ~ PrvIndSec.Game(Garble2(FF), A).main : true ==> ={res}]
-  by (apply (equivPrvInd A (Garble2(FH)) (Garble2(FF)));apply (equivGFake)).
+lemma prFake (A<:GC.PrvIndSec.Adv_t) &m:
+  Pr[PrvIndSec.Game(Garble2(FF), A).main() @ &m:res] = 1%r / 2%r
+  by admit. (* TODO: Compute the probability directly or write an intermediate random game *)
 
+lemma prH0 (A<:GC.PrvIndSec.Adv_t) &m:
+  Pr[Hybrid(A).main(0)@ &m :res] = Pr[PrvIndSec.Game(Garble1, A).main()@ &m :res]
+  by admit. (* TODO: Find a way to inline only one side of an equiv and propagate the l value *)
 
-
-require import FSet.
-require import Monoid.
-require import Real.
-
-
-lemma prReal (A<:GC.PrvIndSec.Adv_t) &m:
-  Pr[Hybrid(A).main(0)@ &m :res] = Pr[PrvIndSec.Game(Garble1, A).main()@ &m :res].
+(*
   cut h : equiv[GC.PrvIndSec.Game(Garble2(FH), A).main~PrvIndSec.Game(Garble1, A).main:FH.l{1} = 0 ==> ={res}];
     last admit. (*Feature request or idea*)
   admit.  (* Need to propagate the l condition *)
-  (*
+
+
   apply (equivPrvInd A (Garble2(FH)) (Garble1)). (* Why it does not work directly ? *)
 bypr (res{1}) (res{2})=> //.
 progress.
 cut -> : Pr[Garble1.enc(p0) @ &m2 : a = res] = Pr[Garble2(FR).enc(p0) @ &m2 : a = res]
   by (equiv_deno equivGarble1=> //;admit). (* BUG easycrypt ??? *)
-equiv_deno equivGReal=> //;admit. (* BUG easycrypt ??? *) *)
+equiv_deno equivGReal=> //;admit. (* BUG easycrypt ??? *) 
 save.
+*)
 
-lemma prFake (A<:GC.PrvIndSec.Adv_t) &m:
+
+lemma prHB (A<:GC.PrvIndSec.Adv_t) &m:
   Pr[Hybrid(A).main(Cst.bound)@ &m:res] = 1%r / 2%r
-  by admit.
+  by admit. (* TODO: Find a way to inline only one side of an equiv and propagate the l value *)
 
 lemma reduction :
   forall (A<:PrvIndSec.Adv_t),
@@ -416,7 +435,8 @@ lemma reduction :
       forall &m,
         Mrplus.sum (lambda l, Pr[Hybrid(A).main(l) @ &m : res]) (Interval.interval 1 Cst.bound) -
         Mrplus.sum (lambda l, let l = l-1 in 1%r - Pr[Hybrid(A).main(l) @ &m : res]) (Interval.interval 1 Cst.bound) =
-        2%r * Cst.bound%r * Pr[DKCS.Game(DKCS.Dkc, D).main()@ &m:res] by admit. (*reduction proof*)
+        2%r * Cst.bound%r * Pr[DKCS.Game(DKCS.Dkc, D).main()@ &m:res]
+  by admit. (* TODO: reduction proof *)
 
 lemma reductionSimplified :
   forall (A<:PrvIndSec.Adv_t),
@@ -425,7 +445,8 @@ lemma reductionSimplified :
     exists (D<:DKCS.Adv_t),
       forall &m,
         Pr[Hybrid(A).main(0) @ &m : res] - Pr[Hybrid(A).main(Cst.bound) @ &m : res] =
-        2%r * (Cst.bound+1)%r * (Pr[DKCS.Game(DKCS.Dkc, D).main()@ &m:res] - 1%r / 2%r) by admit. (*Sum simplification*)
+        2%r * (Cst.bound+1)%r * (Pr[DKCS.Game(DKCS.Dkc, D).main()@ &m:res] - 1%r / 2%r)
+  by admit. (* TODO :Sum simplification *)
 
 lemma _PrvIndDkc :
   forall (ADVG<:PrvIndSec.Adv_t),
@@ -441,8 +462,8 @@ proof strict.
   intros D red_temp.
   exists D.
   intros &m.
-  rewrite -(prReal A &m).
-  rewrite -{1}(prFake A &m).
+  rewrite -(prH0 A &m).
+  rewrite -{1}(prHB A &m).
   cut := red_temp &m=> /= ->.
   cut -> : forall (a b:real), a >= 0%r => `| a * b | = a * `| b | by smt;smt.
 save.
