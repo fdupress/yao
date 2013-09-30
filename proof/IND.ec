@@ -9,7 +9,6 @@ theory IND.
     type plain.
     type cipher.
 
-    op enc : plain -> cipher distr.
     op queryValid : plain*plain -> bool.
   end Scheme.
 
@@ -18,7 +17,11 @@ theory IND.
     fun get_challenge(cipher:Scheme.cipher) : bool
   }.
 
-  module Game(ADV:Adv_t) = {
+  module type Scheme_t = {
+    fun enc(p:Scheme.plain) : Scheme.cipher { }
+  }.
+
+  module Game(S:Scheme_t, ADV:Adv_t) = {
     fun main() : bool = {
       var query : Scheme.plain*Scheme.plain;
       var p : Scheme.plain;
@@ -30,7 +33,7 @@ theory IND.
       {
         b = ${0,1};
         p = if b then fst query else snd query;
-        c = $Scheme.enc p;
+        c = S.enc(p);
         b' = ADV.get_challenge(c);
         ret = (b = b');
       }

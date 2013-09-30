@@ -61,13 +61,7 @@ theory PrvInd.
       functCorrect (fst query0) /\ functCorrect (fst query1) /\
       inputCorrect (fst query0) (snd query0) /\ inputCorrect (fst query1) (snd query1) /\
       eval (fst query0) (snd query0) = eval (fst query1) (snd query1) /\
-      phi (fst query0) = phi (fst query1),
+      phi (fst query0) = phi (fst query1).
 
-    op enc (q:plain) = Dapply.dapply
-      (lambda (r:random),
-        let (f, x) = q in
-        let (g, ki, ko) = garble r f in
-        (g, encrypt ki x, ko))
-      genRandom.
 end PrvInd.
 (** end prvind *)

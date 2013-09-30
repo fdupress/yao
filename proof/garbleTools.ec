@@ -8,13 +8,13 @@ require import Bool.
 
 require import MyTools.
 
+op void = (Bitstring.zeros 0).
+
 type token = bitstring.
 type tokens = (token*token) array.
 type 'a gate = 'a*'a*'a*'a.
 type fGate = bool gate.
 type gGate = token gate.
-
-op lsb(b:token) : bool = b.[0].
 
 op getTok(x:tokens, a:int, i:bool) : token =
   if i then snd x.[a] else fst x.[a].
@@ -37,6 +37,15 @@ lemma set_set_tok: forall (x:tokens, a:int, i:bool, t:token, u:token),
   simplify setTok fst snd.
   case i=> ?;simplify;rewrite set_setE  set_get //. 
 qed.
+
+lemma nosmt set_tokC: forall (x:tokens, a:int, i:bool, b:int, j:bool, t:token, u:token),
+  0 <= a < Array.length x => 0 <= b < Array.length x => a <> b \/ i <> j =>
+  setTok (setTok x a i t) b j u = setTok (setTok x b j u) a i t
+  by (progress;simplify setTok;apply extensionality;(split;last case i=> ?);smt).
+
+lemma length_setTok: forall (x:tokens, a:int, i:bool, t:token),
+  length (setTok x a i t) = length x
+  by smt.
 
 op intToBitstring = zeros.
 
@@ -79,13 +88,13 @@ op setGateVal(f:'a gate, i:bool*bool, v:'a) : 'a gate =
 pred tokenCorrect(n:int, q:int, m:int, x:tokens) =
   Array.length x = (n+q) /\
   (forall (i:int), 0 <= i => i < n + q =>
-    (lsb (getTok x i false)) <> (lsb (getTok x i true))) /\
+    (DKC.lsb (getTok x i false)) <> (DKC.lsb (getTok x i true))) /\
   (forall (i:int), n + q - m <= i => i < n + q =>
-    !(lsb (getTok x i false)) ).
+    !(DKC.lsb (getTok x i false)) ).
 
 op enc(x:tokens, f:fGate, a:int, b:int, g:int, x1:bool, x2:bool) : token =
-  let xx1 = (lsb (getTok x a true) = x1) in
-  let xx2 = (lsb (getTok x b true) = x2) in
+  let xx1 = (DKC.lsb (getTok x a true) = x1) in
+  let xx2 = (DKC.lsb (getTok x b true) = x2) in
   DKC.E
     (tweak g x1 x2)
     (getTok x a xx1)
@@ -115,21 +124,21 @@ lemma inverse_base :
       (n <= g /\ g < n + q) =>
       tokenCorrect n q m x =>
       DKC.D
-        (tweak g (lsb (getTok x a i1)) (lsb (getTok x b i2))) (getTok x a i1) (getTok x b i2)
+        (tweak g (DKC.lsb (getTok x a i1)) (DKC.lsb (getTok x b i2))) (getTok x a i1) (getTok x b i2)
         (evalGate
           (garbleGate x f a b g)
-          (lsb (getTok x a i1), lsb (getTok x b i2))
+          (DKC.lsb (getTok x a i1), DKC.lsb (getTok x b i2))
         ) = getTok x g (evalGate f (i1, i2)).
 proof strict.
   intros DKCinv.
   do intros ?.
   pose gi1 := (getTok x a i1).
   pose gi2 := (getTok x b i2).
-  rewrite -(DKCinv (tweak g (lsb gi1) (lsb gi2)) gi1 gi2 (getTok x g (evalGate f (i1, i2)))).
+  rewrite -(DKCinv (tweak g (DKC.lsb gi1) (DKC.lsb gi2)) gi1 gi2 (getTok x g (evalGate f (i1, i2)))).
   congr=> //. 
   simplify evalGate garbleGate enc.
   generalize H5.
-  case (! lsb gi1 && ! lsb gi2)=> h;smt.
+  case (! DKC.lsb gi1 && ! DKC.lsb gi2)=> h;smt.
 qed.
 
 
@@ -161,6 +170,8 @@ op extract(f:bool functGen, g:int, x:bool array) : bool =
   let g = g + 1 in
   evalGate (getG f).[g] (x.[(getA f).[g]], x.[(getB f).[g]]).
 
+
+op eval(f:bool functGen, i:bool array, k:int) = (evalComplete f i extract).[k].
   
 op extractG(ff:token functGen, g:int, x:token array) =
   let g = g + 1 in
@@ -168,8 +179,8 @@ op extractG(ff:token functGen, g:int, x:token array) =
   let b = (getB ff).[g] in
   let aA = x.[a] in
   let bB = x.[b] in
-  let a = lsb aA in
-  let b = lsb bB in
+  let a = DKC.lsb aA in
+  let b = DKC.lsb bB in
   let t = tweak g a b in
   DKC.D t aA bB (evalGate ((getG ff).[g]) (a, b)).
 

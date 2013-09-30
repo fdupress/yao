@@ -15,9 +15,13 @@ theory DKC_Abs.
   op genRandKey: t distr.
   op genRandKeyLast: t distr.
   op addLast: t -> bool -> t.
+  op lsb: t -> bool.
 
   op E: t -> t -> t -> t -> t.
   op D: t -> t -> t -> t -> t.
+
+  axiom lsb_addLast : forall x b, lsb (addLast x b) = b.
+
 end DKC_Abs.
 
 theory DKC.
@@ -29,9 +33,13 @@ theory DKC.
   op genRandKey = Dbitstring.dbitstring k.
   op genRandKeyLast = Dbitstring.dbitstring (k-1).
   op addLast : t -> bool -> t .
+  op lsb: t -> bool.
 
   op E: t -> t -> t -> t -> t.
   op D: t -> t -> t -> t -> t.
+
+  axiom lsb_addLast : forall x b, lsb (addLast x b) = b.
+
 end DKC.
 
 theory DKC_Sec.
