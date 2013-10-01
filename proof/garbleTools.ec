@@ -188,8 +188,7 @@ op validCircuit (bound:int) (f:bool functGen) =
   length aa = n + q /\ length bb = n + q /\ length gg = n + q /\
   (range n (n + q) true (lambda i b, b /\ 0 <= aa.[i] /\ bb.[i] < i /\ bb.[i] < n+q-m /\ aa.[i] < bb.[i])).
 
-lemma valid_wireinput (bound:int) (f:bool functGen):
-  validCircuit bound f <=> 
+pred validCircuitP (bound:int) (f:bool functGen) =
   let (n, m, q, aa, bb, gg) = f in
   1 < n /\ 0 < m /\ 0 < q /\ m <= q /\
   n + q - m = bound /\
@@ -200,7 +199,11 @@ lemma valid_wireinput (bound:int) (f:bool functGen):
            bb.[i] < i /\
            bb.[i] < n+q-m /\
            aa.[i] < bb.[i]).
+
+lemma valid_wireinput (bound:int) (f:bool functGen):
+  validCircuit bound f <=>  validCircuitP bound f.
 proof strict.
+delta validCircuitP.
 rewrite /validCircuit; elim/tuple6_ind f=> n m q aa bb gg valF.
 case (1 < n); last smt. (* EC Note: Different behaviour between first member of a conjunction and others in goal? *)
 case (0 < m)=> //.

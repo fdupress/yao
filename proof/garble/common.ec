@@ -10,7 +10,7 @@ require import Real.
 require import GarbleTools.
 require import PreProof.
 
-(* This modules contains values set at the beginning and always remains the same *)
+(* This modules contains values set at the beginning and are not modified *)
 module CV = {
   var l : int
 }.
@@ -163,8 +163,12 @@ fun; while (={i, R.xx, glob C} /\
 by wp; skip; smt.
 qed.
 
+module type G_t = {
+  fun getInfo() : int*int*bool
+}.
+
 (* handle low level part of garbling *)
-module G = {
+module G : G_t = {
   var pp:token g2v
   var yy:token array
   var randG: (int*bool*bool,token) map
@@ -206,26 +210,32 @@ module G = {
     yy = garbD2(rand, alpha, bet);
     return yy;
   }
+
+  fun getInfo() : int*int*bool = {
+    return (G.a, G.b, (evalGate C.gg.[G.g] ((!C.v.[G.a]), false) = evalGate C.gg.[G.g] ((!C.v.[G.a]), true)));
+  }
 }.
 
-lemma GgarbL   : bd_hoare[G.garb  : true ==> true] = 1%r by (fun; wp).
+lemma GgarbL    : bd_hoare[G.garb    : true ==> true] = 1%r by (fun; wp).
 
-lemma GgarbD1L : bd_hoare[G.garbD1: true ==> true] = 1%r by (fun; wp; rnd; skip; smt).
+lemma GgarbD1L  : bd_hoare[G.garbD1  : true ==> true] = 1%r by (fun; wp; rnd; skip; smt).
 
-lemma GgarbD2L : bd_hoare[G.garbD2: true ==> true] = 1%r by (fun; call GgarbL; wp).
+lemma GgarbD2L  : bd_hoare[G.garbD2  : true ==> true] = 1%r by (fun; call GgarbL; wp).
 
-lemma GgarbDL  : bd_hoare[G.garbD : true ==> true] = 1%r by (fun; call GgarbD2L; call GgarbD1L).
+lemma GgarbDL   : bd_hoare[G.garbD   : true ==> true] = 1%r by (fun; call GgarbD2L; call GgarbD1L).
 
-equiv GgarbE   : G.garb   ~ G.garb  : ={glob G, glob C, glob R, yy, alpha, bet} ==> ={glob G, glob C, glob R}
+lemma GgetInfoL : bd_hoare[G.getInfo : true ==> true] = 1%r by (fun;wp).
+
+equiv GgarbE   : G.garb   ~ G.garb   : ={glob G, glob C, glob R, yy, alpha, bet} ==> ={glob G, glob C, glob R}
   by (fun;wp).
 
-equiv GgarbD1E : G.garbD1 ~ G.garbD1: ={glob G, glob C, glob R, rand, alpha, bet} ==> ={glob G, glob C, glob R}
+equiv GgarbD1E : G.garbD1 ~ G.garbD1 : ={glob G, glob C, glob R, rand, alpha, bet} ==> ={glob G, glob C, glob R}
   by (fun;wp;rnd;skip;smt).
 
-equiv GgarbD2E : G.garbD2 ~ G.garbD2: ={glob G, glob C, glob R, rand, alpha, bet} ==> ={glob G, glob C, glob R, res}
+equiv GgarbD2E : G.garbD2 ~ G.garbD2 : ={glob G, glob C, glob R, rand, alpha, bet} ==> ={glob G, glob C, glob R, res}
   by (fun;call GgarbE;wp).
 
-equiv GgarbDE  : G.garbD  ~ G.garbD : ={glob G, glob C, glob R, rand, alpha, bet} ==> ={glob G, glob C, glob R, res}
+equiv GgarbDE  : G.garbD  ~ G.garbD  : ={glob G, glob C, glob R, rand, alpha, bet} ==> ={glob G, glob C, glob R, res}
   by (fun;call GgarbD2E;call GgarbD1E).
 
 (* Contains the flag variables used by GInit, their value depends
@@ -249,15 +259,15 @@ module GInit(Flag:Flag_t) = {
     G.yy = Array.create (C.n + C.q) void;
     G.pp = Array.create (C.n + C.q) (void, void, void, void);
     G.randG = Map.empty;
-    G.g = C.n;
     G.a = 0;
     G.b = 0;
 
+    G.g = C.n;
     while (G.g < C.n + C.q)
     {
-      Flag.gen();
       G.a = C.aa.[G.g];
       G.b = C.bb.[G.g];
+      Flag.gen();
       tok = G.garbD(F.flag_ff, false, false);
       tok = G.garbD(F.flag_ft, false,  true);
       tok = G.garbD(F.flag_tf,  true, false);
@@ -268,26 +278,41 @@ module GInit(Flag:Flag_t) = {
   }
 }.
 
-lemma GinitL (F <: Flag_t): islossless F.gen => bd_hoare[GInit(F).init: true ==> true] = 1%r
-  by admit. (* TODO: BUG in easycrypt for while loops, bug reported *)
+lemma GinitL (F <: Flag_t{G}): islossless F.gen => islossless GInit(F).init.
+intros h.  
+fun.
+while true (C.n + C.q - G.g).
+intros z.
+inline G.garbD G.garbD1 G.garbD2 G.garb.
+wp;do ! (rnd;wp).
+call (_:true ==> true)=> //.
+wp.
+skip.
+progress assumption;smt.
+wp.
+skip.
+progress assumption;smt.
+save.
 
-op todo = true. (* TODO: Need to find condition necessary for profing equality of flag
-           aa.[i] >= 0 /\
-           bb.[i] < i /\
-           bb.[i] < n+q-m /\
-           aa.[i] < bb.[i] 
-*)
+op todo (a b g bound:int) = a >= 0 /\ b < g /\ b < Cst.bound+1 /\ a < b.
 
-lemma GinitE (F1<:Flag_t) (F2<:Flag_t) gCV1:
-  equiv[F1.gen ~ F2.gen : (glob CV){1} = gCV1 /\ todo /\ ={glob C, glob R, glob G} ==> ={glob C, glob R, glob G, glob F} ] =>
-    equiv[GInit(F1).init ~ GInit(F2).init : (glob CV){1} = gCV1 /\ ={glob C, glob R} ==> ={glob G}]
-  by admit. (* TODO: Main part of both equivReal and equivFake need to find the condition that flags need to be equal *)
-
-(*  by (intros h;fun;(while (={glob G, glob C, glob R});last by wp);wp;seq 7 7 : (={glob G, glob C, glob R, glob F});[
-    do 4 ! call GgarbDE;wp;call h|
-    if;[|call GgarbE|]
-  ]).*)
-
+lemma GinitE (F1<:Flag_t{G}) (F2<:Flag_t{G}) gCV1:
+  equiv[F1.gen ~ F2.gen :
+    (glob CV){1} = gCV1 /\
+    (todo G.a G.b G.g (C.n+C.q-C.m)){1} /\
+    ={glob C, glob R, glob G}
+  ==> ={glob C, glob R, glob G, glob F} ] =>
+    equiv[GInit(F1).init ~ GInit(F2).init : (validCircuitP Cst.bound (C.n, C.q, C.m, C.aa, C.bb, C.gg)){1} /\
+(glob CV){1} = gCV1 /\ ={glob C, glob R} ==> ={glob G}].
+proof strict.
+intros h.
+fun.
+(while (G.g{1} >= C.n{1} /\ (validCircuitP Cst.bound (C.n, C.q, C.m, C.aa, C.bb, C.gg)){1} /\ (glob CV){1} = gCV1 /\ ={glob G, glob C, glob R});
+last by wp;skip;progress assumption;smt).
+wp;seq 7 7 : (G.g{1} >= C.n{1} /\ (validCircuitP Cst.bound (C.n, C.q, C.m, C.aa, C.bb, C.gg)){1} /\ (glob CV){1} = gCV1 /\ ={F.flag_sp, glob G, glob C, glob R, glob F});[
+do 4 ! call GgarbDE;wp;call h;wp;skip;progress assumption;smt |
+if;[|call GgarbE;skip|skip];progress assumption;smt].
+save.
 
 module Garble1 : GC.PrvIndSec.Scheme_t = {
   fun enc(p:GC.PrvIndSec.Scheme.plain) : GC.PrvIndSec.Scheme.cipher = {
@@ -315,10 +340,14 @@ module Garble2(F:Flag_t) : GC.PrvIndSec.Scheme_t = {
 
 pred qCorrect p = PrvInd_Circuit.Garble.inputCorrect (fst p) (snd p) /\ PrvInd_Circuit.Garble.functCorrect (fst p).
 
-lemma Garble2E (F1<:Flag_t) (F2<:Flag_t):
-  equiv[F1.gen ~ F2.gen : todo /\ ={glob C, glob R, glob G} ==> ={glob C, glob R, glob G, glob F} ] =>
-    equiv[Garble2(F1).enc ~ Garble2(F2).enc : ={p} /\ qCorrect p{1} ==> ={res}]
-  by admit. (*TODO: Easycrypt Bug ? mail to François *)
+lemma Garble2E (F1<:Flag_t) (F2<:Flag_t) gCV1:
+  equiv[F1.gen ~ F2.gen : ((glob CV){1} = gCV1) /\ (todo G.a G.b G.g (C.n+C.q-C.m)){1} /\ ={glob C, glob R, glob G} ==> ={glob C, glob R, glob G, glob F} ] =>
+    equiv[Garble2(F1).enc ~ Garble2(F2).enc : ((glob CV){1} = gCV1) /\ ={p} /\ qCorrect p{1} ==> ={res}].
+intros h.
+fun.
+seq 3 3 : (true);last admit. (* TODO: BUG ??? *)
+call (GinitE F1 F2 gCV1 _)=> //;call RinitE;call CinitE;skip;progress assumption.
+save.
 
 
 module FR : Flag_t = {
@@ -343,34 +372,37 @@ module FF : Flag_t = {
 }.
 lemma FFake_genL : bd_hoare[FF.gen  : true ==> true] = 1%r by (fun;wp).
 
-module FH : Flag_t = {
-  var l : int
+module FH(G:G_t) : Flag_t = {
   fun gen() : unit = {
+    var a, b : int;
+    var val : bool;
+    (a, b, val) = G.getInfo();
+    
     F.flag_ff = false;
-    F.flag_ft = G.a <= l;
-    F.flag_tf = G.b <= l;
-    F.flag_tt = G.a <= l;
-    F.flag_sp = G.a <= l < G.b /\ (evalGate C.gg.[G.g] ((!C.v.[G.a]), false) = evalGate C.gg.[G.g] ((!C.v.[G.a]), true));
+    F.flag_ft = a <= CV.l;
+    F.flag_tf = b <= CV.l;
+    F.flag_tt = a <= CV.l;
+    F.flag_sp = a <= CV.l < b /\ val;
   }
 }.
-lemma FHybrid_genL : bd_hoare[FH.gen  : true ==> true] = 1%r by (fun;wp).
+lemma FHybrid_genL (G<:G_t): bd_hoare[FH(G).gen : true ==> true] = 1%r by (fun;wp;apply GgetInfoL).
 
 lemma equiv_FH_FR :
-  equiv[FH.gen ~ FR.gen : todo /\ ={glob C, glob R, glob G} ==> ={glob C, glob R, glob G, glob F} ]7
-  by admit. (* TODO: Core part of equivReal with flags *)
+  equiv[FH.gen ~ FR.gen : ((glob CV){1} = (-1 )) /\ (todo G.a G.b G.g (C.n+C.q-C.m)){1} /\ ={glob C, glob R, glob G} ==> ={glob C, glob R, glob G, glob F} ]
+   by (fun;wp;skip;smt).
 
 lemma equiv_FH_FF :
-  equiv[FH.gen ~ FF.gen : todo /\ ={glob C, glob R, glob G} ==> ={glob C, glob R, glob G, glob F} ]
-  by admit. (* TODO: Core part of equivFake with flags *)
+  equiv[FH.gen ~ FF.gen : ((glob CV){1} = Cst.bound) /\ (todo G.a G.b G.g (C.n+C.q-C.m)){1} /\ ={glob C, glob R, glob G} ==> ={glob C, glob R, glob G, glob F} ]
+   by (fun;wp;skip;smt).
 
-lemma equivGReal : equiv[Garble2(FH).enc ~ Garble2(FR).enc : ={p} /\ qCorrect p{1} ==> ={res}]
-  by (apply (Garble2E FH FR);apply equiv_FH_FR).
+lemma equivGReal : equiv[Garble2(FH).enc ~ Garble2(FR).enc : ((glob CV){1} = (-1)) /\ ={p} /\ qCorrect p{1} ==> ={res}]
+  by (apply (Garble2E FH FR (-1));apply equiv_FH_FR).
 
 lemma equivGarble1 : equiv[Garble1.enc ~ Garble2(FR).enc : ={p} /\ qCorrect p{1} ==> ={res}]
   by admit. (* TODO: main part of equivReal where logic equivalent to code *)
 
-lemma equivGFake : equiv[Garble2(FH).enc ~ Garble2(FF).enc : ={p} /\ qCorrect p{1} ==> ={res}]
-  by (apply (Garble2E FH FF);apply equiv_FH_FF).
+lemma equivGFake : equiv[Garble2(FH).enc ~ Garble2(FF).enc : ((glob CV){1} = Cst.bound){1} /\ ={p} /\ qCorrect p{1} ==> ={res}]
+  by (apply (Garble2E FH FF Cst.bound);apply equiv_FH_FF).
 
 lemma equivPrvInd (A<:GC.PrvIndSec.Adv_t) (S1<:GC.PrvIndSec.Scheme_t) (S2<:GC.PrvIndSec.Scheme_t) :
   equiv[ S1.enc ~ S2.enc : ={p} /\ qCorrect p{1} ==> ={res}] =>
@@ -384,7 +416,7 @@ module Hybrid(A:PrvIndSec.Adv_t) = {
   module PrvInd = GC.PrvIndSec.Game(Garble2(FH), A)
   fun main(l:int) : bool = {
     var b : bool;
-    FH.l = l;
+    CV.l = l;
     b = PrvInd.main();
     return b;
   }
@@ -403,8 +435,8 @@ lemma prFake (A<:GC.PrvIndSec.Adv_t) &m:
   Pr[PrvIndSec.Game(Garble2(FF), A).main() @ &m:res] = 1%r / 2%r
   by admit. (* TODO: Compute the probability directly or write an intermediate random game *)
 
-lemma prH0 (A<:GC.PrvIndSec.Adv_t) &m:
-  Pr[Hybrid(A).main(0)@ &m :res] = Pr[PrvIndSec.Game(Garble1, A).main()@ &m :res]
+lemma prH0 (A<:GC.PrvIndSec.Adv_t) &m: let l = -1 in
+  Pr[Hybrid(A).main(l)@ &m :res] = Pr[PrvIndSec.Game(Garble1, A).main()@ &m :res]
   by admit. (* TODO: Find a way to inline only one side of an equiv and propagate the l value *)
 
 (*
@@ -423,8 +455,8 @@ save.
 *)
 
 
-lemma prHB (A<:GC.PrvIndSec.Adv_t) &m:
-  Pr[Hybrid(A).main(Cst.bound)@ &m:res] = 1%r / 2%r
+lemma prHB (A<:GC.PrvIndSec.Adv_t) &m: let l = Cst.bound in
+  Pr[Hybrid(A).main(l)@ &m:res] = 1%r / 2%r
   by admit. (* TODO: Find a way to inline only one side of an equiv and propagate the l value *)
 
 lemma reduction :
@@ -433,9 +465,9 @@ lemma reduction :
     islossless A.get_challenge =>
     exists (D<:DKCS.Adv_t),
       forall &m,
-        Mrplus.sum (lambda l, Pr[Hybrid(A).main(l) @ &m : res]) (Interval.interval 1 Cst.bound) -
-        Mrplus.sum (lambda l, let l = l-1 in 1%r - Pr[Hybrid(A).main(l) @ &m : res]) (Interval.interval 1 Cst.bound) =
-        2%r * Cst.bound%r * Pr[DKCS.Game(DKCS.Dkc, D).main()@ &m:res]
+        Mrplus.sum (lambda l, let l = l - 1 in Pr[Hybrid(A).main(l) @ &m : res]) (Interval.interval 0 Cst.bound) -
+        Mrplus.sum (lambda l, Pr[Hybrid(A).main(l) @ &m : res]) (Interval.interval 0 Cst.bound) =
+        2%r * (Cst.bound+1)%r * (Pr[DKCS.Game(DKCS.Dkc, D).main()@ &m:res] - 1%r/2%r)
   by admit. (* TODO: reduction proof *)
 
 lemma reductionSimplified :
@@ -443,10 +475,25 @@ lemma reductionSimplified :
     islossless A.gen_query =>
     islossless A.get_challenge =>
     exists (D<:DKCS.Adv_t),
-      forall &m,
-        Pr[Hybrid(A).main(0) @ &m : res] - Pr[Hybrid(A).main(Cst.bound) @ &m : res] =
-        2%r * (Cst.bound+1)%r * (Pr[DKCS.Game(DKCS.Dkc, D).main()@ &m:res] - 1%r / 2%r)
-  by admit. (* TODO :Sum simplification *)
+      forall &m, let l1 = - 1 in let l2 = Cst.bound in
+        Pr[Hybrid(A).main(l1) @ &m : res] - Pr[Hybrid(A).main(l2) @ &m : res] =
+        2%r * (Cst.bound+1)%r * (Pr[DKCS.Game(DKCS.Dkc, D).main()@ &m:res] - 1%r / 2%r).
+proof strict.
+progress.
+elim (reduction A _ _)=> //.
+intros D redt.
+exists D.
+intros &m.
+cut := redt &m=> <-;clear redt.
+rewrite (Mrplus.sum_rm _ _ 0) /=;first smt.
+rewrite (Mrplus.sum_chind _ (lambda (x:int), x - 1) (lambda (x:int), x + 1)) /=;first smt.
+rewrite (Interval.dec_interval 0 Cst.bound _);first smt.
+rewrite (Mrplus.sum_rm _ (Interval.interval 0 Cst.bound) ((Cst.bound)%Cst)) /=;first smt.
+pose s1 := (Mrplus.sum _ _).
+pose s2 := (Mrplus.sum _ _).
+cut -> : s1 = s2 by (rewrite /s1 /s2;(congr;last apply Fun.fun_ext);smt).
+smt.
+save.
 
 lemma _PrvIndDkc :
   forall (ADVG<:PrvIndSec.Adv_t),
