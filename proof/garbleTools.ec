@@ -203,27 +203,13 @@ pred validCircuitP (bound:int) (f:bool functGen) =
 lemma valid_wireinput (bound:int) (f:bool functGen):
   validCircuit bound f <=>  validCircuitP bound f.
 proof strict.
-delta validCircuitP.
-rewrite /validCircuit; elim/tuple6_ind f=> n m q aa bb gg valF.
-case (1 < n); last smt. (* EC Note: Different behaviour between first member of a conjunction and others in goal? *)
-case (0 < m)=> //.
-case (0 < q)=> //.
-case (n + q - m = bound)=> //.
-case (length aa = n + q)=> //.
-case (length bb = n + q)=> //.
-case (length gg = n + q)=> //.
-intros=> H1 H2 H3 H4 H5 H6 -> /=.
-apply (_: forall b d, (b <=> d) => (m <= q /\ b <=> m <= q /\ d)); first smt.
-pose {1 3} j := q.
-elim/Induction.induction j; last first; first 2 smt.
-intros=> k hypJ hypRec.
-rewrite range_ind; first smt.
+rewrite /validCircuitP /validCircuit; elim/tuple6_ind f=> n m q aa bb gg valF /=.
+case (1 < n); case (0 < m); case (0 < q); case (m <= q); case (n + q - m = bound);
+case (length aa = n + q); case (length bb = n + q); case (length gg = n + q)=> // /=.
+intros=> len_gg len_bb len_aa size m_q q_pos m_pos lt1_n.
+pose {1 3} j := q; elim/Induction.induction j; last first; first 2 smt.
+intros=> k leq0_k IH; rewrite range_ind; first smt.
 rewrite (_: n + (k + 1) - 1 = n + k); first smt.
-rewrite hypRec /=.
-split=> h.
-elim h=> h1 h2 i.
-case (i = n + k).
-  by intros => -> _; apply h2.
-  by intros=> hh1 hh2; smt.
-(split;first intros i hI);apply h;smt.
+rewrite IH /=; split; last smt.
+by intros=> [all_strict all_bound] i; case (i = n + k)=> //; smt.
 qed.
