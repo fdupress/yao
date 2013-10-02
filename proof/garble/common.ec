@@ -73,72 +73,62 @@ equiv CinitE: Cf.init ~ Cf.init: ={p} /\ (functCorrect (fst p)){1}==> ={glob C} 
                 functCorrect C.f){1}.
 proof strict.
 fun; while ((Array.length C.v = C.n + C.q){1} /\ ={glob C, i}); wp; skip.
-progress assumption.
-smt.
-simplify functCorrect validCircuit getN getQ.
-intros &1 &2 [h ].
-elimT tuple6_ind (fst p{2}).
-intros n m q aa bb gg.
-subst.
-intros ->.
-progress assumption;smt.
+  by progress; smt.
+  by rewrite /functCorrect /validCircuit /getN /getQ=> &1 &2 [->];
+     elim/tuple6_ind (fst p{2})=> n m q aa bb gg dec_p; smt.
 qed.
 
-lemma fst : forall (x y:'a), fst (x, y) = x by smt.
-lemma snd : forall (x y:'a), snd (x, y) = y by smt.
+lemma fst (x y:'a): fst (x, y) = x by rewrite /fst.
+lemma snd (x y:'a): snd (x, y) = y by rewrite /snd.
 
 equiv CinitE_rnd: Cf.init ~ Cf.init:
-PrvIndSec.Scheme.queryValid (p{1}, p{2})
-==> ={C.n, C.m, C.q, C.aa, C.bb} /\
-                (forall i, C.n{1} + C.q{1} - C.m{1} <= i < C.n{1} + C.q{1} => C.v{1}.[i] = C.v{2}.[i]) /\
-                ((C.n, C.m, C.q, C.aa, C.bb, C.gg) = C.f /\
-                Array.length C.v = (C.n + C.q) /\
-                functCorrect C.f /\
-                inputCorrect C.f C.x){1} /\
-                ((C.n, C.m, C.q, C.aa, C.bb, C.gg) = C.f /\
-                Array.length C.v = (C.n + C.q) /\
-                functCorrect C.f /\
-                inputCorrect C.f C.x){2} /\
-                (GarbleCircuit.eval C.f C.x){1} = (GarbleCircuit.eval C.f C.x){2} /\
-                (forall i, 0 <= i < C.n{1} => C.v{1}.[i] = C.x{1}.[i]) /\
-                (forall i, 0 <= i < C.n{1} => C.v{2}.[i] = C.x{2}.[i]).
+  PrvIndSec.Scheme.queryValid (p{1}, p{2}) ==>
+  ={C.n, C.m, C.q, C.aa, C.bb} /\
+  (forall i, C.n{1} + C.q{1} - C.m{1} <= i < C.n{1} + C.q{1} => C.v{1}.[i] = C.v{2}.[i]) /\
+  (GarbleCircuit.eval C.f C.x){1} = (GarbleCircuit.eval C.f C.x){2} /\
+  ((C.n, C.m, C.q, C.aa, C.bb, C.gg) = C.f /\
+   Array.length C.v = (C.n + C.q) /\
+   functCorrect C.f /\
+   inputCorrect C.f C.x){1} /\
+  (forall i, 0 <= i < C.n{1} => C.v{1}.[i] = C.x{1}.[i]) /\
+  ((C.n, C.m, C.q, C.aa, C.bb, C.gg) = C.f /\
+   Array.length C.v = (C.n + C.q) /\
+   functCorrect C.f /\
+   inputCorrect C.f C.x){2} /\
+  (forall i, 0 <= i < C.n{1} => C.v{2}.[i] = C.x{2}.[i]).
 proof strict.
-fun; while (0 <= C.q{2} /\ 0 <= C.n{2} + C.q{2} - C.m{2} /\ (Array.length C.v = C.n + C.q){2} /\ (Array.length C.v = C.n + C.q){1} /\ ={C.n, C.m, C.q, C.aa, C.bb, i} /\
-                (GarbleCircuit.eval C.f C.x){1} = (GarbleCircuit.eval C.f C.x){2} /\ (forall j, C.n{1} + C.q{1} - C.m{1} <= j < i{1} => C.v{1}.[j] = C.v{2}.[j]) /\
-                ((C.n, C.m, C.q, C.aa, C.bb, C.gg) = C.f){2} /\
-                ((C.n, C.m, C.q, C.aa, C.bb, C.gg) = C.f){1} /\ (C.n = length C.x){1} /\ (C.n = length C.x){2} /\
-                (forall j, 0 <= j < i{1} /\ j < C.n{1} => C.v{1}.[j] = C.x{1}.[j]) /\
-                (forall j, 0 <= j < i{1} /\ j < C.n{1}=> C.v{2}.[j] = C.x{2}.[j])); wp; skip.
-progress assumption.
-smt.
-smt.
-rewrite ! set_get;first 4 smt.
-case (i{2} = j);last smt.
-cut : ((sub
-  (evalComplete (length C.x{1}, C.m{2}, C.q{2}, C.aa{2}, C.bb{2}, C.gg{1}) C.x{1}
-     extract) (length C.x{1} + C.q{2} - C.m{2}) C.m{2}).[i{2} - (length C.x{1} + C.q{2} - C.m{2})] =
-(sub
-  (evalComplete (length C.x{1}, C.m{2}, C.q{2}, C.aa{2}, C.bb{2}, C.gg{2}) C.x{2}
-     extract) (length C.x{1} + C.q{2} - C.m{2}) C.m{2}).[i{2} - (length C.x{1} + C.q{2} - C.m{2})]) by smt.
-rewrite ! sub_get;first 10 smt.
-smt.
-
-rewrite set_get;first 2 smt.
-case (i{2} = j)=> h;last smt.
-simplify GarbleTools.eval GarbleTools.evalComplete.
-rewrite MyTools.appendInit_get1;smt.
-
-rewrite set_get;first 2 smt.
-case (i{2} = j)=> h;last smt.
-simplify GarbleTools.eval GarbleTools.evalComplete.
-rewrite MyTools.appendInit_get1;smt.
-
-simplify PrvIndSec.Scheme.queryValid PrvInd_Circuit.Scheme.queryValid functCorrect validCircuit getN getQ.
-intros &1 &2.
-rewrite !fst !snd.
-elimT tuple6_ind (fst p{2}).
-elimT tuple6_ind (fst p{1}).
-progress assumption;smt.
+fun; while (0 <= C.q{2} /\ 0 <= C.n{2} + C.q{2} - C.m{2} /\
+            (Array.length C.v = C.n + C.q){1} /\
+            (Array.length C.v = C.n + C.q){2} /\
+            ={C.n, C.m, C.q, C.aa, C.bb, i} /\
+            (GarbleCircuit.eval C.f C.x){1} = (GarbleCircuit.eval C.f C.x){2} /\
+            (forall j, C.n{1} + C.q{1} - C.m{1} <= j < i{1} => C.v{1}.[j] = C.v{2}.[j]) /\
+            (forall j, 0 <= j < i{1} /\ j < C.n{1}=> C.v{2}.[j] = C.x{2}.[j]) /\
+            ((C.n, C.m, C.q, C.aa, C.bb, C.gg) = C.f){1} /\
+            (forall j, 0 <= j < i{1} /\ j < C.n{1} => C.v{1}.[j] = C.x{1}.[j]) /\
+            ((C.n, C.m, C.q, C.aa, C.bb, C.gg) = C.f){2} /\
+            (C.n = length C.x){1} /\ (C.n = length C.x){2}); wp; skip.
+  progress; first 2 smt.
+    rewrite !set_get; first 4 smt.
+    by case (i = j){2}=> _;
+       cut : (sub (evalComplete (length C.x{1},C.m,C.q,C.aa,C.bb,C.gg{1}) C.x{1} extract)
+                  (length C.x{1} + C.q - C.m) C.m).[i - (length C.x{1} + C.q - C.m)]{2} =
+             (sub (evalComplete (length C.x{1},C.m,C.q,C.aa,C.bb,C.gg) C.x extract)
+                  (length C.x{1} + C.q - C.m) C.m).[i - (length C.x{1} + C.q - C.m)]{2}
+         by (by generalize H3; rewrite /GarbleCircuit.eval /evalGen /getN /getQ /getM /=; intros=> ->);
+       rewrite 2?sub_get; smt. 
+    rewrite set_get; first 2 smt.
+    by case (i = j){2}=> _;
+       rewrite /GarbleTools.eval /GarbleTools.evalComplete ?MyTools.appendInit_get1; smt.
+    rewrite set_get; first 2 smt.
+    by case (i = j){2}=> _;
+       rewrite /GarbleTools.eval /GarbleTools.evalComplete ?MyTools.appendInit_get1; smt.
+    by intros=> &1 &2; rewrite /PrvIndSec.Scheme.queryValid /PrvInd_Circuit.Scheme.queryValid
+                               /PrvInd_Circuit.Garble.functCorrect /functCorrect /validCircuit
+                               /getN /getQ /getM !fst !snd;
+       elim/tuple6_ind (fst p){2}; elim/tuple6_ind (fst p){1};
+       intros=> //= n1 m1 q1 aa1 bb1 gg1 dec_p1 n2 m2 q2 aa2 bb2 gg2 dec_p2;
+       rewrite dec_p1 dec_p2 //=; progress=> //; smt.
 qed.
 
 (*Contains the random used for a normal garbling *)
@@ -201,58 +191,58 @@ equiv RinitE: Rf.init ~ Rf.init: ={useVisible, glob C}  /\ (0 <= C.m <= C.n + C.
                 Array.length R.xx = (C.n+C.q) /\
                 Array.length R.t = (C.n+C.q)){1}.
 proof strict.
-by fun; while (={useVisible, glob C, glob R, i} /\ (
-            0 <= C.m <= C.n + C.q /\
-            Array.length R.xx = C.n + C.q /\
-            Array.length R.t = C.n + C.q /\
-            (forall (j:int), 0 <= j => j < i =>
-              Dkc.DKC.lsb (getTok R.xx j false) <> Dkc.DKC.lsb (getTok R.xx j true)) /\
-            (forall (j:int), C.n + C.q - C.m <= j => j < i =>
-              !Dkc.DKC.lsb (getTok R.xx j false))){1}); [wp; do 3!rnd | wp];skip;progress assumption;rewrite ?set_get_tok ?length_setTok;smt.
+by fun; while (={useVisible, glob C, glob R, i} /\
+               (0 <= C.m <= C.n + C.q /\
+                Array.length R.xx = C.n + C.q /\
+                Array.length R.t = C.n + C.q /\
+                (forall (j:int), 0 <= j => j < i =>
+                  Dkc.DKC.lsb (getTok R.xx j false) <> Dkc.DKC.lsb (getTok R.xx j true)) /\
+                (forall (j:int), C.n + C.q - C.m <= j => j < i =>
+                  !Dkc.DKC.lsb (getTok R.xx j false))){1});
+     [wp; do 3!rnd | wp]; skip;
+     progress; rewrite ?set_get_tok ?length_setTok; smt.
 qed.
 
 equiv RinitE_rnd: Rf.init ~ Rf.init:
-(0 < C.m <= C.n + C.q /\ useVisible = true){1} /\
-={useVisible, C.n, C.m, C.q, C.aa, C.bb} /\
-(forall i, C.n{1} + C.q{1} - C.m{1} <= i < C.n{1} + C.q{1} => C.v{1}.[i] = C.v{2}.[i])
-==>
-(0 <= C.m <= C.n + C.q /\ tokenCorrect C.n C.q C.m R.xx /\ Array.length R.xx = (C.n+C.q) /\ Array.length R.t = (C.n+C.q)){1} /\
-length R.xx{1} = length R.xx{2} /\
-={R.t} /\
-(forall x g, 0 <= g < (C.n + C.q){1} => (getTok R.xx g (x^^C.v.[g])){1} = (getTok R.xx g (x^^C.v.[g])){2}
-).
-fun; while (
-(
-  0 <= C.m <= C.n + C.q /\
-  Array.length R.xx = C.n + C.q /\
-  Array.length R.t = C.n + C.q /\
-  (forall (j:int), 0 <= j => j < i => Dkc.DKC.lsb (getTok R.xx j false) <> Dkc.DKC.lsb (getTok R.xx j true)) /\
-  (forall (j:int), C.n + C.q - C.m <= j => j < i => !Dkc.DKC.lsb (getTok R.xx j false)) /\
-  length R.xx = C.n+C.q /\
-  useVisible = true
-){1} /\
-={useVisible, C.n, C.m, C.q, C.aa, C.bb, R.t, i} /\
-(forall x g, 0 <= g < i{1} => (getTok R.xx g (x^^C.v.[g])){1} = (getTok R.xx g (x^^C.v.[g])){2}) /\
-length R.xx{1} = length R.xx{2} /\
-(forall i, C.n{1} + C.q{1} - C.m{1} <= i < C.n{1} + C.q{1} => C.v{1}.[i] = C.v{2}.[i]) /\ useVisible{1} = true
-
-);last (wp;skip;progress assumption).
-wp.
-(case (C.v{1}.[i{1}]=C.v{2}.[i{1}]);last swap 2 1);rnd;rnd;rnd;skip;progress assumption;rewrite ? set_get_tok ? length_setTok;try smt.
-case (i{2}=g);smt.
+  ={useVisible, C.n, C.m, C.q, C.aa, C.bb} /\
+  (forall i, C.n{1} + C.q{1} - C.m{1} <= i < C.n{1} + C.q{1} =>
+     C.v{1}.[i] = C.v{2}.[i]) /\
+  (0 < C.m <= C.n + C.q /\ useVisible = true){1} ==>
+  ={R.t} /\
+  (forall x g, 0 <= g < (C.n + C.q){1} =>
+    (getTok R.xx g (x^^C.v.[g])){1} = (getTok R.xx g (x^^C.v.[g])){2}) /\
+  (0 <= C.m <= C.n + C.q /\
+   tokenCorrect C.n C.q C.m R.xx /\
+   Array.length R.xx = (C.n+C.q) /\
+   Array.length R.t = (C.n+C.q)){1} /\
+  length R.xx{1} = length R.xx{2}.
+proof strict.
+fun; while ((0 <= C.m <= C.n + C.q /\
+             Array.length R.xx = C.n + C.q /\
+             Array.length R.t = C.n + C.q /\
+             (forall (j:int), 0 <= j => j < i =>
+                Dkc.DKC.lsb (getTok R.xx j false) <> Dkc.DKC.lsb (getTok R.xx j true)) /\
+             (forall (j:int), C.n + C.q - C.m <= j => j < i =>
+                !Dkc.DKC.lsb (getTok R.xx j false)) /\
+             length R.xx = C.n+C.q /\
+             useVisible = true){1} /\
+            ={useVisible, C.n, C.m, C.q, C.aa, C.bb, R.t, i} /\
+            (forall x g, 0 <= g < i{1} =>
+              (getTok R.xx g (x^^C.v.[g])){1} = (getTok R.xx g (x^^C.v.[g])){2}) /\
+            length R.xx{1} = length R.xx{2} /\
+            (forall i, C.n{1} + C.q{1} - C.m{1} <= i < C.n{1} + C.q{1} =>
+              C.v{1}.[i] = C.v{2}.[i]) /\ useVisible{1} = true);
+  last wp; skip; progress; smt.
+wp; case (C.v.[i]{1} = C.v{2}.[i]{1}); [ | swap 2 1];
+  do !rnd; skip.
 timeout 10.
-case (i{2}=g);case x;smt.
-timeout 2.
-smt.
-smt.
-smt.
-smt.
-smt.
-smt.
-smt.
-smt.
-smt.
-smt.
+  by progress; rewrite ?set_get_tok ?length_setTok; try case (i = j){2}; try case (i = g){2}; smt.
+timeout 3.  
+  progress; rewrite ?set_get_tok ?length_setTok; first 16 by try case (i = j){2}; smt.
+  case (i = g){2}; case x; [smt | | smt | smt];
+  by intros=> _ -> //=; rewrite !(xor_comm true) !(xor_comm false) !xor_true !xor_false;
+     cut h: forall x, ((!x) = x) = false by smt; rewrite !h //=; smt.
+  smt.
 qed.
 
 pred t_xor (sup:int) (t1 t2 v:bool array) = forall i,
