@@ -710,130 +710,82 @@ while (={glob A, glob G, C.n, C.m, C.q, C.aa, C.bb, R.t} /\
   by if=> //; [call GgarbE | ]; skip; progress=> //; smt.
 wp; call RinitE_rnd.
 call CinitE_rnd.
-(* wp; rnd; skip; progress=> //.
-  smt. smt. case bL; smt. case bL; smt. case bL; smt. case bL; smt. smt. smt. *)
+ wp; rnd; skip; progress=> //;
+  first 19 by try case bL; try (generalize H11; rewrite /functCorrect valid_wireinput /validCircuitP); smt.
+  rewrite /encrypt /choose; apply extensionality; split; first smt.
+  intros=> eqLen x x0 xm; rewrite !init_get=> //=; first 2 smt.
+  cut ->: x_L.[x] = false ^^ v_L.[x] by smt;
+  cut ->: x_R.[x] = false ^^ v_R.[x] by smt;
+  cut := H28 false x _; first smt.
+  by rewrite /getTok sub_get ?sub_get //; smt.
+qed.
 
-(* WTH? *)
-do intros ?.
-split.
-smt.
-
-do intros ?.
-split.
-case bL;smt.
-
-intros h.
-intros ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? .
-elimT tuple6_ind f_L.
-elimT tuple6_ind f_R.
-progress;try smt.
-generalize H5;simplify functCorrect validCircuit;smt.
-generalize H5;simplify functCorrect;rewrite valid_wireinput /validCircuitP;smt.
-generalize H5;simplify functCorrect;rewrite valid_wireinput /validCircuitP;smt.
-generalize H5;simplify functCorrect;rewrite valid_wireinput /validCircuitP;smt.
-generalize H5;simplify functCorrect;rewrite valid_wireinput /validCircuitP;smt.
-generalize H5;simplify functCorrect;rewrite valid_wireinput /validCircuitP;smt.
-generalize H5;simplify functCorrect;rewrite valid_wireinput /validCircuitP;smt.
-generalize H5;simplify functCorrect;rewrite valid_wireinput /validCircuitP;smt.
-generalize H5;simplify functCorrect;rewrite valid_wireinput /validCircuitP;smt.
-generalize H5;simplify functCorrect;rewrite valid_wireinput /validCircuitP;smt.
-simplify encrypt choose.
-(apply extensionality;split;first smt)=> len x x0 xm.
-rewrite ! init_get=> // /=;first 2 smt.
-cut -> :x_L.[x] = false^^v_L.[x] by smt.
-cut -> :x_R.[x] = false^^v_R.[x] by smt.
-cut := H27 false x _;first smt.
-simplify getTok.
-rewrite sub_get;first 5 smt.
-rewrite sub_get.
-smt.
-smt.
-smt.
-smt.
-smt.
-smt.
-rnd;skip;smt.
-save.
-
-lemma prH0 (A<:GC.PrvIndSec.Adv_t{CV, G, C, R, F}) &m: let ll = -1 in
-  Pr[Hybrid(A).main(ll)@ &m :res] = Pr[PrvIndSec.Game(Garble1, A).main()@ &m :res].
+lemma prH0 (A <: GC.PrvIndSec.Adv_t {CV,G,C,R,F}) &m:
+  Pr[Hybrid(A).main((-1)) @ &m :res] = Pr[PrvIndSec.Game(Garble1, A).main()@ &m :res].
 proof strict.
-intros=> ll.
 equiv_deno (_: l{1} = -1 ==> ={res})=> //.
-fun*;inline Hybrid(A).main.
-wp;call (equivPrvInd A (Garble2(FH)) (Garble1) (-1) _);last by wp.
-bypr (res{1}) (res{2})=> //.
-progress.
-apply (eq_trans _ Pr[Garble2(FR).enc(p{1}) @ &m :a = res] _);[
-  equiv_deno equivGReal=> // |
-  apply eq_sym;equiv_deno equivGarble1=> //;smt].
-save.
+fun*; inline Hybrid(A).main.
+wp; call (equivPrvInd A (Garble2(FH)) Garble1 (-1) _); last by wp.
+bypr (res{1}) (res{2})=> //; progress.
+apply (eq_trans _ Pr[Garble2(FR).enc(p{1}) @ &m :a = res] _).
+  by equiv_deno equivGReal.
+  by apply eq_sym; equiv_deno equivGarble1=> //; smt.
+qed.
 
-lemma prHB (A<:GC.PrvIndSec.Adv_t{CV, G, C, R, F}) &m: islossless A.gen_query => islossless A.get_challenge =>
+lemma prHB (A <: GC.PrvIndSec.Adv_t {CV,G,C,R,F}) &m:
+  islossless A.gen_query =>
+  islossless A.get_challenge =>
   Pr[Hybrid(A).main(Cst.bound)@ &m:res] = 1%r / 2%r.
 proof strict.
-intros ll1 ll2.
-rewrite -(prFake A &m)=> //.
+intros=> AgenL AgetL; rewrite -(prFake A &m)=> //.
 equiv_deno (_: l{1} = Cst.bound ==> ={res})=> //.
-fun*;inline Hybrid(A).main.
-wp;call (equivPrvInd A (Garble2(FH)) (Garble2(FF)) (Cst.bound) _);last by wp.
-bypr (res{1}) (res{2})=> //.
-progress.
-equiv_deno equivGFake=> //.
-save.
+fun*; inline Hybrid(A).main.
+wp; call (equivPrvInd A (Garble2(FH)) (Garble2(FF)) (Cst.bound) _); last by wp.
+bypr (res{1}) (res{2})=> //; progress.
+by equiv_deno equivGFake.
+qed.
 
-lemma reduction :
-  forall (A<:PrvIndSec.Adv_t{CV, G, C, R, F}),
-    islossless A.gen_query =>
-    islossless A.get_challenge =>
-    exists (D<:DKCS.Adv_t),
-      forall &m,
-        Mrplus.sum (lambda l, let l = l - 1 in Pr[Hybrid(A).main(l) @ &m : res]) (Interval.interval 0 Cst.bound) -
-        Mrplus.sum (lambda l, Pr[Hybrid(A).main(l) @ &m : res]) (Interval.interval 0 Cst.bound) =
-        2%r * (Cst.bound+1)%r * (Pr[DKCS.Game(DKCS.Dkc, D).main()@ &m:res] - 1%r/2%r)
-  by admit. (* TODO: reduction proof *)
+lemma reduction (A <: PrvIndSec.Adv_t {CV,G,C,R,F}):
+  islossless A.gen_query =>
+  islossless A.get_challenge =>
+  exists (D <: DKCS.Adv_t), forall &m,
+    Mrplus.sum (lambda l, let l = l - 1 in Pr[Hybrid(A).main(l) @ &m : res]) (Interval.interval 0 Cst.bound) -
+    Mrplus.sum (lambda l, Pr[Hybrid(A).main(l) @ &m : res]) (Interval.interval 0 Cst.bound) =
+    2%r * (Cst.bound+1)%r * (Pr[DKCS.Game(DKCS.Dkc, D).main()@ &m:res] - 1%r/2%r)
+by admit. (* TODO: reduction proof *)
 
-lemma reductionSimplified :
-  forall (A<:PrvIndSec.Adv_t{CV, G, C, R, F}),
-    islossless A.gen_query =>
-    islossless A.get_challenge =>
-    exists (D<:DKCS.Adv_t),
-      forall &m, let l1 = - 1 in let l2 = Cst.bound in
-        Pr[Hybrid(A).main(l1) @ &m : res] - Pr[Hybrid(A).main(l2) @ &m : res] =
-        2%r * (Cst.bound+1)%r * (Pr[DKCS.Game(DKCS.Dkc, D).main()@ &m:res] - 1%r / 2%r).
+lemma reductionSimplified (A <: PrvIndSec.Adv_t {CV,G,C,R,F}):
+  islossless A.gen_query =>
+  islossless A.get_challenge =>
+  exists (D<:DKCS.Adv_t), forall &m,
+    Pr[Hybrid(A).main((-1)) @ &m : res] - Pr[Hybrid(A).main(Cst.bound) @ &m : res] =
+    2%r * (Cst.bound + 1)%r * (Pr[DKCS.Game(DKCS.Dkc, D).main()@ &m:res] - 1%r / 2%r).
 proof strict.
-progress.
-elim (reduction A _ _)=> //.
-intros D redt.
-exists D.
-intros &m.
-cut := redt &m=> <-;clear redt.
-rewrite (Mrplus.sum_rm _ _ 0) /=;first smt.
-rewrite (Mrplus.sum_chind _ (lambda (x:int), x - 1) (lambda (x:int), x + 1)) /=;first smt.
-rewrite (Interval.dec_interval 0 Cst.bound _);first smt.
-rewrite (Mrplus.sum_rm _ (Interval.interval 0 Cst.bound) ((Cst.bound)%Cst)) /=;first smt.
-pose s1 := (Mrplus.sum _ _).
-pose s2 := (Mrplus.sum _ _).
-cut -> : s1 = s2 by (rewrite /s1 /s2;(congr;last apply Fun.fun_ext);smt).
+intros=> AgenL AgetL.
+elim (reduction A _ _)=> // D redt.
+exists D=> &m.
+cut := redt &m=> <- {redt}.
+rewrite (Mrplus.sum_rm _ _ 0) /=; first smt.
+rewrite (Mrplus.sum_chind _ (lambda (x:int), x - 1) (lambda (x:int), x + 1)) /=; first smt.
+rewrite (Interval.dec_interval 0 Cst.bound _); first smt.
+rewrite (Mrplus.sum_rm _ (Interval.interval 0 Cst.bound) ((Cst.bound)%Cst)) /=; first smt.
+pose s1 := Mrplus.sum _ _.
+pose s2 := Mrplus.sum _ _.
+cut -> : s1 = s2 by (rewrite /s1 /s2; congr; [ | apply Fun.fun_ext]; smt).
 smt.
-save.
+qed.
 
-lemma _PrvIndDkc :
-  forall (A<:PrvIndSec.Adv_t{CV, G, C, R, F}),
-    islossless A.gen_query =>
-    islossless A.get_challenge =>
-    exists (D<:DKCS.Adv_t),
-      forall &m,
-        `|Pr[PrvIndSec.Game(Garble1, A).main()@ &m:res] - 1%r / 2%r| =
-           2%r * (Cst.bound+1)%r * `|Pr[DKCS.Game(DKCS.Dkc, D).main()@ &m:res] - 1%r / 2%r|.
+lemma _PrvIndDkc (A <: PrvIndSec.Adv_t {CV,G,C,R,F}):
+  islossless A.gen_query =>
+  islossless A.get_challenge =>
+  exists (D<:DKCS.Adv_t), forall &m,
+    `|Pr[PrvIndSec.Game(Garble1, A).main()@ &m:res] - 1%r / 2%r| =
+    2%r * (Cst.bound+1)%r * `|Pr[DKCS.Game(DKCS.Dkc, D).main()@ &m:res] - 1%r / 2%r|.
 proof strict.
-  intros A ? ?.
-  elim (reductionSimplified A _ _)=> //.
-  intros D red_temp.
-  exists D.
-  intros &m.
-  cut := prH0 A &m=> /= <-.
-  rewrite -{1}(prHB A &m)=> //.
-  cut := red_temp &m=> /= ->.
-  cut -> : forall (a b:real), a >= 0%r => `| a * b | = a * `| b | by smt;smt.
-save.
+intros=> AgenL AgetL.
+elim (reductionSimplified A _ _)=> // D redt.
+exists D=> &m.
+rewrite -(prH0 A &m) -{1}(prHB A &m) //= (redt &m).
+cut ->: forall (a b:real), 0%r <= a => `| a * b | = a * `| b | by smt=> //.
+smt.
+qed.
