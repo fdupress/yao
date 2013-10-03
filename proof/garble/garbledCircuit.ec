@@ -53,7 +53,7 @@ clone Garble as GarbleCircuit with
   op evalG(f:functG, i:inputG) = evalGen f i extractG,
 
   op garble(x:tokens, f:funct) =
-    let pp = init ((getN f)+(getQ f)) (garbMap x f) in
+    let pp = init (getN f + getQ f) (lambda i, if i < getN f then (void, void, void, void) else (garbMap x f i)) in
     let ff = ((getN f), (getM f), (getQ f), (getA f), (getB f), pp) in
     (ff, Array.sub x 0 (getN f), tt),
 

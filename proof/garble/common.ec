@@ -6,7 +6,6 @@ require import Bool.
 require import FSet.
 require import Monoid.
 require import Real.
-
 require import GarbleTools.
 require import PreProof.
 
@@ -546,6 +545,7 @@ module FH(G:G_t) : Flag_t(G) = {
     F.flag_sp = a <= CV.l < b /\ val;
   }
 }.
+
 lemma FHybrid_genL : islossless FH(Gf).gen by (fun; wp; call GgetInfoL).
 
 equiv equiv_FH_FR: FH(Gf).gen ~ FR(Gf).gen:
@@ -572,8 +572,110 @@ by (apply (Garble2E FH FR (-1) _); apply equiv_FH_FR).
 equiv equivGarble1: Garble1.enc ~ Garble2(FR).enc:
   ={p} /\
   qCorrect p{1} ==>
-  ={res}
-by admit. (* TODO Francois: main part of equivReal where logic equivalent to code.Maybe it's worth dropping the operator-based definition entirely? *)
+  ={res}.
+proof.
+fun.
+symmetry.
+wp.
+inline Garble2(FR).GI.init.
+while{1} (validCircuitP 0 C.f{1} /\ C.n{1} <= G.g{1} /\ G.g{1} <= C.n{1} + C.q{1} /\ length G.pp{1} = C.n{1} + C.q{1} /\ ={glob C, R.xx} /\ t_xor (C.n{1} + C.q{1}) R.t{1} R.t{2} C.v{1} /\
+(forall i, 0 <= i < G.g{1} =>
+let (g, ki, ko) = garble R.xx{2} C.f{2} in G.pp{1}.[i] = (getG g).[i]) /\
+C.f{2} = (C.n{2}, C.m{2}, C.q{2}, C.aa{2}, C.bb{2}, C.gg{2}) /\
+(forall x b, 0 <= x < C.n{1} + C.q{1} => Dkc.DKC.lsb (getTok R.xx{1} x b) = R.t{1}.[x] ^^ b) /\
+(forall x b, 0 <= x < C.n{1} + C.q{1} => Dkc.DKC.lsb (getTok R.xx{2} x b) = R.t{2}.[x] ^^ b)
+
+) ((C.n + C.q - G.g){1}).
+intros &m z.
+inline Gf.garbD.
+inline Gf.garbD1.
+inline Gf.garbD2.
+inline Gf.garb.
+inline GInit(FR).Flag.gen.
+swap 17 -16.
+swap 35 -34.
+swap 53 -52.
+wp.
+simplify.
+kill 1!3.
+do 3 ! rnd;skip;smt.
+skip.
+progress.
+smt.
+smt.
+smt.
+rewrite ! set_get;first 22 admit.
+case (G.g{hr} = i).
+generalize H10.
+simplify garble.
+intros [g ki ko].
+subst.
+simplify getG getN getM getQ getQ getB.
+rewrite init_get;first 2 smt.
+simplify.
+cut -> : (i < C.n{m}) = false by smt.
+simplify.
+simplify garbMap garbleGate getG getA getB enc setGateVal.
+rewrite ! xor_false ! xor_true ! nnot.
+
+elimT tuple4_ind (G.pp{hr}.[G.g{hr}]).
+progress.
+case (R.t{hr}.[C.aa{m}.[G.g{hr}]]);case (R.t{hr}.[C.bb{m}.[G.g{hr}]]).
+progress.
+do congr=> //.
+rewrite ! H5;first 2 smt.
+rewrite ! H3;first 2 smt.
+rewrite ! xor_true ! rw_neqF.
+rewrite (_:R.t{m}.[C.bb{m}.[G.g{hr}]] = true).
+smt.
+rewrite H10 H11.
+smt.
+rewrite H4.
+smt.
+congr=> //.
+
+smt.
+
+generalize H2.
+simplify t_xor.
+rewrite -!H2;first 2 admit.
+smt.
+smt.
+
+smt.
+admit.
+rewrite ! set_get;first 22 smt.
+cut hh := H2 i _;first smt.
+apply hh.
+smt.
+admit.
+smt.
+
+
+wp.
+call RgenClassicVisibleE.
+call CinitE.
+skip.
+progress.
+
+smt.
+smt.
+smt.
+smt.
+generalize H7.
+simplify garble.
+intros [g ki ko].
+subst.
+simplify getG getN getM getQ getQ getB.
+smt.
+smt.
+apply extensionality;split;first smt;progress.
+generalize H9.
+simplify garble getG getN getQ.
+rewrite (_:g_L = length pp_L);first smt.
+rewrite (_:(length pp_L) = length (init (n_R + q_R) (garbMap xx_R (n_R, m_R, q_R, aa_R, bb_R, gg_R))));first smt.
+smt.
+qed.
 
 equiv equivGFake: Garble2(FH).enc ~ Garble2(FF).enc:
   ={p} /\
