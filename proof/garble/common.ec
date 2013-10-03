@@ -235,9 +235,7 @@ fun; while ((0 <= C.m <= C.n + C.q /\
   last wp; skip; progress; smt.
 wp; case (C.v.[i]{1} = C.v{2}.[i]{1}); [ | swap 2 1];
   do !rnd; skip.
-timeout 10.
-  by progress; rewrite ?set_get_tok ?length_setTok; try case (i = j){2}; try case (i = g){2}; smt.
-timeout 3.  
+  by progress; rewrite ?set_get_tok ?length_setTok; try case (i = j){2}; try (case (i = g){2}; case x); smt.
   progress; rewrite ?set_get_tok ?length_setTok; first 16 by try case (i = j){2}; smt.
   case (i = g){2}; case x; [smt | | smt | smt];
   by intros=> _ -> //=; rewrite !(xor_comm true) !(xor_comm false) !xor_true !xor_false;
@@ -273,9 +271,9 @@ fun; while (={i, R.xx, glob C} /\
       last 4 smt.
       smt.
       smt.
-      by (rewrite set_tokC;first 3 smt);congr=> //;smt.
+      by rewrite set_tokC; try (congr=> //); smt.
       by simplify t_xor; progress; cut:= H i0; smt.
-by wp; skip; smt.
+by wp; skip; progress=> //; smt.
 qed.
 
 (*(forall g, 0 <= g < (C.n + C.q){1} => (getTok R.xx g C.v.[g]){1} = (getTok R.xx g C.v.[g]){2}  )*)
@@ -315,14 +313,14 @@ module Gf : G_t = {
   fun garbD2(rand:bool, alpha:bool, bet:bool) : token = {
     var yy:token;
 
-    yy = if (rand)
+    yy = if rand
          then proj G.randG.[(G.g,alpha,bet)]
          else getTok R.xx G.g (evalGate C.gg.[G.g] ((C.v.[G.a]^^alpha),(C.v.[G.b]^^alpha)));
     garb(yy, alpha, bet);
     return yy;
   }
 
-  fun garbD(rand:bool, alpha:bool, bet:bool) : token = {
+  fun garbD(rand:bool, alpha:bool, bet:bool): token = {
     var yy : token;
 
     garbD1(rand, alpha, bet);
@@ -330,7 +328,7 @@ module Gf : G_t = {
     return yy;
   }
 
-  fun getInfo() : int*int*bool = {
+  fun getInfo(): int*int*bool = {
     return (G.a, G.b, (evalGate C.gg.[G.g] ((!C.v.[G.a]), false) = evalGate C.gg.[G.g] ((!C.v.[G.a]), true)));
   }
 }.
@@ -343,25 +341,45 @@ lemma GgarbD2L  : islossless Gf.garbD2  by (fun; call GgarbL; wp).
 
 lemma GgarbDL   : islossless Gf.garbD   by (fun; call GgarbD2L; call GgarbD1L).
 
-lemma GgetInfoL : islossless Gf.getInfo by (fun;wp).
+lemma GgetInfoL : islossless Gf.getInfo by (fun; wp).
 
-equiv GgarbE   : Gf.garb   ~ Gf.garb   : (getTok R.xx G.a (alpha^^C.v.[G.a])){1} = (getTok R.xx G.a (alpha^^C.v.[G.a])){2} /\ (getTok R.xx G.b (bet^^C.v.[G.b])){1} = (getTok R.xx G.b (bet^^C.v.[G.b])){2} /\ ={glob G, C.n, C.m, C.q, C.aa, C.bb, R.t,   yy, alpha, bet} ==> ={glob G, res}
-  by (fun;wp;skip;smt).
+equiv GgarbE  : Gf.garb   ~ Gf.garb  :
+  ={glob G, C.n, C.m, C.q, C.aa, C.bb, R.t,   yy, alpha, bet} /\
+  (getTok R.xx G.a (alpha^^C.v.[G.a])){1} = (getTok R.xx G.a (alpha^^C.v.[G.a])){2} /\
+  (getTok R.xx G.b (bet^^C.v.[G.b])){1} = (getTok R.xx G.b (bet^^C.v.[G.b])){2} ==>
+  ={glob G, res}
+by (fun; wp; skip; smt).
 
-equiv GgarbD1E : Gf.garbD1 ~ Gf.garbD1 : ={glob G, C.n, C.m, C.q, C.aa, C.bb, rand, alpha, bet} ==> ={glob G, res}
-  by (fun;wp;rnd;skip;smt).
+equiv GgarbD1E: Gf.garbD1 ~ Gf.garbD1:
+  ={glob G, C.n, C.m, C.q, C.aa, C.bb, rand, alpha, bet} ==>
+  ={glob G, res}
+by (fun; wp; rnd; skip; smt).
 
-equiv GgarbD2E : Gf.garbD2 ~ Gf.garbD2 : ={glob G, glob C, glob R, rand, alpha, bet} ==> ={glob G, res}
-  by (fun;call GgarbE;wp).
+equiv GgarbD2E: Gf.garbD2 ~ Gf.garbD2:
+  ={glob G, glob C, glob R, rand, alpha, bet} ==>
+  ={glob G, res}
+by (fun;call GgarbE;wp).
 
-equiv GgarbD2E_rnd : Gf.garbD2 ~ Gf.garbD2 : (getTok R.xx G.a (alpha^^C.v.[G.a])){1} = (getTok R.xx G.a (alpha^^C.v.[G.a])){2} /\ (getTok R.xx G.b (bet^^C.v.[G.b])){1} = (getTok R.xx G.b (bet^^C.v.[G.b])){2} /\ rand{1}=true /\ ={glob G, C.n, C.m, C.q, C.aa, C.bb, R.t, rand, alpha, bet} ==> ={glob G, res}
-  by (fun;call GgarbE;wp).
+equiv GgarbD2E_rnd: Gf.garbD2 ~ Gf.garbD2:
+  ={glob G, C.n, C.m, C.q, C.aa, C.bb, R.t, rand, alpha, bet} /\
+  (getTok R.xx G.a (alpha^^C.v.[G.a])){1} = (getTok R.xx G.a (alpha^^C.v.[G.a])){2} /\
+  (getTok R.xx G.b (bet^^C.v.[G.b])){1} = (getTok R.xx G.b (bet^^C.v.[G.b])){2} /\
+  rand{1} = true ==>
+  ={glob G, res}
+by (fun; call GgarbE; wp).
 
-equiv GgarbDE  : Gf.garbD  ~ Gf.garbD  : ={glob G, glob C, glob R, rand, alpha, bet} ==> ={glob G, res}
-  by (fun;call GgarbD2E;call GgarbD1E).
+equiv GgarbDE: Gf.garbD  ~ Gf.garbD:
+  ={glob G, glob C, glob R, rand, alpha, bet} ==>
+  ={glob G, res}
+by (fun;call GgarbD2E;call GgarbD1E).
 
-equiv GgarbDE_rnd  : Gf.garbD  ~ Gf.garbD  : (getTok R.xx G.a (alpha^^C.v.[G.a])){1} = (getTok R.xx G.a (alpha^^C.v.[G.a])){2} /\ (getTok R.xx G.b (bet^^C.v.[G.b])){1} = (getTok R.xx G.b (bet^^C.v.[G.b])){2} /\ rand{1}=true /\ ={glob G, C.n, C.m, C.q, C.aa, C.bb, R.t, rand, alpha, bet} ==> ={glob G, res}
-  by (fun;call GgarbD2E_rnd;call GgarbD1E).
+equiv GgarbDE_rnd: Gf.garbD  ~ Gf.garbD:
+  ={glob G, C.n, C.m, C.q, C.aa, C.bb, R.t, rand, alpha, bet} /\
+  (getTok R.xx G.a (alpha^^C.v.[G.a])){1} = (getTok R.xx G.a (alpha^^C.v.[G.a])){2} /\
+  (getTok R.xx G.b (bet^^C.v.[G.b])){1} = (getTok R.xx G.b (bet^^C.v.[G.b])){2} /\
+  rand{1} = true ==>
+  ={glob G, res}
+by (fun;call GgarbD2E_rnd;call GgarbD1E).
 
 (* Contains the flag variables used by GInit, their value depends
    of the type of the garbling : Fake, Real, Hybrid *)
@@ -377,7 +395,6 @@ module type Flag_t(G:G_t) = { fun gen() : unit{ G.getInfo } }.
 
 (*handle high level part of garbling *)
 module GInit(Flag:Flag_t) = {
-
   module Flag = Flag(Gf)
 
   fun init() : unit = {
@@ -407,41 +424,41 @@ module GInit(Flag:Flag_t) = {
 
 lemma GinitL (F <: Flag_t{G}): islossless F(Gf).gen => islossless GInit(F).init.
 proof strict.
-intros h.  
-fun.
-while true (C.n + C.q - G.g).
-intros z.
-inline Gf.garbD Gf.garbD1 Gf.garbD2 Gf.garb.
-wp;do ! (rnd;wp).
-call (_:true ==> true)=> //.
-wp.
-skip.
-progress assumption;smt.
-wp.
-skip.
-progress assumption;smt.
-save.
+intros GgenL; fun; while true (C.n + C.q - G.g); last by wp; skip; smt.
+intros z; seq 7: (C.n + C.q - G.g = z) 1%r 1%r 0%r _=> //.
+  by do 3!call GgarbDL; call GgarbL; call GgenL; wp.
+  by if; wp; [call GgarbL | ]; skip; smt.
+  by hoare; do !(call (_: true ==> true)=> //); wp.
+qed.
 
-op todo (a b g bound:int) = a >= 0 /\ b < g /\ b < Cst.bound+1 /\ a < b.
+op todo (a b g bound:int) = 0 <= a /\ b < g /\ b < Cst.bound + 1 /\ a < b.
 
-lemma GinitE (F1<:Flag_t{G}) (F2<:Flag_t{G}) gCV1:
-  equiv[F1(Gf).gen ~ F2(Gf).gen :
-    (glob CV){1} = gCV1 /\
-    (todo G.a G.b G.g (C.n+C.q-C.m)){1} /\
-    ={glob C, glob R, glob G}
-  ==> ={glob C, glob R, glob G, glob F} ] =>
-    equiv[GInit(F1).init ~ GInit(F2).init : (validCircuitP Cst.bound (C.n, C.m, C.q, C.aa, C.bb, C.gg)){1} /\
-(glob CV){1} = gCV1 /\ ={glob C, glob R} ==> ={glob G}].
+lemma GinitE (F1 <: Flag_t {G}) (F2 <: Flag_t {G}) gCV1:
+  equiv[F1(Gf).gen ~ F2(Gf).gen:
+         ={glob C, glob R, glob G} /\
+         (glob CV){1} = gCV1 /\
+         (todo G.a G.b G.g (C.n+C.q-C.m)){1} ==>
+         ={glob C, glob R, glob G, glob F}] =>
+  equiv[GInit(F1).init ~ GInit(F2).init:
+         ={glob C, glob R} /\
+         (glob CV){1} = gCV1 /\
+         (validCircuitP Cst.bound (C.n, C.m, C.q, C.aa, C.bb, C.gg)){1} ==>
+         ={glob G}].
 proof strict.
-intros h.
-fun.
-(while (G.g{1} >= C.n{1} /\ (validCircuitP Cst.bound (C.n, C.m, C.q, C.aa, C.bb, C.gg)){1} /\ (glob CV){1} = gCV1 /\ ={glob G, glob C, glob R});
-last by wp;skip;progress assumption;smt).
-wp;seq 7 7 : (G.g{1} >= C.n{1} /\ (validCircuitP Cst.bound (C.n, C.m, C.q, C.aa, C.bb, C.gg)){1} /\ (glob CV){1} = gCV1 /\ ={F.flag_sp, glob G, glob C, glob R, glob F});[
-do 3 ! call GgarbDE; call GgarbE;wp;call h;wp;skip;progress assumption;smt |
-if;[|call GgarbE;skip|skip];progress assumption;smt].
-save.
+intros FgenE; fun.
+while (={glob G, glob C, glob R} /\
+       (C.n <= G.g){1} /\
+       (validCircuitP Cst.bound (C.n, C.m, C.q, C.aa, C.bb, C.gg)){1} /\
+       (glob CV){1} = gCV1); last by wp.
+  seq 7 7: (={F.flag_sp, glob G, glob C, glob R, glob F} /\
+            C.n{1} <= G.g{1} /\
+            (validCircuitP Cst.bound (C.n, C.m, C.q, C.aa, C.bb, C.gg)){1} /\
+            (glob CV){1} = gCV1);
+    first by do 3!call GgarbDE; call GgarbE; wp; call FgenE; wp; skip; progress=> //; smt.
+by if=> //; wp; [ call GgarbE | ]; skip; progress=> //; smt.
+qed.
 
+(* This is Gb from figure 7 *)
 module Garble1 : GC.PrvIndSec.Scheme_t = {
   fun enc(p:GC.PrvIndSec.Scheme.plain) : GC.PrvIndSec.Scheme.cipher = {
     Cf.init(p);
@@ -452,10 +469,13 @@ module Garble1 : GC.PrvIndSec.Scheme_t = {
   }
 }.
 
+(* This is the garble from Hy_l, figure 10 *)
 module Garble2(F:Flag_t) : GC.PrvIndSec.Scheme_t = {
   module GI = GInit(F)
+
   fun enc(p:GC.PrvIndSec.Scheme.plain) : GC.PrvIndSec.Scheme.cipher = {
     var tok1, tok2 : token;
+
     Cf.init(p);
     Rf.init(true);
     GI.init();
@@ -466,35 +486,33 @@ module Garble2(F:Flag_t) : GC.PrvIndSec.Scheme_t = {
   }
 }.
 
-pred qCorrect p = PrvInd_Circuit.Garble.inputCorrect (fst p) (snd p) /\ PrvInd_Circuit.Garble.functCorrect (fst p).
+pred qCorrect p =
+  PrvInd_Circuit.Garble.inputCorrect (fst p) (snd p) /\
+  PrvInd_Circuit.Garble.functCorrect (fst p).
 
-lemma Garble2E (F1<:Flag_t{G, C, R}) (F2<:Flag_t{G, C, R}) gCV1:
-  equiv[F1(Gf).gen ~ F2(Gf).gen : ((glob CV){1} = gCV1) /\ (todo G.a G.b G.g (C.n+C.q-C.m)){1} /\ ={glob C, glob R, glob G} ==> ={glob C, glob R, glob G, glob F} ] =>
-    equiv[Garble2(F1).enc ~ Garble2(F2).enc : ((glob CV){1} = gCV1) /\ ={p} /\ qCorrect p{1} ==> ={res}].
-intros h.
-fun.
-call (GinitE F1 F2 gCV1 _)=> //.
-call RinitE.
-call CinitE.
-skip.
-clear h.
-simplify.
-rewrite /qCorrect /PrvInd_Circuit.Garble.inputCorrect /PrvInd_Circuit.Garble.functCorrect /functCorrect valid_wireinput.
-
-intros &1 &2 [? [? [iCor fCor]]].
-subst.
-split;first by trivial.
-intros [h1 h2] {h1 h2}.
-
-intros _f _x _n _m _q _aa _bb _gg _v f x n m q aa bb gg v.
-rewrite valid_wireinput.
-intros [h [hh [lenI fCor2]]].
-elim h=> {h}.
-do intros ?.
-subst.
-split=> //.
-smt.
-save.
+lemma Garble2E (F1 <: Flag_t {G, C, R}) (F2 <: Flag_t {G, C, R}) gCV1:
+  equiv[F1(Gf).gen ~ F2(Gf).gen:
+          ={glob C, glob R, glob G} /\
+          (glob CV){1} = gCV1 /\
+          (todo G.a G.b G.g (C.n+C.q-C.m)){1} ==>
+          ={glob C, glob R, glob G, glob F}] =>
+  equiv[Garble2(F1).enc ~ Garble2(F2).enc:
+          ={p} /\
+          (glob CV){1} = gCV1 /\
+          qCorrect p{1} ==> ={res}].
+proof strict.
+intros FgenE; fun;
+call (GinitE F1 F2 gCV1 _)=> //;
+call RinitE;
+call CinitE;
+skip=> {FgenE} //=.
+by rewrite /qCorrect /PrvInd_Circuit.Garble.inputCorrect
+           /PrvInd_Circuit.Garble.functCorrect /functCorrect
+           valid_wireinput /validCircuitP;
+   progress=> //;
+   try (generalize H3; rewrite valid_wireinput /validCircuitP; progress=> //);
+   smt.
+qed.
 
 module FR(G:G_t) : Flag_t(G) = {
   fun gen() : unit = {
@@ -504,7 +522,7 @@ module FR(G:G_t) : Flag_t(G) = {
     F.flag_sp = false;
   }
 }.
-lemma FReal_genL : islossless FR(Gf).gen by (fun;wp).
+lemma FReal_genL : islossless FR(Gf).gen by (fun; wp).
 
 module FF(G:G_t) : Flag_t(G) = {
   fun gen() : unit = {
@@ -514,7 +532,7 @@ module FF(G:G_t) : Flag_t(G) = {
     F.flag_sp = false;
   }
 }.
-lemma FFake_genL : islossless FF(Gf).gen by (fun;wp).
+lemma FFake_genL : islossless FF(Gf).gen by (fun; wp).
 
 module FH(G:G_t) : Flag_t(G) = {
   fun gen() : unit = {
@@ -528,34 +546,55 @@ module FH(G:G_t) : Flag_t(G) = {
     F.flag_sp = a <= CV.l < b /\ val;
   }
 }.
+lemma FHybrid_genL : islossless FH(Gf).gen by (fun; wp; call GgetInfoL).
 
-lemma FHybrid_genL : islossless FH(Gf).gen by (fun;wp;call GgetInfoL).
+equiv equiv_FH_FR: FH(Gf).gen ~ FR(Gf).gen:
+  ={glob C, glob R, glob G} /\
+  CV.l{1} = -1 /\
+  (todo G.a G.b G.g (C.n + C.q - C.m)){1} ==>
+  ={glob C, glob R, glob G, glob F}
+by (fun; inline Gf.getInfo; wp; skip; smt).
 
-lemma equiv_FH_FR :
-  equiv[FH(Gf).gen ~ FR(Gf).gen : ((glob CV){1} = (-1 )) /\ (todo G.a G.b G.g (C.n+C.q-C.m)){1} /\ ={glob C, glob R, glob G} ==> ={glob C, glob R, glob G, glob F} ]
-   by (fun;inline Gf.getInfo;wp;skip;smt).
+equiv equiv_FH_FF: FH(Gf).gen ~ FF(Gf).gen:
+  ={glob C, glob R, glob G} /\
+  CV.l{1} = Cst.bound /\
+  (todo G.a G.b G.g (C.n + C.q - C.m)){1} ==>
+  ={glob C, glob R, glob G, glob F}
+by (fun; inline Gf.getInfo; wp; skip; smt).
 
-lemma equiv_FH_FF :
-  equiv[FH(Gf).gen ~ FF(Gf).gen : ((glob CV){1} = Cst.bound) /\ (todo G.a G.b G.g (C.n+C.q-C.m)){1} /\ ={glob C, glob R, glob G} ==> ={glob C, glob R, glob G, glob F} ]
-   by (fun;inline Gf.getInfo;wp;skip;smt).
+equiv equivGReal: Garble2(FH).enc ~ Garble2(FR).enc:
+  ={p} /\
+  CV.l{1} = -1 /\
+  qCorrect p{1} ==>
+  ={res}
+by (apply (Garble2E FH FR (-1) _); apply equiv_FH_FR).
 
-lemma equivGReal : equiv[Garble2(FH).enc ~ Garble2(FR).enc : ((glob CV){1} = (-1)) /\ ={p} /\ qCorrect p{1} ==> ={res}]
-  by (apply (Garble2E FH FR (-1));apply equiv_FH_FR).
+equiv equivGarble1: Garble1.enc ~ Garble2(FR).enc:
+  ={p} /\
+  qCorrect p{1} ==>
+  ={res}
+by admit. (* TODO Francois: main part of equivReal where logic equivalent to code.Maybe it's worth dropping the operator-based definition entirely? *)
 
-lemma equivGarble1 : equiv[Garble1.enc ~ Garble2(FR).enc : ={p} /\ qCorrect p{1} ==> ={res}]
-  by admit. (* TODO: main part of equivReal where logic equivalent to code *)
+equiv equivGFake: Garble2(FH).enc ~ Garble2(FF).enc:
+  ={p} /\
+  CV.l{1} = Cst.bound /\
+  qCorrect p{1} ==>
+  ={res}
+by (apply (Garble2E FH FF Cst.bound _); apply equiv_FH_FF).
 
-lemma equivGFake : equiv[Garble2(FH).enc ~ Garble2(FF).enc : ((glob CV){1} = Cst.bound){1} /\ ={p} /\ qCorrect p{1} ==> ={res}]
-  by (apply (Garble2E FH FF Cst.bound);apply equiv_FH_FF).
-
-lemma equivPrvInd (A<:GC.PrvIndSec.Adv_t{CV}) (S1<:GC.PrvIndSec.Scheme_t) (S2<:GC.PrvIndSec.Scheme_t) gCV1:
-  equiv[ S1.enc ~ S2.enc : ((glob CV){1} = gCV1) /\ ={p} /\ qCorrect p{1} ==> ={res}] =>
-    equiv[ GC.PrvIndSec.Game(S1, A).main ~ PrvIndSec.Game(S2, A).main : (glob CV){1} = gCV1 ==> ={res}]
-  by ( (intros hS;fun;
-    (seq 1 1 : ((glob CV){1} = gCV1 /\ ={query, glob A});first by call (_ : true ==> ={res, glob A});[fun true|skip;progress;assumption]);
-    (if=> //;last by rnd);
-    wp;(call (_ : ={cipher, glob A} ==> ={res})=> //;first by fun true);call hS;wp;rnd;skip);
-    progress assumption;elim H;progress;smt).
+lemma equivPrvInd (A <: GC.PrvIndSec.Adv_t {CV}) (S1 <: GC.PrvIndSec.Scheme_t) (S2 <: GC.PrvIndSec.Scheme_t) gCV1:
+  equiv[S1.enc ~ S2.enc: ={p} /\ (glob CV){1} = gCV1 /\ qCorrect p{1} ==> ={res}] =>
+  equiv[GC.PrvIndSec.Game(S1, A).main ~ PrvIndSec.Game(S2, A).main: (glob CV){1} = gCV1 ==> ={res}].
+proof strict.
+intros=> SencE; fun.
+seq 1 1: (={glob A, query} /\ (glob CV){1} = gCV1);
+  first by call (_: true ==> ={res,glob A}); first fun true.
+if=> //; last by rnd.
+wp; call (_: ={glob A, cipher} ==> ={res})=> //;
+  first by fun true.
+call SencE; wp; rnd; skip.
+by progress=> //; elim H; smt.
+qed.
 
 module Hybrid(A:PrvIndSec.Adv_t) = {
   module PrvInd = GC.PrvIndSec.Game(Garble2(FH), A)
@@ -576,12 +615,12 @@ module PrvInd(A:PrvIndSec.Adv_t) = {
   }
 }.
 
-
-
 module GarbleFake : GC.PrvIndSec.Scheme_t = {
   module GI = GInit(FF)
+
   fun enc(p:GC.PrvIndSec.Scheme.plain) : GC.PrvIndSec.Scheme.cipher = {
     var tok1, tok2 : token;
+
     Cf.init(p);
     Rf.init(true);
     GI.init();
@@ -594,93 +633,87 @@ module GarbleFake : GC.PrvIndSec.Scheme_t = {
 
 
 module Fake(A:GC.PrvIndSec.Adv_t) = {
-fun main() : bool = {
-var b, b', ret : bool;
-var c : PrvIndSec.Scheme.cipher;
-var query : (funct*input)*(funct*input);
-query = A.gen_query();
-if (PrvIndSec.Scheme.queryValid query) {
-  b = $ {0,1};
-  c = GarbleFake.enc(fst query);
-  b' = A.get_challenge(c);
-  ret = b = b';
-} else {
-  ret = $ {0,1};
-}
-return ret;
-}
+  fun main() : bool = {
+    var b, b', ret : bool;
+    var c : PrvIndSec.Scheme.cipher;
+    var query : (funct*input)*(funct*input);
+
+    query = A.gen_query();
+    if (PrvIndSec.Scheme.queryValid query)
+    {
+      b = $ {0,1};
+      c = GarbleFake.enc(fst query);
+      b' = A.get_challenge(c);
+      ret = b = b';
+    }
+    else
+      ret = $ {0,1};
+    return ret;
+  }
 }.
 
-lemma prFakeI (A<:GC.PrvIndSec.Adv_t) &m: islossless A.gen_query => islossless A.get_challenge =>
+lemma prFakeI (A <: GC.PrvIndSec.Adv_t) &m:
+  islossless A.gen_query =>
+  islossless A.get_challenge =>
   Pr[Fake(A).main() @ &m:res] = 1%r / 2%r.
-intros ll1 ll2.
-bdhoare_deno (_: true ==> res)=> //.
-fun.
-seq 1 : true (1%r) (1%r/2%r) 0%r 1%r=> //;
-  first call (_ : true ==> true);[fun (true)|skip];progress.
-case (PrvIndSec.Scheme.queryValid query).
-  (* VALID *)
-  rcondt 1;first skip;progress.
-  inline GarbleFake.enc.
-  wp.
-  swap 1 6.
-  rnd (lambda b, b = b').
-  call (_ : true ==> true);first fun (true);progress;assumption.
-  kill 2!4;first by wp;(call (GinitL FF _);first by apply FFake_genL);call RgenInitL;call CinitL.
-  wp.
-  skip.
-progress assumption;rewrite Dbool.mu_def /=;case (result);smt.
-  (* INVALID *)
-  rcondf 1;first skip;progress.
-  rnd (lambda b, ! b = false).
-  skip;progress;rewrite ? Dbool.mu_def //;smt.
+proof strict.
+intros=> AgenL AgetL; bdhoare_deno (_: true ==> res)=> //.
+fun; seq 1 : true (1%r) (1%r/2%r) 0%r 1%r=> //.
+  by call AgenL.
+  case (PrvIndSec.Scheme.queryValid query).
+    (* VALID *)
+    rcondt 1; first by intros.
+    inline GarbleFake.enc;
+    wp; swap 1 6.
+    rnd ((=) b').
+    call AgetL.
+    wp; call (GinitL FF _);
+      first by apply FFake_genL.
+    call RgenInitL; call CinitL.
+    by wp; skip; smt.
+    (* INVALID *)
+    rcondf 1; first by intros.
+    rnd (lambda b, b); skip; progress=> //.
+    by rewrite Dbool.mu_def.
 qed.
 
-lemma prFake (A<:GC.PrvIndSec.Adv_t{CV, G, C, R, F}) &m: islossless A.gen_query => islossless A.get_challenge =>
-  Pr[PrvIndSec.Game(Garble2(FF), A).main() @ &m:res] = 1%r / 2%r.
-intros ll1 ll2.
-rewrite -(prFakeI A &m)=> //.  
-equiv_deno (_:CV.l{1} = CV.l{m} ==> ={res}) => //.
-fun.
-seq 1 1 : (={query, glob A} /\ CV.l{1} = CV.l{m});
-  first call (_ : true ==> ={res, glob A});[fun (true)|skip];progress.
-if=> //.
-wp.
-call (_: ={cipher, glob A} ==> ={res});first fun true=> //.
-inline Garble2(FF).enc GarbleFake.enc.
-wp.
+lemma prFake (A <: GC.PrvIndSec.Adv_t {CV, G, C, R, F}) &m:
+  islossless A.gen_query =>
+  islossless A.get_challenge =>
+  Pr[PrvIndSec.Game(Garble2(FF),A).main() @ &m:res] = 1%r / 2%r.
+proof strict.
+intros=> AgenL AgetL; rewrite -(prFakeI A &m)=> //.
+equiv_deno (_: CV.l{1} = CV.l{m} ==> ={res}) => //; fun.
+seq 1 1: (={glob A, query} /\ CV.l{1} = CV.l{m});
+  first by call (_: true).
+if=> //; last by rnd.
+wp; call (_: true)=> //.
+inline Garble2(FF).enc GarbleFake.enc; wp. (* Why not make these locally proven calls? *)
 inline Garble2(FF).GI.init GarbleFake.GI.init.
-(while (={glob A} /\ G.g{1} >= C.n{1} /\ (validCircuitP Cst.bound (C.n, C.m, C.q, C.aa, C.bb, C.gg)){1}  /\ ={C.n, C.m, C.q, C.aa, C.bb, glob G, R.t} /\ (forall x g, 0 <= g < (C.n + C.q){1} => (getTok R.xx g (x^^C.v.[g])){1} = (getTok R.xx g (x^^C.v.[g])){2})  )).
-wp;seq 7 7 : (={glob A} /\ (G.g{1} >= C.n{1} /\ (validCircuitP Cst.bound (C.n, C.m, C.q, C.aa, C.bb, C.gg)){1}  /\ ={F.flag_sp, C.n, C.m, C.q, C.aa, C.bb, glob G, R.t} /\ (forall x g, 0 <= g < (C.n + C.q){1} => (getTok R.xx g (x^^C.v.[g])){1} = (getTok R.xx g (x^^C.v.[g])){2}) /\ 0 <= G.a{2} < C.n{2} + C.q{2} /\ 0 <= G.b{2} < C.n{2} + C.q{2} )).
-do 3 ! call GgarbDE_rnd;wp;call GgarbE.
-inline GInit(FF).Flag.gen.
-wp.
-skip.
-progress assumption.
-rewrite H1 //;smt.
-rewrite H1 //;smt.
-rewrite - (xor_false C.v{1}.[G.g{2}]) (xor_comm C.v{1}.[G.g{2}]) - (xor_false C.v{2}.[G.g{2}]) (xor_comm C.v{2}.[G.g{2}]) H1 //;smt.
-rewrite H1 //.
-generalize H0.
-rewrite /validCircuitP.
-smt.
-rewrite H1 //;smt.
-smt.
-smt.
-smt.
-smt.
-
-if.
-progress assumption.
-call GgarbE;skip;progress assumption;smt.
-skip;progress assumption;smt.
-wp.
-call RinitE_rnd.
+while (={glob A, glob G, C.n, C.m, C.q, C.aa, C.bb, R.t} /\
+       C.n{1} <= G.g{1} /\
+       (validCircuitP Cst.bound (C.n, C.m, C.q, C.aa, C.bb, C.gg)){1} /\
+       (forall x g, 0 <= g < (C.n + C.q){1} =>
+          (getTok R.xx g (x^^C.v.[g])){1} = (getTok R.xx g (x^^C.v.[g])){2})).
+  wp; seq 7 7: (={glob A, glob G, F.flag_sp, C.n, C.m, C.q, C.aa, C.bb, R.t} /\
+                C.n{1} <= G.g{1} /\
+                (validCircuitP Cst.bound (C.n, C.m, C.q, C.aa, C.bb, C.gg)){1} /\
+                (forall x g, 0 <= g < (C.n + C.q){1} =>
+                   (getTok R.xx g (x^^C.v.[g])){1} = (getTok R.xx g (x^^C.v.[g])){2}) /\
+                0 <= G.a{2} < C.n{2} + C.q{2} /\
+                0 <= G.b{2} < C.n{2} + C.q{2}).
+    do 3 ! call GgarbDE_rnd;wp;call GgarbE.
+    inline GInit(FF).Flag.gen; wp; skip; progress=> //;
+    generalize H0; rewrite /validCircuitP; progress=> //; last 8 by try (rewrite H1 //); smt.
+      by rewrite -(xor_false C.v{1}.[G.g{2}]) (xor_comm C.v{1}.[G.g{2}])
+                 -(xor_false C.v{2}.[G.g{2}]) (xor_comm C.v{2}.[G.g{2}]) H1 //;smt.
+  by if=> //; [call GgarbE | ]; skip; progress=> //; smt.
+wp; call RinitE_rnd.
 call CinitE_rnd.
-wp.
-rnd.
-skip.
+(* wp; rnd; skip; progress=> //.
+  smt. smt. case bL; smt. case bL; smt. case bL; smt. case bL; smt. smt. smt. *)
 
+(* WTH? *)
 do intros ?.
 split.
 smt.
