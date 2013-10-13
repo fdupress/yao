@@ -576,7 +576,6 @@ equiv equivGarble1: Garble1.enc ~ Garble2(FR).enc:
 proof.
 fun.
 symmetry.
-wp.
 inline Garble2(FR).GI.init.
 while{1} (validCircuitP 0 C.f{1} /\ C.n{1} <= G.g{1} /\ G.g{1} <= C.n{1} + C.q{1} /\ length G.pp{1} = C.n{1} + C.q{1} /\ ={glob C, R.xx} /\ t_xor (C.n{1} + C.q{1}) R.t{1} R.t{2} C.v{1} /\
 (forall i, 0 <= i < G.g{1} =>
