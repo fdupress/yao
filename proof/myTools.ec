@@ -1,26 +1,13 @@
 require import Int.
 require import Array.
 
-op range (i j:int) (base:'a) (f:int -> 'a -> 'a) : 'a =
-  if j <= i then base else
-  fold_left (lambda state x, f x state) base (Array.init (j-i) (lambda x, (j-1)-x)).
+op range : int -> int -> 'a -> (int -> 'a -> 'a) -> 'a.
 
-lemma range_init (i j:int) (x:'a) (f:int -> 'a -> 'a):
-  j <= i => range i j x f = x by smt.
+axiom range_init (i j:int) (x:'a) (f:int -> 'a -> 'a):
+  j <= i => range i j x f = x.
 
-lemma range_ind (i j:int) (x:'a) (f:int -> 'a -> 'a):
+axiom range_ind (i j:int) (x:'a) (f:int -> 'a -> 'a):
   i < j => (range i j x f = f (j-1) (range i (j-1) x f)).
-proof strict.
-intros h.
-simplify range.
-cut -> : j <= i = false by smt.
-simplify.
-rewrite fold_left_cons /=;first smt.
-rewrite get_init /=;first smt.
-case (j - 1 <= i)=> hh;first smt.
-do 2 ! congr=> //.
-apply array_ext;smt.
-qed.
 
 op appender (extract:int -> 'a array ->  'a) (i:int) (ar:'a array) : 'a array =
   ar:::(extract (i-1) ar).
@@ -38,7 +25,7 @@ pose m:= n; cut : m <= n by smt.
 elim/Induction.induction m; [smt | | smt].
 intros=> i leq0_i IH leqi1_n.
 rewrite /appendInit /= range_ind /=; first smt.
-rewrite /appender length_snoc; smt.
+rewrite /appender snoc_length; smt.
 qed.
 
 lemma appendInit_ind (ar:'a array) (n:int) (extract:int -> 'a array -> 'a) (k:int):
@@ -86,7 +73,7 @@ intros=> [leqlen_k ltk_len lt0_n] hypExtract.
 cut ->:= appendInit_get2 ar n extract k _ _=> //.
 rewrite hypExtract.
 cut ->: sub (appendInit ar n extract) 0 k = appendInit ar (k - length ar) extract; last by reflexivity.
-apply array_ext; split.
-  by rewrite length_sub; smt.
-  by intros=> i leq0_i; rewrite get_sub; smt.
+apply extensionality; split.
+  by rewrite sub_length; smt.
+  by intros=> i leq0_i; rewrite sub_length; smt.
 qed.
