@@ -38,7 +38,7 @@ module Cf = {
     C.aa = getA C.f;
     C.bb = getB C.f;
     C.gg = getG C.f;
-    C.v = Array.create (C.n + C.q) false;
+    C.v = Array.init (C.n + C.q) (lambda x, false);
     i = 0;
     while (i < C.n + C.q) {
       C.v.[i] = eval C.f C.x i;
@@ -95,7 +95,7 @@ equiv CinitE_rnd: Cf.init ~ Cf.init:
    functCorrect C.f /\
    inputCorrect C.f C.x){2} /\
   (forall i, 0 <= i < C.n{1} => C.v{2}.[i] = C.x{2}.[i]).
-proof strict.
+proof.
 fun; while (0 <= C.q{2} /\ 0 <= C.n{2} + C.q{2} - C.m{2} /\
             (Array.length C.v = C.n + C.q){1} /\
             (Array.length C.v = C.n + C.q){2} /\
@@ -108,7 +108,7 @@ fun; while (0 <= C.q{2} /\ 0 <= C.n{2} + C.q{2} - C.m{2} /\
             ((C.n, C.m, C.q, C.aa, C.bb, C.gg) = C.f){2} /\
             (C.n = length C.x){1} /\ (C.n = length C.x){2}); wp; skip.
   progress; first 2 smt.
-    rewrite !set_get; first 4 smt.
+    rewrite !Array.get_set; first 4 smt.
     by case (i = j){2}=> _;
        cut : (sub (evalComplete (length C.x{1},C.m,C.q,C.aa,C.bb,C.gg{1}) C.x{1} extract)
                   (length C.x{1} + C.q - C.m) C.m).[i - (length C.x{1} + C.q - C.m)]{2} =
@@ -116,12 +116,12 @@ fun; while (0 <= C.q{2} /\ 0 <= C.n{2} + C.q{2} - C.m{2} /\
                   (length C.x{1} + C.q - C.m) C.m).[i - (length C.x{1} + C.q - C.m)]{2}
          by (by generalize H3; rewrite /GarbleCircuit.eval /evalGen /getN /getQ /getM /=; intros=> ->);
        rewrite 2?sub_get; smt. 
-    rewrite set_get; first 2 smt.
-    by case (i = j){2}=> _;
+    rewrite Array.get_set; first 2 smt.
+(*    by case (i = j){2}=> _;
        rewrite /GarbleTools.eval /GarbleTools.evalComplete ?MyTools.appendInit_get1; smt.
     rewrite set_get; first 2 smt.
     by case (i = j){2}=> _;
-       rewrite /GarbleTools.eval /GarbleTools.evalComplete ?MyTools.appendInit_get1; smt.
+       rewrite /GarbleTools.eval /GarbleTools.evalComplete ?MyTools.appendInit_get1; smt.*)
     by intros=> &1 &2; rewrite /PrvIndSec.Scheme.queryValid /PrvInd_Circuit.Scheme.queryValid
                                /PrvInd_Circuit.Garble.functCorrect /functCorrect /validCircuit
                                /getN /getQ /getM !fst !snd;
@@ -142,8 +142,8 @@ module Rf = {
     var tok1,tok2:token;
     var v,trnd:bool;
 
-    R.t = Array.create (C.n + C.q) false;
-    R.xx = Array.create (C.n + C.q) (void, void);
+    R.t = Array.init (C.n + C.q) (lambda x, false);
+    R.xx = Array.init (C.n + C.q) (lambda x, (void, void));
     i = 0;
     while (i < C.n + C.q) {
       trnd = $Dbool.dbool;
@@ -399,8 +399,8 @@ module GInit(Flag:Flag_t) = {
   fun init() : unit = {
     var tok : token;
 
-    G.yy = Array.create (C.n + C.q) void;
-    G.pp = Array.create (C.n + C.q) (void, void, void, void);
+    G.yy = Array.init (C.n + C.q) (lambda x, void);
+    G.pp = Array.init (C.n + C.q) (lambda x, (void, void, void, void));
     G.randG = Map.empty;
     G.a = 0;
     G.b = 0;
@@ -576,7 +576,6 @@ equiv equivGarble1: Garble1.enc ~ Garble2(FR).enc:
 proof.
 fun.
 symmetry.
-wp.
 inline Garble2(FR).GI.init.
 while{1} (validCircuitP 0 C.f{1} /\ C.n{1} <= G.g{1} /\ G.g{1} <= C.n{1} + C.q{1} /\ length G.pp{1} = C.n{1} + C.q{1} /\ ={glob C, R.xx} /\ t_xor (C.n{1} + C.q{1}) R.t{1} R.t{2} C.v{1} /\
 (forall i, 0 <= i < G.g{1} =>
@@ -783,7 +782,7 @@ lemma prFake (A <: GC.PrvIndSec.Adv_t {CV, G, C, R, F}) &m:
   islossless A.gen_query =>
   islossless A.get_challenge =>
   Pr[PrvIndSec.Game(Garble2(FF),A).main() @ &m:res] = 1%r / 2%r.
-proof strict.
+proof.
 intros=> AgenL AgetL; rewrite -(prFakeI A &m)=> //.
 equiv_deno (_: CV.l{1} = CV.l{m} ==> ={res}) => //; fun.
 seq 1 1: (={glob A, query} /\ CV.l{1} = CV.l{m});

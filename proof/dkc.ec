@@ -169,7 +169,7 @@ theory DKC_Sec.
 
       i = 0;
       n = length qs;
-      answers = Array.create n bad;
+      answers = Array.init n (lambda x, bad);
       while (i < n)
       {
         answers.[i] = D.encrypt(qs.[i]);
