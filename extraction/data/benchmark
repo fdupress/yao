@@ -1,0 +1,1 @@
+find ./*.sfc -maxdepth 1 | while read -r file; do echo "Benchmarking:" $file;../sfeRun.native "$file" > results/$file.csv; done

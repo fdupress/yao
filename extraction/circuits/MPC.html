@@ -1,0 +1,241 @@
+
+<!-- saved from url=(0059)http://www.cs.bris.ac.uk/Research/CryptographySecurity/MPC/ -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"></head><body>
+
+<h1>Circuits of Basic Functions Suitable For MPC and FHE</h1>
+
+Here we collect a set of basic combinatorial circuits which may be useful for people
+to test our binary-circuit based MPC and FHE implementations.  <p>
+
+The circuits consist of ANDs and XORs and inverters. The inverters
+themselves can be replaced either by XOR's or by ``wire switching''
+depending on what type of MPC/FHE algorithm is being used. </p><p>
+
+In order to produce the files we first created flattened Verilog netlists, 
+we started from a purely combinational HDL description of the implementation. 
+We used <a href="http://www.cadence.com/products/ld/rtl_compiler/pages/default.aspx">Cadence Encounter RTL compiler</a> 
+in conjunction with the <a href="http://freelibrary.faraday-tech.com/doc/0.18um/GII/FSA0A_C_GENERIC_CORE_ProdBrief_v1.1.pdf">Faraday FSA0A_C 0.18 mm ASIC Standard Cell Library</a> 
+for synthesis. 
+For synthesis we flattened the hardware modules hierarchy and we allowed only the 
+use of INV1S, AN2, XOR2HS, TIE0, and TIE1 cells. 
+After this we re-wrote the output and topologically sorted the resulting circuits.
+The topological sorting makes them easier to use in FHE and MPC applications.
+
+</p><p>
+
+To understand the format:
+Each file consists of:
+</p><ul>
+  <li>A line defining the number of gates and then the number of wires in the circuit.
+  </li><li>Then two numbers defining the number n<sub>1</sub> and n<sub>2</sub> of wires in the inputs
+      to the function given by the circuit.
+  <ul>
+     <li>We assume the function has at most two inputs; since most of our examples do.
+         If the function has only one input then the second inputs size is set to zero.
+  </li></ul>
+  </li><li>Then on the same line comes the number of wires in the output n<sub>3</sub>.
+  </li><li>The wires are ordered so that the first n<sub>1</sub> wires correspond to the
+      first input value, the next n<sub>2</sub> wires correspond to the second input
+      value. The last n<sub>3</sub> wires correspond to the output of the circuit.
+   </li><li>After this the gates are listed in the format: 
+   <ul> 
+       <li>Number input wires
+       </li><li>Number output wires
+       </li><li>List of input wires
+       </li><li>List of output wires
+       </li><li>Gate operation (XOR, AND or INV).
+   </li></ul>
+   So for example
+   <pre>      2 1 3 4 5 XOR
+   </pre>
+   corresponds to
+   <pre>       w<sub>5</sub>=XOR(w<sub>3</sub>,w<sub>4</sub>).
+   </pre>
+</li></ul>
+
+
+For each file we give the number of AND, XOR and INV gates in the file.
+We invite others to optimize these files or present better ones (please 
+use the same format though).
+All ``better'' representations we will place on this website;
+recall that better representations means less AND gates in the 
+context of MPC and FHE. <p>
+
+</p><h3>Block Ciphers</h3>
+<center>
+<table border="1">
+<tbody><tr>
+<td><b>Function</b></td>
+<td><b>File</b></td>
+<td><b>No. ANDs</b></td>
+<td><b>No. XORs</b></td>
+<td><b>No. INVs</b></td>
+</tr>
+<tr>
+<td>AES (No Key Expansion)</td>
+<td><a href="http://www.cs.bris.ac.uk/Research/CryptographySecurity/MPC/AES-non-expanded.txt">AES-non-expanded.txt</a></td>
+<td>6800</td>
+<td>25124</td>
+<td>1692</td>
+</tr>
+<tr>
+<td>AES (Key Expanded)</td>
+<td><a href="http://www.cs.bris.ac.uk/Research/CryptographySecurity/MPC/AES-expanded.txt">AES-expanded.txt</a></td>
+<td>5440</td>
+<td>20325</td>
+<td>1927</td>
+</tr>
+<tr>
+<td>DES (No Key Expansion)</td>
+<td><a href="http://www.cs.bris.ac.uk/Research/CryptographySecurity/MPC/DES-non-expanded.txt">DES-non-expanded.txt</a></td>
+<td>18124</td>
+<td>1340</td>
+<td>10849</td>
+</tr>
+<tr>
+<td>DES (Key Expanded)</td>
+<td><a href="http://www.cs.bris.ac.uk/Research/CryptographySecurity/MPC/DES-expanded.txt">DES-expanded.txt</a></td>
+<td>18175</td>
+<td>1351</td>
+<td>10875</td>
+</tr>
+
+</tbody></table>
+</center>
+The above present the encryption functions only.
+A non-expanded variant means that the <em>input</em> key (the second input) is assumed 
+non-expanded; i.e. AES-128 has a 128 bit second input value.
+The expanded variant means that we assume that the <em>input</em> key has already 
+been expanded; i.e. AES-128 has a 1408 bit second input value.
+
+<h3>Hash Functions</h3>
+
+<center>
+<table border="1">
+<tbody><tr>
+<td><b>Function</b></td>
+<td><b>File</b></td>
+<td><b>No. ANDs</b></td>
+<td><b>No. XORs</b></td>
+<td><b>No. INVs</b></td>
+</tr>
+<tr>
+<td>MD5</td>
+<td><a href="http://www.cs.bris.ac.uk/Research/CryptographySecurity/MPC/md5.txt">md5.txt</a></td>
+<td>29084</td>
+<td>14150</td>
+<td>34627</td>
+</tr>
+<tr>
+<td>SHA-1</td>
+<td><a href="http://www.cs.bris.ac.uk/Research/CryptographySecurity/MPC/sha-1.txt">sha-1.txt</a></td>
+<td>37300</td>
+<td>24166</td>
+<td>45135</td>
+</tr>
+<tr>
+<td>SHA-256</td>
+<td><a href="http://www.cs.bris.ac.uk/Research/CryptographySecurity/MPC/sha-256.txt">sha-256.txt</a></td>
+<td>90825</td>
+<td>42029</td>
+<td>103258</td>
+</tr>
+</tbody></table>
+</center>
+
+<p>
+For the hash functions we ignore padding and only allow a single-block input.
+Each circuit implements the compression function of the respective hash
+function, where the input chaining values are fixed to the IV values of
+the respective hash function. The input of the circuit is a full-size
+message block, the output consists of chaining values after invocation
+of the compression function (formatted in the same way as the digest
+value would be in the respective hash function). 
+
+</p><p>
+In particular this means we obtain the following test vectors for each function:
+</p><ul>
+  <li><a href="http://www.cs.bris.ac.uk/Research/CryptographySecurity/MPC/md5-test.txt">MD5 Test Vectors</a>
+  </li><li><a href="http://www.cs.bris.ac.uk/Research/CryptographySecurity/MPC/sha-1-test.txt">SHA-1 Test Vectors</a>
+  </li><li><a href="http://www.cs.bris.ac.uk/Research/CryptographySecurity/MPC/sha-256-test.txt">SHA-256 Test Vectors</a>
+</li></ul>
+
+
+<h3>Arithmetic Functions</h3>
+
+<center>
+<table border="1">
+<tbody><tr>
+<td><b>Function</b></td>
+<td><b>File</b></td>
+<td><b>No. ANDs</b></td>
+<td><b>No. XORs</b></td>
+<td><b>No. INVs</b></td>
+</tr>
+<tr>
+<td>32-bit Adder</td>
+<td><a href="http://www.cs.bris.ac.uk/Research/CryptographySecurity/MPC/adder_32bit.txt">adder_32bit.txt</a></td>
+<td>127</td>
+<td>61</td>
+<td>187</td>
+</tr>
+<tr>
+<td>64-bit Adder</td>
+<td><a href="http://www.cs.bris.ac.uk/Research/CryptographySecurity/MPC/adder_64bit.txt">adder_64bit.txt</a></td>
+<td>265</td>
+<td>115</td>
+<td>379</td>
+</tr>
+<tr>
+<td>32x32-bit Multiplier</td>
+<td><a href="http://www.cs.bris.ac.uk/Research/CryptographySecurity/MPC/mult_32x32.txt">mult_32x32.txt</a></td>
+<td>5926</td>
+<td>1069</td>
+<td>5379</td>
+</tr>
+<tr>
+<td>Comparison 32-bit Signed LTEQ</td>
+<td><a href="http://www.cs.bris.ac.uk/Research/CryptographySecurity/MPC/comparator_32bit_signed_lteq.txt">comparator_32bit_signed_lteq.txt</a></td>
+<td>150</td>
+<td>0</td>
+<td>162</td>
+</tr>
+<tr>
+<td>Comparison 32-bit Signed LT</td>
+<td><a href="http://www.cs.bris.ac.uk/Research/CryptographySecurity/MPC/comparator_32bit_signed_lt.txt">comparator_32bit_signed_lt.txt</a></td>
+<td>150</td>
+<td>0</td>
+<td>150</td>
+</tr>
+<tr>
+<td>Comparison 32-bit Unsigned LTEQ</td>
+<td><a href="http://www.cs.bris.ac.uk/Research/CryptographySecurity/MPC/comparator_32bit_unsigned_lteq.txt">comparator_32bit_unsigned_lteq.txt</a></td>
+<td>150</td>
+<td>0</td>
+<td>162</td>
+</tr>
+<tr>
+<td>Comparison 32-bit Unsigned LT</td>
+<td><a href="http://www.cs.bris.ac.uk/Research/CryptographySecurity/MPC/comparator_32bit_unsigned_lt.txt">comparator_32bit_unsigned_lt.txt</a></td>
+<td>150</td>
+<td>0</td>
+<td>150</td>
+</tr>
+
+</tbody></table>
+</center>
+
+<hr>
+
+We will update with different circuits as soon as we have computed them. <p>
+
+Note, that the above are produced by a standard tool chain. 
+Hand optimized circuits can achieve much smaller AND gate counts.
+
+</p><hr>
+
+All current files have been produced by Stefan Tillich, with post-processing by Nigel Smart. <p>
+
+
+
+</p></body></html>
