@@ -125,14 +125,6 @@ proof.
   by rewrite -IH; smt.
 qed.
 
-(*
-knight, tempest & mage, archer
-archer, knight, destroyer
-destroyer, archer, mage
-mage, destroyer, minotaur & knight
-minotaur, mage, tempest
-*)
-
 (** Values of appendInit *)
 (**
   Inductive definition of the values: the values of two 
