@@ -2005,7 +2005,7 @@ theory SomeGarble.
     congr. apply fun_ext. rewrite /(==) => x. congr. rewrite ?get_filter. simplify. case (0 <= x < C.n{2}) => hc; last by done. rewrite H7. cut ? : C.n{2} < C.n{2} + C.q{2} by smt. smt. done.
     by auto.
   qed.
-      
+  
   (****************************************************************)
   (* ALTERNATIVE OF THE ALTERNATIVE VERSION WITH ALL WHILES MIXED *)
   (****************************************************************)
@@ -2956,6 +2956,87 @@ qed.
   (**************************************************************)
   (* Lemmas concerning the GameHybrid_bound ~ GameFake equality *)
   (**************************************************************)
+
+  lemma eqnqm_bound n m q aa bb gg x : validInputsP (((n,m,q,aa,bb),gg), x) => bound = n + q - m.
+  proof.
+    simplify validInputsP.
+    simplify valid_circuitP.
+    simplify fst snd.
+    progress.
+    by rewrite -H4.
+  qed.
+
+  lemma allBlt_bound n m q aa bb gg x k : validInputsP (((n,m,q,aa,bb),gg), x) => n <= k < n + q => bb.[k] < bound.
+  proof.
+    simplify validInputsP.
+    simplify fst valid_circuitP. 
+    progress. 
+    smt.
+  qed.  
+
+  lemma allAlt_bound n m q aa bb gg x k : validInputsP (((n,m,q,aa,bb),gg), x) => n <= k < n + q => aa.[k] < bound.
+  proof.
+    simplify validInputsP.
+    simplify fst valid_circuitP. 
+    progress. 
+    smt.
+  qed.  
+  
+  lemma GameFake_GameHybridbound (A <: GSch.EncSecurity.Adv_IND_t{Rand,R,GameReal,GameHybrid}): 
+    islossless A.gen_query =>
+    islossless A.get_challenge => 
+  equiv [GameFake(A).garble ~ GameHybrid(A).garble : ={glob A} /\ Hl.l{2} = bound-1 ==> ={res}].
+  proof.
+    move => AgenL AgetL.
+    proc.
+    seq 1 1 : (={glob A, query} /\ Hl.l{2} = bound-1).
+      by call (_ : true).
+    (if; first by progress); last by auto.
+    wp.
+    call (_ : true) => //.
+    wp.
+    inline GarbleInitFake.init GarbleHybridInit.init. 
+    while (={p, real, glob A, query, C.n, C.m, C.q, C.aa, C.bb, C.gg, G.g, C.v} /\ ={R.t} /\
+      GSch.EncSecurity.queryValid_IND query{1} /\
+      (*(p{1} = if real{1} then snd query{1} else fst query{1}) /\*)
+      (*((C.f{1}, C.x{1}) = if real{1} then snd query{1} else fst query{1}) /\*)
+      (*p{1} = (C.f{1}, C.x{1}) /\
+      C.f{1} = ((C.n{1}, C.m{1}, C.q{1}, C.aa{1}, C.bb{1}), C.gg{1}) /\*)
+      validInputsP (((C.n{1}, C.m{1}, C.q{1}, C.aa{1}, C.bb{1}), C.gg{1}), C.x{1}) /\
+      C.n{1} <= G.g{1} <= C.n{1} + C.q{1} /\
+      Hl.l{2} = bound-1 /\
+      (forall k b, 0 <= k < C.n{1} + C.q{1} => R.xx{1}.[(k,b)] = R.xx{2}.[(k,b)]) /\
+      (forall k a b, C.n{1} <= k < G.g{1} => G.pp{1}.[(k,a,b)] = G.pp{2}.[(k,a,b)]) /\
+      (forall k a b, k < C.n{1} => G.pp{1}.[(k,a,b)] = None) /\
+      (forall k a b, G.g{1} <= k => G.pp{1}.[(k,a,b)] = None) /\
+      (forall k a b, k < C.n{1} => G.pp{2}.[(k,a,b)] = None) /\
+      (forall k a b, G.g{1} <= k => G.pp{2}.[(k,a,b)] = None)).
+      inline*. auto. progress. by cut : false by smt. by cut : false by smt. by cut : false by smt. by cut : false by smt. by cut : false by smt. by cut : false by smt. by cut : false by smt. smt. smt. 
+      cut ->: C.aa{2}.[G.g{2}] <= bound-1 <=> true by smt. cut ->: C.bb{2}.[G.g{2}] <= bound-1 <=> true by smt. simplify. rewrite ?get_set. simplify. case (G.g{2} = k) => hc. simplify. case (R.t{2}.[C.aa{2}.[G.g{2}]] ^^ true = a) => ha. case (R.t{2}.[C.bb{2}.[G.g{2}]] ^^ true = b) => hb. simplify. congr. congr. smt. smt. congr. rewrite ?H3. smt. smt. reflexivity. simplify. cut ->: R.t{2}.[C.bb{2}.[G.g{2}]] ^^ false = b <=> true by smt. simplify. congr. smt. smt. simplify. cut ->: R.t{2}.[C.aa{2}.[G.g{2}]] ^^ false = a <=> true by smt. simplify. case (R.t{2}.[C.bb{2}.[G.g{2}]] ^^ true = b) => hb. congr. congr. rewrite H3. smt. reflexivity. rewrite H3. smt. reflexivity. rewrite H3. smt. cut ->: R.t{2}.[C.bb{2}.[G.g{2}]] ^^ false = b <=> true by smt. simplify. congr. rewrite H3. smt. reflexivity. rewrite H3. smt. reflexivity. simplify. rewrite H4. smt. reflexivity. 
+    rewrite ?get_set. simplify. cut ->: G.g{2} = k <=> false by smt. simplify. rewrite H5. exact H18. reflexivity.
+    rewrite ?get_set. simplify. cut ->: G.g{2} = k <=> false by smt. simplify. rewrite H6. smt. reflexivity.
+    rewrite ?get_set. simplify. cut ->: G.g{2} = k <=> false by smt. simplify. rewrite H7. exact H18. reflexivity.
+    rewrite ?get_set. simplify. cut ->: G.g{2} = k <=> false by smt. simplify. rewrite H8. smt. reflexivity.
+    wp.
+    call RandomInitEquiv.
+    call CircuitInitEquiv.
+    auto; progress.
+    by smt.
+    move : H4. simplify validInputsP valid_circuitP. simplify fst snd. progress. smt. 
+    move : H4. simplify validInputsP valid_circuitP. simplify fst snd. progress. smt. 
+    move : H4. simplify validInputsP valid_circuitP. simplify fst snd. progress. smt.
+    case (b = v_R.[k]) => hb. rewrite hb. rewrite H10. smt. reflexivity. cut ->: b = !v_R.[k] by smt. rewrite H11. smt. reflexivity.
+    by rewrite get_empty.
+    by rewrite get_empty.
+    by rewrite get_empty.
+    by rewrite get_empty.
+    apply map_ext. rewrite /(==) => x. elim x => k a b. case (n_R <= k < g_R) => hk. rewrite H23. exact hk. reflexivity. smt. 
+    simplify encode. congr. apply fun_ext. rewrite /(==) => x. congr. simplify inputK. simplify fst snd. rewrite ?get_filter. simplify. case (0 <= x < n_R) => hc. rewrite H22. smt. reflexivity. reflexivity. 
+  qed. 
+
+  (**********)
+  (*        *)
+  (**********)
   
   print GSch.EncSecurity.
     
