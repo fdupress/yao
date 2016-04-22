@@ -1776,10 +1776,12 @@ theory SomeGarble.
         G.pp.[(G.g, getlsb wa, getlsb wb)] = E twe wa wb tok;
 
         G.yy.[G.g] = tok;
+
+        G.g = G.g + 1;
       }
     }
   }.
-
+      
   lemma valid_inputs_allA f x k : validInputsP (f,x) => f.`1.`1 <= k < f.`1.`1 + f.`1.`3 => 0 <= f.`1.`4.[k] < f.`1.`1 + f.`1.`3.
   proof.
     simplify validInputsP valid_circuitP fst snd. 
@@ -1826,28 +1828,40 @@ theory SomeGarble.
       (forall g a b, C.n{1} <= g < G.g{1} => mem (dom G.pp{1}) (g,a,b)) /\
       (forall g a b, C.n{1} <= g < G.g{1} => mem (dom G.pp{2}) (g,a,b)) /\
       (forall g a b, g < C.n{1} => !mem (dom G.pp{1}) (g,a,b)) /\
-      (forall g a b, G.g{1} < g => !mem (dom G.pp{1}) (g,a,b)) /\
+      (forall g a b, G.g{1} <= g => !mem (dom G.pp{1}) (g,a,b)) /\
       (forall g a b, g < C.n{1} => !mem (dom G.pp{2}) (g,a,b)) /\
-      (forall g a b, G.g{1} < g => !mem (dom G.pp{2}) (g,a,b)) /\
+      (forall g a b, G.g{1} <= g => !mem (dom G.pp{2}) (g,a,b)) /\
       (forall g a b, g < C.n{1} => G.pp{1}.[(g, a, b)] = None) /\
-      (forall g a b, G.g{1} < g => G.pp{1}.[(g, a, b)] = None) /\
+      (forall g a b, G.g{1} <= g => G.pp{1}.[(g, a, b)] = None) /\
       (forall g a b, g < C.n{1} => G.pp{2}.[(g, a, b)] = None) /\
-      (forall g a b, G.g{1} < g => G.pp{2}.[(g, a, b)] = None) /\
+      (forall g a b, G.g{1} <= g => G.pp{2}.[(g, a, b)] = None) /\
       ={G.g} /\ C.n{1} <= G.g{1} <= C.n{1} + C.q{1}).
     auto. progress. rewrite ?get_set. simplify. case (G.g{2} = g) => hc. simplify. case (getlsb (oget R'.ii{1}.[C.aa{2}.[G.g{2}]]) = a) => ha. simplify. case (getlsb (oget R'.ii{1}.[C.bb{2}.[G.g{2}]]) = b) => hb. cut ->: getlsb (oget R'.ii{2}.[C.aa{2}.[G.g{2}]]) = a <=> true by smt. cut ->: getlsb (oget R'.ii{2}.[C.bb{2}.[G.g{2}]]) = b <=> true by smt. cut ->: getlsb (oget R'.vv{2}.[C.bb{2}.[G.g{2}]]) = b <=> false by smt. cut ->: getlsb (oget R'.vv{2}.[C.aa{2}.[G.g{2}]]) = a <=> false by smt. simplify. smt. simplify. cut ->: getlsb (oget R'.vv{1}.[C.bb{2}.[G.g{2}]]) = b <=> true by smt. simplify. cut ->: getlsb (oget R'.ii{2}.[C.aa{2}.[G.g{2}]]) = a <=> true by smt. simplify. cut ->: getlsb (oget R'.ii{2}.[C.bb{2}.[G.g{2}]]) = b <=> false by smt. cut ->: getlsb (oget R'.vv{2}.[C.bb{2}.[G.g{2}]]) = b <=> true by smt. cut ->: getlsb (oget R'.vv{2}.[C.aa{2}.[G.g{2}]]) = a <=> false by smt. simplify. smt. simplify. cut ->: getlsb (oget R'.vv{1}.[C.aa{2}.[G.g{2}]]) = a <=> true by smt. simplify. case (getlsb (oget R'.ii{1}.[C.bb{2}.[G.g{2}]]) = b) => hb. cut ->: getlsb (oget R'.ii{2}.[C.aa{2}.[G.g{2}]]) = a <=> false by smt. simplify. cut ->: getlsb (oget R'.vv{2}.[C.aa{2}.[G.g{2}]]) = a <=> true by smt. cut ->: getlsb (oget R'.ii{2}.[C.bb{2}.[G.g{2}]]) = b <=> true by smt. simplify. smt. cut ->: getlsb (oget R'.vv{1}.[C.bb{2}.[G.g{2}]]) = b <=> true by smt. simplify. cut ->: getlsb (oget R'.ii{2}.[C.aa{2}.[G.g{2}]]) = a <=> false by smt. cut ->: getlsb (oget R'.ii{2}.[C.bb{2}.[G.g{2}]]) = b <=> false by smt. cut ->: getlsb (oget R'.vv{2}.[C.bb{2}.[G.g{2}]]) = b <=> true by smt. cut ->: getlsb (oget R'.vv{2}.[C.aa{2}.[G.g{2}]]) = a <=> true by smt. simplify. smt. simplify. smt.
   
     (*rewrite ?get_set. simplify. case (G.g{2} = g) => hc. simplify. case (getlsb (oget R'.ii{1}.[C.aa{2}.[G.g{2}]]) = a) => ha. case (getlsb (oget R'.ii{1}.[C.bb{2}.[G.g{2}]]) = b) => hb. simplify. cut ? : G.g{2} <= C.n{2} by smt.*)
 
-    rewrite mem_dom. rewrite ?get_set. simplify. cut ->: G.g{2} = g <=> false by smt. simplify. smt.
-    rewrite mem_dom. rewrite ?get_set. simplify. cut ->: G.g{2} = g <=> false by smt. simplify. smt.
-    rewrite mem_dom. rewrite ?get_set. simplify. case (G.g{2} = g) => hc. cut : false by smt. progress. simplify. smt.
-    rewrite mem_dom. rewrite ?get_set. simplify. case (G.g{2} = g) => hc. cut : false by smt. progress. simplify. smt.
-    rewrite mem_dom. rewrite ?get_set. simplify. case (G.g{2} = g) => hc. cut : false by smt. progress. simplify. smt.
-    rewrite mem_dom. rewrite ?get_set. simplify. case (G.g{2} = g) => hc. cut : false by smt. progress. simplify. smt.
-    rewrite ?get_set. simplify. case (G.g{2} = g) => hc. cut : false by smt. progress. simplify. smt.
-    rewrite ?get_set. simplify. case (G.g{2} = g) => hc. cut : false by smt. progress. simplify. smt.
-    rewrite ?get_set. simplify. case (G.g{2} = g) => hc. cut : false by smt. progress. simplify. smt.
-    rewrite ?get_set. simplify. case (G.g{2} = g) => hc. cut : false by smt. progress. simplify. smt.
+    rewrite mem_dom. rewrite ?get_set. simplify. case (G.g{2} = g) => hc. simplify. case (getlsb (oget R'.ii{1}.[C.aa{2}.[G.g{2}]]) = a) => ha. simplify. case (getlsb (oget R'.ii{1}.[C.bb{2}.[G.g{2}]]) = b) => hb. smt. cut ->: getlsb (oget R'.vv{1}.[C.bb{2}.[G.g{2}]]) = b <=> true by smt. by simplify. simplify. cut ->: getlsb (oget R'.vv{1}.[C.aa{2}.[G.g{2}]]) = a <=> true by smt. simplify. case (getlsb (oget R'.ii{1}.[C.bb{2}.[G.g{2}]]) = b) => hb. smt. cut ->: getlsb (oget R'.vv{1}.[C.bb{2}.[G.g{2}]]) = b <=> true by smt. by simplify. simplify. smt. 
+
+    rewrite mem_dom. rewrite ?get_set. simplify. case (G.g{2} = g) => hc. simplify. case (getlsb (oget R'.ii{2}.[C.aa{2}.[G.g{2}]]) = a) => ha. simplify. case (getlsb (oget R'.ii{2}.[C.bb{2}.[G.g{2}]]) = b) => hb. smt. cut ->: getlsb (oget R'.vv{2}.[C.bb{2}.[G.g{2}]]) = b <=> true by smt. by simplify. simplify. cut ->: getlsb (oget R'.vv{2}.[C.aa{2}.[G.g{2}]]) = a <=> true by smt. simplify. case (getlsb (oget R'.ii{2}.[C.bb{2}.[G.g{2}]]) = b) => hb. smt. cut ->: getlsb (oget R'.vv{2}.[C.bb{2}.[G.g{2}]]) = b <=> true by smt. by simplify. simplify. smt. 
+
+    rewrite mem_dom. rewrite ?get_set. simplify. case (G.g{2} = g) => hc. simplify. case (getlsb (oget R'.ii{1}.[C.aa{2}.[G.g{2}]]) = a) => ha. simplify. case (getlsb (oget R'.ii{1}.[C.bb{2}.[G.g{2}]]) = b) => hb. smt. cut ->: getlsb (oget R'.vv{1}.[C.bb{2}.[G.g{2}]]) = b <=> true by smt. simplify. smt. simplify. cut ->: getlsb (oget R'.vv{1}.[C.aa{2}.[G.g{2}]]) = a <=> true by smt. simplify. case (getlsb (oget R'.ii{1}.[C.bb{2}.[G.g{2}]]) = b) => hb. smt. cut ->: getlsb (oget R'.vv{1}.[C.bb{2}.[G.g{2}]]) = b <=> true by smt. simplify. smt. simplify. smt. 
+
+    rewrite mem_dom. rewrite ?get_set. simplify. case (G.g{2} = g) => hc. simplify. case (getlsb (oget R'.ii{1}.[C.aa{2}.[G.g{2}]]) = a) => ha. simplify. case (getlsb (oget R'.ii{1}.[C.bb{2}.[G.g{2}]]) = b) => hb. smt. cut ->: getlsb (oget R'.vv{1}.[C.bb{2}.[G.g{2}]]) = b <=> true by smt. simplify. smt. simplify. cut ->: getlsb (oget R'.vv{1}.[C.aa{2}.[G.g{2}]]) = a <=> true by smt. simplify. case (getlsb (oget R'.ii{1}.[C.bb{2}.[G.g{2}]]) = b) => hb. smt. cut ->: getlsb (oget R'.vv{1}.[C.bb{2}.[G.g{2}]]) = b <=> true by smt. simplify. smt. simplify. smt. 
+
+    rewrite mem_dom. rewrite ?get_set. simplify. case (G.g{2} = g) => hc. simplify. case (getlsb (oget R'.ii{2}.[C.aa{2}.[G.g{2}]]) = a) => ha. simplify. case (getlsb (oget R'.ii{2}.[C.bb{2}.[G.g{2}]]) = b) => hb. smt. cut ->: getlsb (oget R'.vv{2}.[C.bb{2}.[G.g{2}]]) = b <=> true by smt. simplify. smt. simplify. cut ->: getlsb (oget R'.vv{2}.[C.aa{2}.[G.g{2}]]) = a <=> true by smt. simplify. case (getlsb (oget R'.ii{2}.[C.bb{2}.[G.g{2}]]) = b) => hb. smt. cut ->: getlsb (oget R'.vv{2}.[C.bb{2}.[G.g{2}]]) = b <=> true by smt. simplify. smt. simplify. smt. 
+
+    rewrite mem_dom. rewrite ?get_set. simplify. case (G.g{2} = g) => hc. simplify. case (getlsb (oget R'.ii{2}.[C.aa{2}.[G.g{2}]]) = a) => ha. simplify. case (getlsb (oget R'.ii{2}.[C.bb{2}.[G.g{2}]]) = b) => hb. smt. cut ->: getlsb (oget R'.vv{2}.[C.bb{2}.[G.g{2}]]) = b <=> true by smt. simplify. smt. simplify. cut ->: getlsb (oget R'.vv{2}.[C.aa{2}.[G.g{2}]]) = a <=> true by smt. simplify. case (getlsb (oget R'.ii{2}.[C.bb{2}.[G.g{2}]]) = b) => hb. smt. cut ->: getlsb (oget R'.vv{2}.[C.bb{2}.[G.g{2}]]) = b <=> true by smt. simplify. smt. simplify. smt.
+
+    rewrite ?get_set. simplify. case (G.g{2} = g) => hc. simplify. case (getlsb (oget R'.ii{1}.[C.aa{2}.[G.g{2}]]) = a) => ha. simplify. case (getlsb (oget R'.ii{1}.[C.bb{2}.[G.g{2}]]) = b) => hb. smt. cut ->: getlsb (oget R'.vv{1}.[C.bb{2}.[G.g{2}]]) = b <=> true by smt. simplify. smt. simplify. cut ->: getlsb (oget R'.vv{1}.[C.aa{2}.[G.g{2}]]) = a <=> true by smt. simplify. case (getlsb (oget R'.ii{1}.[C.bb{2}.[G.g{2}]]) = b) => hb. smt. cut ->: getlsb (oget R'.vv{1}.[C.bb{2}.[G.g{2}]]) = b <=> true by smt. simplify. smt. simplify. smt.
+    
+    rewrite ?get_set. simplify. case (G.g{2} = g) => hc. simplify. case (getlsb (oget R'.ii{1}.[C.aa{2}.[G.g{2}]]) = a) => ha. simplify. case (getlsb (oget R'.ii{1}.[C.bb{2}.[G.g{2}]]) = b) => hb. smt. cut ->: getlsb (oget R'.vv{1}.[C.bb{2}.[G.g{2}]]) = b <=> true by smt. simplify. smt. simplify. cut ->: getlsb (oget R'.vv{1}.[C.aa{2}.[G.g{2}]]) = a <=> true by smt. simplify. case (getlsb (oget R'.ii{1}.[C.bb{2}.[G.g{2}]]) = b) => hb. smt. cut ->: getlsb (oget R'.vv{1}.[C.bb{2}.[G.g{2}]]) = b <=> true by smt. simplify. smt. simplify. smt.
+
+    rewrite ?get_set. simplify. case (G.g{2} = g) => hc. simplify. case (getlsb (oget R'.ii{2}.[C.aa{2}.[G.g{2}]]) = a) => ha. simplify. case (getlsb (oget R'.ii{2}.[C.bb{2}.[G.g{2}]]) = b) => hb. smt. cut ->: getlsb (oget R'.vv{2}.[C.bb{2}.[G.g{2}]]) = b <=> true by smt. simplify. smt. simplify. cut ->: getlsb (oget R'.vv{2}.[C.aa{2}.[G.g{2}]]) = a <=> true by smt. simplify. case (getlsb (oget R'.ii{2}.[C.bb{2}.[G.g{2}]]) = b) => hb. smt. cut ->: getlsb (oget R'.vv{2}.[C.bb{2}.[G.g{2}]]) = b <=> true by smt. simplify. smt. simplify. smt.
+
+    rewrite ?get_set. simplify. case (G.g{2} = g) => hc. simplify. case (getlsb (oget R'.ii{2}.[C.aa{2}.[G.g{2}]]) = a) => ha. simplify. case (getlsb (oget R'.ii{2}.[C.bb{2}.[G.g{2}]]) = b) => hb. smt. cut ->: getlsb (oget R'.vv{2}.[C.bb{2}.[G.g{2}]]) = b <=> true by smt. simplify. smt. simplify. cut ->: getlsb (oget R'.vv{2}.[C.aa{2}.[G.g{2}]]) = a <=> true by smt. simplify. case (getlsb (oget R'.ii{2}.[C.bb{2}.[G.g{2}]]) = b) => hb. smt. cut ->: getlsb (oget R'.vv{2}.[C.bb{2}.[G.g{2}]]) = b <=> true by smt. simplify. smt. simplify. smt.
+
+    by smt.
+    by smt. 
 
     wp; skip; progress. smt. smt. smt. smt. smt. smt. smt. smt. smt. smt. move : H3. simplify validInputsP. simplify valid_circuitP. simplify fst snd. cut ->: C.f{1}.`1 = (C.n{2}, C.m{2}, C.q{2}, C.aa{2}, C.bb{2}) by smt. simplify. progress. smt. smt. smt. smt. 
   qed.
@@ -1920,7 +1934,33 @@ theory SomeGarble.
     islossless A.gen_query =>
     islossless A.get_challenge =>
     Pr[GameFake''(A).garble() @ &m: res] = 1%r / 2%r.
-  proof. admit. qed.
+  proof.
+    move => AgenLL AgetLL.
+    byphoare => //; proc.
+    seq 1 : true (1%r) (1%r/2%r) (0%r) _ true => //; first by call (_ : true).
+    if; last by rnd;skip;smt.
+    wp.
+    swap 1 6.
+    rnd ((=) adv).
+    conseq (_ : true); first by progress;smt.
+    call (_ : true) => //.
+    wp. 
+    inline GarbleInitFake'.init.
+    while (true) (C.n + C.q - G.g).
+      progress. wp. rnd. wp. rnd. wp. rnd. wp. skip. progress. smt. smt. smt. smt. 
+    auto. 
+    inline RandomInit'.init.
+    while true (C.n + C.q - i).
+      progress. auto. progress. smt. smt. smt. smt. 
+    auto.
+    inline CircuitInit.init.
+    while true (C.n + C.q - i0).
+      progress. auto. progress. smt.
+    auto. progress.
+    by smt.
+    by smt.
+    by smt.
+  qed.
   
   lemma GameFake'_GameFake'' (A<:GSch.EncSecurity.Adv_IND_t{C,R,R',G}) &m :
     equiv[GameFake'(A).garble ~ GameFake''(A).garble :
@@ -2419,48 +2459,6 @@ theory SomeGarble.
     }
   }.
   
-  lemma GameFake'_independent (A<:GSch.EncSecurity.Adv_IND_t{C,R,R',G}) &m :
-    islossless A.gen_query =>
-    islossless A.get_challenge =>
-    Pr[GameFake'MixedWhiles(A).garble() @ &m: res] = 1%r / 2%r.
-  proof.
-    move => AgenLL AgetLL.
-    byphoare => //.
-    proc.
-    seq 1 : true (1%r) (1%r/2%r) (0%r) _ true => //; first by call (_ : true) => //. 
-    if; last by rnd; skip; smt.
-      seq 2 : true (1%r) (1%r/2%r) (0%r) _ true => //; first by auto; smt.
-      inline CircuitInit.init.
-      seq 17 : true (1%r) (1%r/2%r) (0%r) _ true => //.
-        auto.
-        while (true) (C.n+C.q-i). progress. auto. smt. 
-        auto. smt.
-      seq 1 : true (1%r) (1%r/2%r) (0%r) _ true => //.
-        while (true) (C.n-G.g). progress. auto. progress. smt. smt. smt. smt. skip. smt.
-      seq 1 : true (1%r) (1%r/2%r) (0%r) _ true => //.
-        while (true) (C.n + C.q - C.m-G.g). progress. auto. progress. smt. smt. smt. smt. smt. skip. smt.
-      seq 1 : true (1%r) (1%r/2%r) (0%r) _ true => //.
-        while (true) (C.n + C.q -G.g). progress. auto. progress. smt. smt. smt. smt. smt. skip. smt.
-      seq 1 : true (1%r) (1%r/2%r) (0%r) _ true => //. auto. wp.
-      seq 1 : true (1%r) (1%r/2%r) (0%r) _ true => //. call (_ : true) => //.
-      conseq (_ : _ ==> real = adv). progress. skip. smt.
-    
-    wp. skip.
-  
-    wp.
-      rnd ((=) adv).
-      conseq (_ : _ ==> true) => //. progress. smt.
-      call (_ : true) => //.
-      wp.
-      while (true) (C.n + C.m - G.g). progress. auto. progress. smt. smt. smt. smt. smt.
-      while (true) (C.n + C.m - C.q - G.g). progress. auto. progress. smt. smt. smt. smt. smt.
-      while (true) (C.n - G.g). progress. auto. progress. smt. smt. smt. smt. 
-      inline CircuitInit.init.
-      auto.
-      while (true) (C.n + C.q - i). progress. auto. progress. smt.
-      auto. progress. smt. smt. admit. smt. smt.
-
-
   
   lemma same_fakes (A<:GSch.EncSecurity.Adv_IND_t{C,R,R',G}):
     equiv[GameFakeMixedWhiles(A).garble ~ GameFake'MixedWhiles(A).garble :
@@ -2906,187 +2904,57 @@ qed.
   lemma GameReal_GameHybrid0 (A <: GSch.EncSecurity.Adv_IND_t{Rand,R,GameReal,GameHybrid}): 
     islossless A.gen_query =>
     islossless A.get_challenge => 
-  equiv [GameReal(A).garble ~ GameHybrid(A).garble : ={glob A, glob R, glob C, glob G} /\ Hl.l{2} = -1 ==> ={res}].
+  equiv [GameReal(A).garble ~ GameHybrid(A).garble : ={glob A} /\ Hl.l{2} = -1 ==> ={res}].
   proof.
     move => AgenL AgetL.
     proc.
-    seq 1 1 : (={glob A, glob R, glob C, glob G, query} /\ Hl.l{2} = -1).
-      by call (_ : true).
-    if; first by progress.
-    wp.
-    call (_ : true) => //.
-    wp.
-    inline GarbleRealInit.init GarbleHybridInit.init. 
-      while (={p, glob C, glob G, glob R} /\
-             C.n{1} <= G.g{1} <= C.n{1} + C.q{1} /\
-             Hl.l{2} = -1 /\
-             size C.v{1} = C.n{1} + C.q{1} /\
-             C.f{1} = ((C.n,C.m,C.q,C.aa,C.bb),C.gg){1} /\
-             validInputsP (C.f,C.x){1} /\
-             validRand C.f{1} R.xx{1} /\
-             size R.t{1} = C.n{1} + C.q{1} /\
-             (forall i, C.n{1} <= i < C.n{1} + C.q{1} =>
-                C.v{1}.[i] = oget C.gg{1}.[(i,C.v{1}.[C.aa{1}.[i]],C.v{1}.[C.bb{1}.[i]])])); first last.
-        wp; call RinitE; call CircuitInitEquiv; wp; rnd; skip.
-        rewrite {3}/validInputsP /validCircuitP /fst /fst /snd; progress.
-        by smt.
-        by move : H2; case (realL); rewrite /validInputsP; first 2 by smt.
-
-
-
-
-               admit. admit. admit. admit. admit. admit. admit. admit. admit. admit. admit. admit. by smt. admit. admit. admit. admit. admit. 
-      seq 3 3: (={p, glob C, glob G, glob R} /\
-                C.n{1} <= G.g{1} < C.n{1} + C.q{1} /\
-                G.a{1} = C.aa.[G.g]{1} /\
-                G.b{1} = C.bb.[G.g]{1} /\
-                Hl.l{2} = -1 /\
-                size C.v{1} = C.n{1} + C.q{1} /\
-                C.f{1} = ((C.n,C.m,C.q,C.aa,C.bb),C.gg){1} /\
-                validInputsP (C.f,C.x){1} /\
-                validRand C.f{1} R.xx{1} /\
-                size R.t{1} = C.n{1} + C.q{1} /\
-                (forall i, C.n{1} <= i < C.n{1} + C.q{1} =>
-                   C.v{1}.[i] = oget C.gg{1}.[(i,C.v{1}.[C.aa{1}.[i]],C.v{1}.[C.bb{1}.[i]])])).
-        inline *. auto. inline*. auto.
-        rewrite /validInputsP /validCircuitP /fst /fst /snd; progress. admit. admit. admit. admit. admit. admit. admit. admit.
-     by auto.
-  qed.
-
-
-
-
-              
-      case (F.flag_sp{1}).
-        rcondt{1} 5; first by auto; do !call (_: true).
-        rcondt{2} 5; first by auto; do !call (_: true).
-        by wp; call GgarbE; do 3!(call GgarbDE); call GgarbE; auto; progress; expect 2 smt.
-        rcondf{1} 5; first by auto; do !call (_: true).
-        rcondf{2} 5; first by auto; do !call (_: true).
-        by wp; do 3!(call GgarbDE); call GgarbE; auto; progress; expect 2 smt.
-
-
-
-
-
-
-
-
-
-
-  move => AgenL AgetL.
-    proc => //.
     seq 1 1 : (={glob A, query} /\ Hl.l{2} = -1).
       by call (_ : true).
-    if; first by progress.
+    (if; first by progress); last by auto.
     wp.
     call (_ : true) => //.
     wp.
     inline GarbleRealInit.init GarbleHybridInit.init. 
-    while (={glob A, glob C, glob R, glob G, query} /\ Hl.l{2} = -1 /\ t_xor (C.n{1} + C.q{1}) R.t{1} R.t{2} C.v{1} /\
-                0 <= C.q{2} /\
-                C.n{2} <= G.g{1} /\
-                C.f{2} = ((C.n{2}, C.m{2}, C.q{2}, C.aa{2}, C.bb{2}), C.gg{2}) /\ valid_circuitP bound C.f{2} /\
-                let (topo, gg) = funG C.f{2} R.xx{2} in
-                  ={glob C} /\
-                  (forall i v, 0 <= i < C.n + C.q => getlsb (oget R.xx.[(i, v)]) = v ^^ R.t.[i]){2} /\
-                  (forall g u, 0 <= g < (C.n + C.q){1} => R.xx.[(g, u)]{1} = R.xx.[(g, u)]{2}) /\
-                  (forall i, C.n <= i < C.n + C.q =>
-                     C.v{2}.[i] = oget C.gg.[(i, false ^^ C.v{2}.[C.aa{2}.[i]], false ^^ C.v{2}.[C.bb.[i]])]){2} /\
-                  topo = (C.n{1}, C.m{1}, C.q{1}, C.aa{1}, C.bb{1}) /\
-                  G.g{1} <= C.n{1} + C.q{1} /\
-                  (forall i a b, !(G.g{1} <= i < C.n{1} + C.q{1}) => gg.[(i, a, b)] = G.pp{1}.[(i, a, b)])).
-      inline GarbleRealInit.garb'.
-      inline GarbleRealInit.garb.
-      inline GarbleHybridInit.garb'.
-      inline GarbleHybridInit.garb.
-      wp.
-      swap 13 -12.
-      swap 26 -25.
-      swap 39 -38.
-      wp.
-      simplify.
-      do 3 ! rnd.
-      skip.
-      simplify funG funG fst snd t_xor.
-      progress. 
-      by cut : C.aa{2}.[G.g{2}] <= -1 <=> false by smt; progress.
-      by cut : C.aa{2}.[G.g{2}] <= -1 <=> false by smt; progress.
-      by smt. 
-      by smt.              
-      by cut : C.aa{2}.[G.g{2}] <= -1 <=> false by smt; progress.
-      cut ->: C.aa{2}.[G.g{2}] <= -1 <=> false.    
-        move : H2. rewrite /valid_circuitP.
-        simplify fst. progress. smt.
-        by simplify.
-      cut ->: C.aa{2}.[G.g{2}] <= -1 <=> false.    
-        move : H2. rewrite /valid_circuitP.
-        simplify fst. progress. smt.
-      cut ->: C.bb{2}.[G.g{2}] <= -1 <=> false.    
-        move : H2. rewrite /valid_circuitP.
-        simplify fst. progress. smt.
-        by simplify.
-      by smt.
-      by smt.
-      simplify.
-
-      case (G.g{2} = i)=> hi.
-        rewrite hi !FMap.get_set get_initGates; first smt.
-        cut -> /=: C.n{2} <= i < C.n{2} + C.q{2} by smt.
-        rewrite !xor_true !xor_false /=.
-        cut hneq : forall (x:bool), ((! x) = x) = false by smt.
-        cut lem : forall u v, Some (enc R.xx{2} ((C.n{2}, C.m{2}, C.q{2}, C.aa{2}, C.bb{2}), C.gg{2}) i
-          (u ^^ R.t{2}.[C.aa{2}.[i]]) (v ^^ R.t{2}.[C.bb{2}.[i]])) =
-            Some (E (tweak i (R.t{2}.[C.aa{2}.[i]]^^u) (R.t{2}.[C.bb{2}.[i]]^^v))
-              (oget R.xx{2}.[(C.aa{2}.[i], u ^^ C.v{2}.[C.aa{2}.[i]])]) (oget R.xx{2}.[(C.bb{2}.[i], v ^^ C.v{2}.[C.bb{2}.[i]])])
-              (oget R.xx{2}.[(i, (oget C.gg{2}.[(i, u^^C.v{2}.[C.aa{2}.[i]], v^^C.v{2}.[C.bb{2}.[i]])]))])).
-          move => u v.
-          simplify enc fst snd.
-          rewrite !H3;first 4 by elim H2;smt. 
-          rewrite H. elim H2. smt. 
-          rewrite H. elim H2. smt. rewrite H. elim H2. smt. rewrite H. elim H2. smt. rewrite H. elim H2. smt. rewrite H. elim H2. smt. rewrite H. elim H2. smt. rewrite H. elim H2. smt. rewrite H. elim H2. smt. rewrite H. elim H2. smt. rewrite H. elim H2. smt. rewrite H. elim H2. smt. rewrite H. elim H2. smt. rewrite H. elim H2. smt. rewrite H. elim H2. smt. rewrite H. elim H2. smt. rewrite H. elim H2. smt. rewrite H. elim H2. smt. rewrite H. elim H2. smt. rewrite H. elim H2. smt. rewrite H. elim H2. smt. rewrite H. elim H2. smt. rewrite H. elim H2. smt. rewrite H. elim H2. smt. rewrite H. elim H2. smt. rewrite H. elim H2. smt. rewrite H. elim H2. smt. rewrite H. elim H2. smt. rewrite H. elim H2. smt. rewrite H. elim H2. smt. rewrite H. elim H2. smt. rewrite H. elim H2. smt. rewrite H. elim H2. smt. rewrite H. elim H2. smt. rewrite H. elim H2. smt. rewrite H. elim H2. smt. rewrite H. elim H2. smt. rewrite H. elim H2. smt. rewrite H. elim H2. smt. rewrite H. elim H2. smt. rewrite H. elim H2. smt. rewrite H. elim H2. smt. rewrite H. elim H2. smt. rewrite H. elim H2. smt. rewrite H. elim H2. smt. rewrite H. elim H2. smt. rewrite H. elim H2. smt. rewrite H. elim H2. smt. rewrite H. elim H2. smt. rewrite H. elim H2. smt. rewrite H. elim H2. smt. rewrite H. elim H2. smt. rewrite H. elim H2. smt. rewrite H. elim H2. smt. rewrite H. elim H2. smt. rewrite H. elim H2. smt. rewrite H. elim H2. smt. first 2 by elim H2; smt. 
-          rewrite H4. elim H2. smt. smt. first 2 by elim H2; smt.
-
-
-
-                rewrite H4; first 3 by elim H2; smt.*)
-          rewrite !(Bool.xorC false) !xor_false.
-
-          cut xor_simpl : forall x y z, x ^^ (y ^^ z) ^^ y = x ^^ z
-            by (move => x y z;case x;case y;case z;do rewrite /= ?(xor_true, xor_false) //).
-          rewrite !xor_simpl.
-          by do 2 !congr; rewrite Bool.xorC; [rewrite (Bool.xorC u) | rewrite (Bool.xorC v)]; rewrite Bool.xorA.
-          (case (a = R.t{hr}.[C.aa{m}.[i]])=> ha;[rewrite ? ha|cut -> : a = !R.t{hr}.[C.aa{m}.[i]] by smt]);
-          (case (b0 = R.t{hr}.[C.bb{m}.[i]])=> hb;[rewrite hb|cut -> : b0 = !R.t{hr}.[C.bb{m}.[i]] by smt]);rewrite ?hneq /=.
-          by cut := lem false false;rewrite (H5 i) ?(fst_pair, snd_pair, (Bool.xorC false), xor_false, (Bool.xorC true), xor_true) //;smt.
-          by cut := lem false true;rewrite /enc !(fst_pair, snd_pair, (Bool.xorC false), xor_false, (Bool.xorC true), xor_true) //.
-          by cut := lem true false;rewrite /enc !(fst_pair, snd_pair, (Bool.xorC false), xor_false, (Bool.xorC true), xor_true) //.
-          by cut := lem true true;rewrite /enc !(fst_pair, snd_pair, (Bool.xorC false), xor_false, (Bool.xorC true), xor_true) //.
-      cut h : forall aa bb, ((G.g{hr}, R.t{hr}.[C.aa{m}.[G.g{hr}]] ^^ aa, R.t{hr}.[C.bb{m}.[G.g{hr}]] ^^ bb) = (i, a, b0)) = false by smt.
-      by rewrite !FMap.get_set !h /=;apply H7;smt.
-    auto.
+    while (={p, real, glob A, query, C.n, C.m, C.q, C.aa, C.bb, C.gg, G.g, C.v} /\ ={R.t} /\
+      GSch.EncSecurity.queryValid_IND query{1} /\
+      (*(p{1} = if real{1} then snd query{1} else fst query{1}) /\*)
+      (*((C.f{1}, C.x{1}) = if real{1} then snd query{1} else fst query{1}) /\*)
+      (*p{1} = (C.f{1}, C.x{1}) /\
+      C.f{1} = ((C.n{1}, C.m{1}, C.q{1}, C.aa{1}, C.bb{1}), C.gg{1}) /\*)
+      validInputsP (((C.n{1}, C.m{1}, C.q{1}, C.aa{1}, C.bb{1}), C.gg{1}), C.x{1}) /\
+      C.n{1} <= G.g{1} <= C.n{1} + C.q{1} /\
+      Hl.l{2} = -1 /\
+      (forall k b, 0 <= k < C.n{1} + C.q{1} => R.xx{1}.[(k,b)] = R.xx{2}.[(k,b)]) /\
+      (forall k a b, C.n{1} <= k < G.g{1} => G.pp{1}.[(k,a,b)] = G.pp{2}.[(k,a,b)]) /\
+      (forall k a b, k < C.n{1} => G.pp{1}.[(k,a,b)] = None) /\
+      (forall k a b, G.g{1} <= k => G.pp{1}.[(k,a,b)] = None) /\
+      (forall k a b, k < C.n{1} => G.pp{2}.[(k,a,b)] = None) /\
+      (forall k a b, G.g{1} <= k => G.pp{2}.[(k,a,b)] = None)).
+      inline*. auto. progress. by cut : false by smt. by cut : false by smt. by cut : false by smt. by cut : false by smt. by cut : false by smt. by cut : false by smt. by cut : false by smt. smt. smt. 
+      cut ->: C.aa{2}.[G.g{2}] <= -1 <=> false by smt. cut ->: C.bb{2}.[G.g{2}] <= -1 <=> false by smt. simplify. rewrite ?get_set. simplify. case (G.g{2} = k) => hc. simplify. case (R.t{2}.[C.aa{2}.[G.g{2}]] ^^ true = a) => ha. case (R.t{2}.[C.bb{2}.[G.g{2}]] ^^ true = b) => hb. simplify. congr. congr. smt. smt. congr. rewrite H3. smt. reflexivity. simplify. cut ->: R.t{2}.[C.bb{2}.[G.g{2}]] ^^ false = b <=> true by smt. simplify. congr. smt. smt. congr. rewrite H3. smt. reflexivity. simplify. cut ->: R.t{2}.[C.aa{2}.[G.g{2}]] ^^ false = a <=> true by smt. simplify. case (R.t{2}.[C.bb{2}.[G.g{2}]] ^^ true = b) => hb. congr. congr. rewrite H3. smt. reflexivity. rewrite H3. smt. reflexivity. rewrite H3. smt. reflexivity. cut ->: R.t{2}.[C.bb{2}.[G.g{2}]] ^^ false = b <=> true by smt. simplify. congr. rewrite H3. smt. reflexivity. rewrite H3. smt. reflexivity. rewrite H3. smt. reflexivity. simplify. rewrite H4. smt. reflexivity. 
+    rewrite ?get_set. simplify. cut ->: G.g{2} = k <=> false by smt. simplify. rewrite H5. exact H18. reflexivity.
+    rewrite ?get_set. simplify. cut ->: G.g{2} = k <=> false by smt. simplify. rewrite H6. smt. reflexivity.
+    rewrite ?get_set. simplify. cut ->: G.g{2} = k <=> false by smt. simplify. rewrite H7. exact H18. reflexivity.
+    rewrite ?get_set. simplify. cut ->: G.g{2} = k <=> false by smt. simplify. rewrite H8. smt. reflexivity.
+    wp.
     call RandomInitEquiv.
     call CircuitInitEquiv.
     auto; progress.
-      by smt.
-      by smt.
-      by move : H4; rewrite /validInputsP /valid_circuitP /fst /snd; simplify; progress; smt.   
-      apply map_ext => y. elim y => g b. admit.
-      by smt.
-      by smt.
-      by smt.
-      by smt.
-      move : H4. rewrite /validInputsP /valid_circuitP /fst /snd. simplify. progress. cut ? : forall (i : int),
-       size x_R <= i < size x_R + q_R =>
-       0 <= aa_R.[i] by smt. cut := H26 k. progress. rewrite H26. smt.
-      move : H4. rewrite /validInputsP /valid_circuitP /fst /snd. simplify. progress. cut ? : forall (i : int),
-       size x_R <= i < size x_R + q_R =>
-       0 <= bb_R.[i] by smt. cut := H26 k. progress. rewrite H26. smt.
-    by auto.
-  qed.
- 
+    by smt.
+    move : H4. simplify validInputsP valid_circuitP. simplify fst snd. progress. smt. 
+    move : H4. simplify validInputsP valid_circuitP. simplify fst snd. progress. smt. 
+    move : H4. simplify validInputsP valid_circuitP. simplify fst snd. progress. smt.
+    case (b = v_R.[k]) => hb. rewrite hb. rewrite H10. smt. reflexivity. cut ->: b = !v_R.[k] by smt. rewrite H11. smt. reflexivity.
+    by rewrite get_empty.
+    by rewrite get_empty.
+    by rewrite get_empty.
+    by rewrite get_empty.
+    apply map_ext. rewrite /(==) => x. elim x => k a b. case (n_R <= k < g_R) => hk. rewrite H23. exact hk. reflexivity. smt. 
+    simplify encode. congr. apply fun_ext. rewrite /(==) => x. congr. simplify inputK. simplify fst snd. rewrite ?get_filter. simplify. case (0 <= x < n_R) => hc. rewrite H22. smt. reflexivity. reflexivity. 
+  qed.    
+
   (**************************************************************)
-  (* Lemmas concerning the GameHybrid_bound ~ GameReal equality *)
+  (* Lemmas concerning the GameHybrid_bound ~ GameFake equality *)
   (**************************************************************)
   
   print GSch.EncSecurity.
@@ -3094,7 +2962,7 @@ qed.
   lemma gsch_is_ind (A <: GSch.EncSecurity.Adv_IND_t) (Adv <: Adv_DKC_t) &m:
     `|2%r * Pr[GSch.EncSecurity.Game_IND(Rand,A).main()@ &m:res] - 1%r| =
     2%r * (bound)%r * `|2%r * Pr[GameDKC(Adv).main()@ &m:res] - 1%r|.
-  proof. admit. qed.
+      proof. admit. qed.
 
   lemma gsch_is_sim (A <: GSch.EncSecurity.Adv_SIM_t {R}) (Adv <: Adv_DKC_t) &m:
     islossless A.gen_query =>
