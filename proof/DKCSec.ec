@@ -30,14 +30,14 @@ theory DKCSecurity.
   axiom bound_pos : 1 < bound. 
     
   (* i * j * pos * tweak *)
-  type query = int * int * bool * word.
-  type answer = word * word * word.
+  type query_DKC = int * int * bool * word.
+  type answer_DKC = word * word * word.
 
-  op bad : answer.
+  op bad : answer_DKC.
 
   module type Adv_DKC_t = {
-    proc gen_query (lsb:bool) : query array
-    proc get_challenge (answers : answer array) : bool
+    proc gen_query (lsb:bool) : ((int * bool * bool * bool), query_DKC) map
+    proc get_challenge (answers : ((int * bool * bool * bool), answer_DKC) map) : bool
   }.
 
   module GameDKC(ADV : Adv_DKC_t) = {
@@ -64,12 +64,12 @@ theory DKCSecurity.
       return lsb;
     }
 
-    proc encrypt(q:query) : answer = {
+    proc encrypt(q:query_DKC) : answer_DKC = {
       var aa,bb,xx : word;
       var i,j : int;
       var pos : bool;
       var t : word;
-      var ans : answer;
+      var ans : answer_DKC;
 
       ans = bad;
       (i,j,pos,t) = q;
@@ -99,18 +99,21 @@ theory DKCSecurity.
     }
 
     proc game(b: bool) : bool = {
-      var q : query array;
-      var a : answer array;
+      var q : ((int * bool * bool * bool), query_DKC) map;
+      var a : ((int * bool * bool * bool), answer_DKC) map;
       var i : int;
       var b' : bool;
       var lsb : bool;
       
-      a = offun (fun k, bad) bound;
+      a = FMap.empty;
       lsb = initialize();
       q = ADV.gen_query(lsb);
       i = 0;
       while (i < bound) {  
-        a.[i] = encrypt(q.[i]);
+        a.[(i,false,true,false)] = encrypt(oget q.[(i,false,true,false)]);
+        a.[(i,false,true,true)] = encrypt(oget q.[(i,false,true,false)]);
+        a.[(i,false,false,true)] = encrypt(oget q.[(i,false,true,false)]);
+        a.[(i,true,true,true)] = encrypt(oget q.[(i,false,true,false)]);
         i = i + 1;
       }
 
@@ -161,8 +164,7 @@ theory DKCSecurity.
     call (_ : true) => //.
     while (0 <= i <= bound) (bound - i); progress.
       wp.
-      call (_ : true) => //.
-        by auto.
+      do (call (_ : true) => //; first by auto).
     by skip; smt.
     wp; call (_ : true) => //.
     call (_ : true) => //.
@@ -183,8 +185,7 @@ theory DKCSecurity.
       call (_ : true) => //.
       while (0 <= i <= bound) (bound - i); progress.
         wp.
-        call (_ : true) => //.
-          by auto.
+        do (call (_ : true) => //; first by auto).
       by skip; smt.
       wp; call (_ : true) => //.
       call (_ : true) => //.
