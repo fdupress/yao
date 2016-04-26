@@ -3038,70 +3038,14 @@ qed.
   (* DKC ADVERSARY *)
   (*****************)
 
-  module A = {
-    var l : int
-    var used : word fset
-    var real : bool
+  require import DInterval.  
+
+  module ADVp = {
+    var queries : query array
+    var answers : answer array
   }.
-
-  require import DInterval.
-
-  module DKC_Adv (Adv_IND : GSch.EncSecurity.Adv_IND_t) : Adv_DKC_t = {
-    proc query(rn : bool, alpha : bool, betha : bool) : query_DKC = {
-      var twe : word;
-      var gamma, pos : bool;
-      var i,j : int;
-      var ki, kj, zz : word;
-      
-      twe = tweak G.g (R.t.[C.aa.[G.g]] ^^ alpha) (R.t.[C.bb.[G.g]] ^^ betha);
-      gamma = C.v.[G.g] ^^ oget C.gg.[(G.g, C.v.[C.aa.[G.g]] ^^ alpha, C.v.[C.bb.[G.g]] ^^ betha)];
-
-      pos = if C.aa.[G.g] = A.l then true else false;
-      i = if C.aa.[G.g] = A.l then 2*C.bb.[G.g] + (bti (R.t.[C.bb.[G.g]] ^^ betha)) else 2*C.aa.[G.g] + (bti (R.t.[C.aa.[G.g]] ^^ alpha));
-      j = $[2*(G.g + C.n + C.q)..2*(G.g + C.n + C.q)+1];
-      j = if rn then j else 2*G.g + (bti (R.t.[G.g] ^^ gamma));
-
-      return (i,j,pos,twe);
-    }
-    
-    proc gen_query (lsb:bool) : ((int * bool * bool * bool), query_DKC) map = {
-      var query_ind : GSch.EncSecurity.query_IND;
-      var i : int;
-      var p : GSch.EncSecurity.Encryption.plain;
-      var ret : ((int * bool * bool * bool), query_DKC) map;
-
-      (*initalisation of the query?*)
-      ret = FMap.empty;
-      
-      query_ind = Adv_IND.gen_query();
-      if (GSch.EncSecurity.queryValid_IND query_ind) {
-        A.real = ${0,1};
-        A.l = $[0..C.n + C.q];
-        p = if A.real then snd query_ind else fst query_ind;
-        CircuitInit.init(p);
-        RandomInit.init(true);
-        
-        G.g = C.n;
-        while (G.g < C.n + C.q) {
-          R.t.[A.l] = !lsb;
-
-          if (C.aa.[G.g]=A.l) {
-            ret.[(G.g, false, true, false)] = query(false,true,false);
-          }
-
-          ret.[(G.g, false, true, true)] = query(false,true,true);
-
-          if (C.bb.[G.g]=A.l) {
-            ret.[(G.g, false, false, true)] = query(false,false,true);
-          }
-
-          ret.[(G.g, true, true, true)] = query(true,true,true);
-        }
-      }
-
-      return ret;
-    }
-
+  
+  module DKC_Adv (D : DKC_t, Adv_IND : GSch.EncSecurity.Adv_IND_t) : Adv_DKC_t = {
     proc garb(yy : word, alpha : bool, bet : bool) : unit = {
       var twe, aa, bb : word;
         
@@ -3119,99 +3063,120 @@ qed.
       garb(yy, alpha, bet);
       return yy;
     }
+    
+    proc query (rn : bool, alpha : bool, betha : bool) : word = {
+      var twe : word;
+      var gamma, pos : bool;
+      var i,j : int;
+      var ki, kj, zz : word;
+      
+      twe = tweak G.g (R.t.[G.a] ^^ alpha) (R.t.[G.b] ^^ betha);
+      gamma = C.v.[G.g] ^^ oget C.gg.[(G.g, C.v.[G.a] ^^ alpha, C.v.[G.b] ^^ betha)];
 
-    proc get_challenge (answers : ((int * bool * bool * bool), answer_DKC) map) : bool = {
-      var ki, kj, zz, yy : word;
-      var gamma : bool;
-      var a, b : int;
+      pos = (G.a = Hl.l);
+      i = if G.a = Hl.l then 2*G.b + bti (R.t.[G.b] ^^ betha) else 2*G.a + bti (R.t.[G.a] ^^ alpha);
+      j = $[2*(G.g + C.n + C.q)..2*(G.g + C.n + C.q)+1];
+      j = if rn then j else 2*G.g + (bti (R.t.[G.g] ^^ gamma));
+
+      ADVp.queries.[G.g] = (i,j,pos,twe);
+
+      (ki,kj,zz) = D.encrypt((i,j,pos,twe));
+
+      G.pp.[(G.g, R.t.[G.a] ^^ alpha, R.t.[G.b] ^^ betha)] = zz;
+
+      if (G.a = Hl.l) {
+        R.xx.[(G.b, C.v.[G.b] ^^ betha)] = ki;
+      }
+      else {
+        R.xx.[(G.a, C.v.[G.a] ^^ alpha)] = ki;
+      }
+
+      if (rn) {
+        R.xx.[(G.g, C.v.[G.g] ^^ gamma)] = kj;
+      }
+
+      return kj;
+    }
+    
+    proc gen_queries (lsb:bool) : query array = {
+      var query_ind : GSch.EncSecurity.query_IND;
+      var i : int;
+      var p : GSch.EncSecurity.Encryption.plain;
+      var c : bool;
+      
+      (*initialisation of query array?*)
+      ADVp.queries = Array.offun (fun x, (-1, -1, false, W.zeros)) bound;
+      
+      query_ind = Adv_IND.gen_query();
+      if (GSch.EncSecurity.queryValid_IND query_ind) {
+        c = ${0,1};
+        p = if c then snd query_ind else fst query_ind;
+        CircuitInit.init(p);
+        RandomInit.init(true);
+
+        G.g = C.n;
+        while (G.g < C.n + C.q) {
+          G.a = C.aa.[G.g];
+          G.b = C.bb.[G.g];
+          R.t.[Hl.l] = !lsb;
+
+          if (G.a = Hl.l) {
+            query(false,true,false);
+          }
+          query(false,true,true);
+
+          if (G.b = Hl.l) {
+            query(false,false,true);
+          }
+          G.yy.[G.g] = query(true,true,true);
+        }
+      }
+      
+      return (ADVp.queries);
+    }
+    
+    proc get_challenge (answers : answer array) : bool = {
+      var yy : word;
       var c : funG_t*inputG_t*outputK_t;
       var ret : bool;
       
-      (*fist step is to 'finish' the query procedure*)
-      G.g = C.n;
-      while (G.g < C.n + C.q) {
-        
-        if (C.aa.[G.g] = A.l) {
-          (ki, kj, zz) = oget answers.[(G.g, false, true, false)];
-          G.pp.[(G.g, R.t.[C.aa.[G.g]] ^^ true, R.t.[C.bb.[G.g]] ^^ false)] = zz;
-          if (C.aa.[G.g] = A.l) {
-            R.xx.[(C.bb.[G.g], C.v.[C.bb.[G.g]] ^^ false)] = ki;
-          }
-          else {
-            R.xx.[(C.aa.[G.g], C.v.[C.aa.[G.g]] ^^ true)] = ki;
-          }
-        }
-        
-        (ki, kj, zz) = oget answers.[(G.g, false, true, true)];
-        G.pp.[(G.g, R.t.[C.aa.[G.g]] ^^ true, R.t.[C.bb.[G.g]] ^^ true)] = zz;
-        if (C.aa.[G.g] = A.l) {
-          R.xx.[(C.bb.[G.g], C.v.[C.bb.[G.g]] ^^ true)] = ki;
-        }
-        else {
-          R.xx.[(C.aa.[G.g], C.v.[C.aa.[G.g]] ^^ true)] = ki;
-        }
+        G.g = C.n;
+        while (G.g < C.n + C.q) {
+          G.a = C.aa.[G.g];
+          G.b = C.bb.[G.g];
+          garb(oget R.xx.[(G.g, C.v.[G.g])], false, false);
 
-        if (C.bb.[G.g] = A.l) {
-          (ki, kj, zz) = oget answers.[(G.g, false, false, true)];
-          G.pp.[(G.g, R.t.[C.aa.[G.g]] ^^ false, R.t.[C.bb.[G.g]] ^^ true)] = zz;
-          if (C.aa.[G.g] = A.l) {
-            R.xx.[(C.bb.[G.g], C.v.[C.bb.[G.g]] ^^ true)] = ki;
-          }
-          else {
-            R.xx.[(C.aa.[G.g], C.v.[C.aa.[G.g]] ^^ false)] = ki;
-          }
-        }
+          if (G.a <> Hl.l /\ G.b <> Hl.l) {
+            garb'(G.a <= Hl.l, true, false);
+            garb'(G.b <= Hl.l, false, true);
+            yy = garb'(G.a <= Hl.l, true, true);
 
-        (ki, kj, zz) = oget answers.[(G.g, true, true, true)];
-        gamma = C.v.[G.g] ^^ oget C.gg.[(G.g, C.v.[C.aa.[G.g]] ^^ true, C.v.[C.bb.[G.g]] ^^ true)];
-        G.pp.[(G.g, R.t.[C.aa.[G.g]] ^^ true, R.t.[C.bb.[G.g]] ^^ true)] = zz;
-        if (C.aa.[G.g] = A.l) {
-          R.xx.[(C.bb.[G.g], C.v.[C.bb.[G.g]] ^^ true)] = ki;
-        }
-        else {
-          R.xx.[(C.aa.[G.g], C.v.[C.aa.[G.g]] ^^ true)] = ki;
-        }
-
-        R.xx.[(G.g, C.v.[G.g] ^^ gamma)] = kj;
-        G.yy.[G.g] = kj;
-      }
-
-      G.g = C.n;
-      while (G.g < C.n + C.q) {
-        a = C.aa.[G.g];
-        b = C.bb.[G.g];
-        garb(oget R.xx.[(G.g, C.v.[G.g])], false, false);
-
-        if (a <> A.l /\ b <> A.l) {
-          garb'(a <= A.l, true, false);
-          garb'(b <= A.l, false, true);
-          yy = garb'(a <= A.l, true, true);
-
-          if (a <= A.l < b /\ C.gg.[(G.g, !C.v.[a], false)] = C.gg.[(G.g, !C.v.[a], true)]) {
-            garb(yy, true, false);
-          }
-
-          else {
-            if (a = A.l) {
-              garb'(false, false, true);
+            if (G.a <= Hl.l < G.b /\ C.gg.[(G.g, !C.v.[G.a], false)] = C.gg.[(G.g, !C.v.[G.a], true)]) {
+              garb(yy, true, false);
             }
             else {
-              garb'(true, true, false);
-              if (C.gg.[(G.g, !C.v.[a], false)] = C.gg.[(G.g, !C.v.[a], true)]) {
-                garb(G.yy.[G.g], true, false);
+              if (G.a = Hl.l) {
+                garb'(false, false, true);
               }
+              else {
+                garb'(true, true, false);
+              }
+            }
+
+            if (C.gg.[(G.g, !C.v.[G.a], false)] = C.gg.[(G.g, !C.v.[G.a], true)]) {
+              garb(G.yy.[G.g], true, false);
             }
           }
         }
-      }
-
-      c = (((C.n, C.m, C.q, C.aa, C.bb), G.pp), encode (inputK C.f R.xx) C.x, tt);
-      ret = Adv_IND.get_challenge(c);
+      
+        c = (((C.n, C.m, C.q, C.aa, C.bb), G.pp), encode (inputK C.f R.xx) C.x, tt);
+        ret = Adv_IND.get_challenge(c);
 
       return ret;
     }
   }.
-  
+
+      
  (* module DKC_Adv (Adv_IND : GSch.EncSecurity.Adv_IND_t) : Adv_DKC_t = {
 
     proc init_t (useVisible : bool) : unit = {

@@ -30,190 +30,135 @@ theory DKCSecurity.
   axiom bound_pos : 1 < bound. 
     
   (* i * j * pos * tweak *)
-  type query_DKC = int * int * bool * word.
-  type answer_DKC = word * word * word.
+  type query = int * int * bool * word.
+  type answer = word * word * word.
 
-  op bad : answer_DKC.
+  op bad : answer.
 
   module type Adv_DKC_t = {
-    proc gen_query (lsb:bool) : ((int * bool * bool * bool), query_DKC) map
-    proc get_challenge (answers : ((int * bool * bool * bool), answer_DKC) map) : bool
+    proc gen_queries (lsb:bool) : query array
+    proc get_challenge (answers : answer array) : bool
   }.
 
-  module GameDKC(ADV : Adv_DKC_t) = {
-
-    var real : bool
+  module DKCp = {
+    var b : bool
     var k : word
-    var ks : word array
-    var rs : word array
+    var rr : word array
+    var kk : word array
     var used : word fset
+  }.
+
+  module type DKC_t = {
+    proc initialize() : bool
+    proc encrypt(q : query) : answer
+    proc get_challenge() : bool
+  }.
+  
+  module DKC : DKC_t = {
     
     proc initialize(): bool = {
       var lsb : bool;
       var i : int;
 
-      lsb = $DBool.dbool;
-      k = $Dword.dwordLsb lsb;
-      rs = $Darray.darray Dword.dword bound;
-      i = 0;
+      DKCp.b = ${0,1};
+      lsb = ${0,1};
+      DKCp.k = $Dword.dwordLsb lsb;
+      DKCp.rr = $Darray.darray Dword.dword bound;
+      i = 1;
       while (i < bound) {
-        ks.[i] = $Dword.dwordLsb (i %% 2 = 0);
+        DKCp.kk.[i] = $Dword.dwordLsb (i %% 2 = 0);
         i = i+1;
       }
 
+      DKCp.used = FSet.fset0;
+      
       return lsb;
     }
 
-    proc encrypt(q:query_DKC) : answer_DKC = {
+    proc encrypt(q:query) : answer = {
       var aa,bb,xx : word;
       var i,j : int;
       var pos : bool;
       var t : word;
-      var ans : answer_DKC;
+      var ans : answer;
 
       ans = bad;
       (i,j,pos,t) = q;
       
-      if (!(mem used t || j <= i)) {
-        used = used `|` fset1 t;
+      if (!(mem DKCp.used t || j < i)) {
+        DKCp.used = DKCp.used `|` fset1 t;
 
-        if (pos) {
-          aa = k;
-          bb = ks.[i];
-        }
-        else {
-          aa = ks.[i];
-          bb = k;
-        }
-
-        if (real) {
-          xx = ks.[j];
-        }
-        else {
-          xx = rs.[j];
-        }
-        ans = (ks.[i], ks.[j],E t aa bb xx);
+        (aa,bb) = if pos then (DKCp.k, DKCp.kk.[i]) else (DKCp.kk.[i], DKCp.k);
+        xx = if DKCp.b then DKCp.kk.[j] else DKCp.rr.[j];
+        
+        ans = (DKCp.kk.[i], DKCp.kk.[j], E t aa bb xx);
       }
 
       return ans;
     }
 
-    proc game(b: bool) : bool = {
-      var q : ((int * bool * bool * bool), query_DKC) map;
-      var a : ((int * bool * bool * bool), answer_DKC) map;
-      var i : int;
-      var b' : bool;
-      var lsb : bool;
-      
-      a = FMap.empty;
-      lsb = initialize();
-      q = ADV.gen_query(lsb);
+    proc get_challenge() : bool = {
+      return DKCp.b;
+    }
+  }.
+
+  module type Batch_t = {
+    proc encrypt(qs:query array): answer array
+  }.
+
+  module BatchDKC (D:DKC_t): Batch_t = {
+    proc encrypt(qs:query array): answer array = {
+      var i, n:int;
+      var answers:answer array;
+
       i = 0;
-      while (i < bound) {  
-        a.[(i,false,true,false)] = encrypt(oget q.[(i,false,true,false)]);
-        a.[(i,false,true,true)] = encrypt(oget q.[(i,false,true,false)]);
-        a.[(i,false,false,true)] = encrypt(oget q.[(i,false,true,false)]);
-        a.[(i,true,true,true)] = encrypt(oget q.[(i,false,true,false)]);
+      n = size qs;
+      answers = Array.offun (fun x, bad) n;
+      while (i < n)
+      {
+        answers.[i] = D.encrypt(qs.[i]);
         i = i + 1;
       }
 
-      b' = ADV.get_challenge(a);
+      return answers;
+    }
+  }.
 
-      return (b' = b);
+  module Game(D:DKC_t, A:Adv_DKC_t) = {
+    module B = BatchDKC(D)
+
+    proc game() : bool = {
+      var queries : query array;
+      var answers : answer array;
+      var a : answer array;
+      var i : int;
+      var lsb : bool;
+      var advChallenge : bool;
+      var realChallenge : bool;
+      var nquery : int;
+      var answer : answer;
+
+      lsb = D.initialize();
+      queries = A.gen_queries(lsb);
+      answers = B.encrypt(queries);
+      advChallenge = A.get_challenge(answers);
+      realChallenge = D.get_challenge();
+      return advChallenge = realChallenge;
     }
 
     proc main() : bool = {
       var adv : bool;
-      var lsb : bool;
-      
-      real = $DBool.dbool;
-      adv = game(real);
+      adv = game();
       return adv;
     }
   }.
-
+  
   (***************************)
   (* Lossnessness properties *)
   (***************************)
 
-  lemma GameDKCinitialize_lossless (A <: Adv_DKC_t) :
-    islossless A.gen_query =>
-    islossless A.get_challenge =>
-    islossless GameDKC(A).initialize.
-  proof.
-    move => Agen_query_ll Aget_challenge_ll.
-    proc => //.
-    while (0 <= i <= bound) (bound - i); progress.
-      by auto; progress; expect 4 by smt. 
-    by auto; progress; expect 5 by smt. 
-  qed.
-  
-  lemma GameDKCencrypt_lossless (A <: Adv_DKC_t) :
-    islossless A.gen_query =>
-    islossless A.get_challenge =>
-    islossless GameDKC(A).encrypt.
-  proof. by move => Agen_query_ll Aget_challenge_ll; proc => //; auto. qed.
-
-  lemma GameDKCgame_lossless (A <: Adv_DKC_t) :
-    islossless A.gen_query =>
-    islossless A.get_challenge =>
-    islossless GameDKC(A).game.
-  proof.
-    move => Agen_query_ll Aget_challenge_ll.
-    proc => //.
-    call (_ : true) => //.
-    while (0 <= i <= bound) (bound - i); progress.
-      wp.
-      do (call (_ : true) => //; first by auto).
-    by skip; smt.
-    wp; call (_ : true) => //.
-    call (_ : true) => //.
-      while (0 <= i <= bound) (bound - i); progress.
-        by auto; progress; expect 4 by smt.
-      by auto; progress; expect 5 by smt. 
-    by wp; skip; smt.  
-  qed.
-
-  lemma GameDKCmain_lossless (A <: Adv_DKC_t) :
-    islossless A.gen_query =>
-    islossless A.get_challenge =>
-    islossless GameDKC(A).main.
-  proof.
-    move => Agen_query_ll Aget_challenge_ll.
-    proc => //.
-    call (_ : true) => //.
-      call (_ : true) => //.
-      while (0 <= i <= bound) (bound - i); progress.
-        wp.
-        do (call (_ : true) => //; first by auto).
-      by skip; smt.
-      wp; call (_ : true) => //.
-      call (_ : true) => //.
-        while (0 <= i <= bound) (bound - i); progress.
-          by auto; progress; expect 4 by smt.
-        by auto; progress; expect 5 by smt. 
-    by wp; skip; smt.
-    by auto; smt.
-  qed.
-
   (*********************************)
   (* GENERIC ADVANTAGE DEFINITIONS *)
   (*********************************)
-  
-  lemma GameDKC_xpnd &m (A <: Adv_DKC_t{GameDKC}):
-    islossless A.gen_query =>
-    islossless A.get_challenge =>
-    Pr[GameDKC(A).main()  @ &m: res]
-    = 1%r/2%r * (Pr[GameDKC(A).game(true)  @ &m: res]
-      + Pr[GameDKC(A).game(false)  @ &m: res]).
-  proof. admit. qed.
-
-  lemma GameDKC_adv &m (A <: Adv_DKC_t{GameDKC}):
-    islossless A.gen_query =>
-    islossless A.get_challenge =>
-    2%r * Pr[GameDKC(A).main()  @ &m: res] - 1%r
-    = Pr[GameDKC(A).game(true)  @ &m: res] 
-      - Pr[GameDKC(A).game(false)  @ &m: !res].
-    proof. admit. qed.
 
 end DKCSecurity.
