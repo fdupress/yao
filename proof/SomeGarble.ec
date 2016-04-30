@@ -3037,15 +3037,12 @@ qed.
   (*****************)
   (* DKC ADVERSARY *)
   (*****************)
-
+      
   require import DInterval.  
-
-  module ADVp = {
-    var queries : query array
-    var answers : answer array
-  }.
   
   module DKC_Adv (D : DKC_t, Adv_IND : GSch.EncSecurity.Adv_IND_t) : Adv_DKC_t = {
+    var c : bool
+    
     proc garb(yy : word, alpha : bool, bet : bool) : unit = {
       var twe, aa, bb : word;
         
@@ -3064,7 +3061,7 @@ qed.
       return yy;
     }
     
-    proc query (rn : bool, alpha : bool, betha : bool) : word = {
+    proc query (rn : bool, alpha : bool, betha : bool) : query * word = {
       var twe : word;
       var gamma, pos : bool;
       var i,j : int;
@@ -3077,8 +3074,6 @@ qed.
       i = if G.a = Hl.l then 2*G.b + bti (R.t.[G.b] ^^ betha) else 2*G.a + bti (R.t.[G.a] ^^ alpha);
       j = $[2*(G.g + C.n + C.q)..2*(G.g + C.n + C.q)+1];
       j = if rn then j else 2*G.g + (bti (R.t.[G.g] ^^ gamma));
-
-      ADVp.queries.[G.g] = (i,j,pos,twe);
 
       (ki,kj,zz) = D.encrypt((i,j,pos,twe));
 
@@ -3095,17 +3090,19 @@ qed.
         R.xx.[(G.g, C.v.[G.g] ^^ gamma)] = kj;
       }
 
-      return kj;
+      return ((i,j,pos,twe), kj);
     }
-    
+
     proc gen_queries (lsb:bool) : query array = {
       var query_ind : GSch.EncSecurity.query_IND;
       var i : int;
       var p : GSch.EncSecurity.Encryption.plain;
-      var c : bool;
+      var queries : ((int * bool * bool * bool), query) map;
+      var q : query;
+      var yy : word;
       
       (*initialisation of query array?*)
-      ADVp.queries = Array.offun (fun x, (-1, -1, false, W.zeros)) bound;
+      queries = FMap.empty;
       
       query_ind = Adv_IND.gen_query();
       if (GSch.EncSecurity.queryValid_IND query_ind) {
@@ -3121,25 +3118,32 @@ qed.
           R.t.[Hl.l] = !lsb;
 
           if (G.a = Hl.l) {
-            query(false,true,false);
+            (q, yy) = query(false,true,false);
+            queries.[(G.g, false, true, false)] = q;
           }
-          query(false,true,true);
-
+          (q, yy) = query(false,true,true);
+          queries.[(G.g, false, true, true)] = q;
+          
           if (G.b = Hl.l) {
-            query(false,false,true);
+            (q, yy) = query(false,false,true);
+            queries.[(G.g, false, false, true)] = q;
           }
-          G.yy.[G.g] = query(true,true,true);
+          (q, yy) = query(true,true,true);
+          queries.[(G.g, true, true, true)] = q;
+          G.yy.[G.g] = yy;
         }
       }
       
-      return (ADVp.queries);
+      return (mkarray (elems (rng queries)));
     }
     
     proc get_challenge (answers : answer array) : bool = {
       var yy : word;
-      var c : funG_t*inputG_t*outputK_t;
+      var ciph : funG_t*inputG_t*outputK_t;
+      var c' : bool;
       var ret : bool;
-      
+
+      if (0 < size answers) {
         G.g = C.n;
         while (G.g < C.n + C.q) {
           G.a = C.aa.[G.g];
@@ -3169,141 +3173,44 @@ qed.
           }
         }
       
-        c = (((C.n, C.m, C.q, C.aa, C.bb), G.pp), encode (inputK C.f R.xx) C.x, tt);
-        ret = Adv_IND.get_challenge(c);
-
+        ciph = (((C.n, C.m, C.q, C.aa, C.bb), G.pp), encode (inputK C.f R.xx) C.x, tt);
+        c' = Adv_IND.get_challenge(ciph);
+        ret = (c = c');
+      }
+      else {
+        ret = ${0,1};
+      }
       return ret;
     }
   }.
 
-      
- (* module DKC_Adv (Adv_IND : GSch.EncSecurity.Adv_IND_t) : Adv_DKC_t = {
+  op l : int.
+  axiom l_pos : 0 <= l < bound.
 
-    proc init_t (useVisible : bool) : unit = {
-      var i, v, trnd;
+  lemma GameHybrid_l_sim (A <: GSch.EncSecurity.Adv_IND_t{DKC_Adv}):
+    islossless A.gen_query =>
+    islossless A.get_challenge =>
+    equiv [ GameHybrid(A).garble ~ DKCSecurity.Game(DKCSecurity.DKC, DKC_Adv(DKCSecurity.DKC, A)).game:
+        ={glob A} /\ Hl.l{1} = l /\ !DKCp.b{2} ==> res{1} = !res{2}].
+  proof. admit. qed.
 
-      R.t = offun (fun x, false) (C.n + C.q);
-      i = 0;
-      while (i < C.n + C.q) {
-        trnd = ${0,1};
-        v = if useVisible then C.v.[i] else false;
-        trnd = if (i < C.n + C.q - C.m) then trnd else v;
+  lemma GameHybrid_l1_sim (A <: GSch.EncSecurity.Adv_IND_t):
+    islossless A.gen_query =>
+    islossless A.get_challenge =>
+    equiv [ GameHybrid(A).garble ~ DKCSecurity.Game(DKCSecurity.DKC, DKC_Adv(DKCSecurity.DKC, A)).game:
+        ={glob A} /\ Hl.l{1} = l-1 /\ DKCp.b{2} ==> ={res}].
+  proof. admit. qed.
 
-        R.t.[i] = trnd;
+  lemma GameHybrid_l_sim_pr (A <: GSch.EncSecurity.Adv_IND_t {DKC_Adv}) &m:
+    islossless A.gen_query =>
+    islossless A.get_challenge =>
+    Hl.l = l =>
+    !DKCp.b =>
+    Pr[GameHybrid(A).garble()@ &m: res] =
+    Pr[DKCSecurity.Game(DKCSecurity.DKC, DKC_Adv(DKCSecurity.DKC, A)).game()@ &m: !res].
+  proof. move=> AgenLL AgetLL. byequiv (GameHybrid_l_sim A _ _). exact AgenLL. exact AgetLL. progress. admit. admit. trivial. smt.
 
-        i = i + 1;
-      }
-    }
-
-    proc encrypt(q:query_DKC) : answer_DKC = {
-      var aa,bb,xx : word;
-      var i,j : int;
-      var pos : bool;
-      var t : word;
-      var ans : answer_DKC;
-
-      ans = bad;
-      (i,j,pos,t) = q;
-      
-      if (!(mem A.used t || j <= i)) {
-        A.used = A.used `|` fset1 t;
-
-        if (pos) {
-          aa = A.k;
-          bb = A.kk.[i];
-        }
-        else {
-          aa = A.kk.[i];
-          bb = A.k;
-        }
-
-        if (A.real) {
-          xx = A.kk.[j];
-        }
-        else {
-          xx = A.rr.[j];
-        }
-        ans = (A.kk.[i], A.kk.[j],E t aa bb xx);
-      }
-
-      return ans;
-    }
     
-    proc query(rn : bool, alpha : bool, betha : bool) : word = {
-      var twe : word;
-      var gamma, pos : bool;
-      var i,j : int;
-      var ki, kj, zz : word;
-      
-      twe = tweak G.g (R.t.[C.aa.[G.g]] ^^ alpha) (R.t.[C.bb.[G.g]] ^^ betha);
-      gamma = C.v.[G.g] ^^ oget C.gg.[(G.g, C.v.[C.aa.[G.g]] ^^ alpha, C.v.[C.bb.[G.g]] ^^ betha)];
-
-      pos = if C.aa.[G.g] = A.l then true else false;
-      i = if C.aa.[G.g] = A.l then 2*C.bb.[G.g] + (bti (R.t.[C.bb.[G.g]] ^^ betha)) else 2*C.aa.[G.g] + (bti (R.t.[C.aa.[G.g]] ^^ alpha));
-      j = $[2*(G.g + C.n + C.q)..2*(G.g + C.n + C.q)+1];
-      j = if rn then j else 2*G.g + (bti (R.t.[G.g] ^^ gamma));
-
-      A.query_arr.[G.g] = (i,j,pos,twe);
-      
-      (ki, kj, zz) = encrypt(i,j,pos,twe);
-      
-      A.kk.[i] = ki;
-      A.kk.[j] = kj;
-
-      G.pp.[(G.g, R.t.[C.aa.[G.g]] ^^ alpha, R.t.[C.bb.[G.g]] ^^ betha)] = zz;
-      
-      if (C.aa.[G.g] = A.l) {
-        R.xx.[(C.bb.[G.g], C.v.[C.bb.[G.g]] ^^ betha)] = ki;
-      }
-      else {
-        R.xx.[(C.aa.[G.g], C.v.[C.aa.[G.g]] ^^ alpha)] = ki;
-      }
-
-      if (!rn) {
-        R.xx.[(G.g, C.v.[G.g] ^^ gamma)] = kj;
-      }
-
-      return kj;
-    }
-    
-    proc gen_query (lsb : bool) : query_DKC array = {
-      var query_dkc : query_DKC;
-      var query_ind : GSch.EncSecurity.query_IND;
-      var i : int;
-      var a, b : int;
-      var tl : bool;
-      var p : GSch.EncSecurity.Encryption.plain;
-     
-      query_ind = Adv_IND.gen_query();
-      if (GSch.EncSecurity.queryValid_IND query_ind) {
-        A.real = ${0,1};
-        p = if A.real then snd query_ind else fst query_ind;
-        CircuitInit.init(p);
-        init_t(true);
-        A.l = $[0..C.n+C.q];
-
-        G.g = C.n;
-        while (G.g < C.n + C.q) {
-          a = C.aa.[G.g];
-          b = C.bb.[G.g];
-          R.t.[A.l] = !lsb;
-
-          if (a = A.l) {
-            query(false, true, false);
-          }
-          query(false, true, true);
-          if (b = A.l) {
-            query(false, false, true);
-          }
-          G.yy.[G.g] = query(true, true, true);
-        }
-      }
-
-      return (A.query_arr);
-    }
-  }.*)
-
-  
   print GSch.EncSecurity.
     
   lemma gsch_is_ind (A <: GSch.EncSecurity.Adv_IND_t) (Adv <: Adv_DKC_t) &m:
