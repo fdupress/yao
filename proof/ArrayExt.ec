@@ -192,7 +192,7 @@ lemma allP_mem p (xs:'x array):
 lemma allP p (xs:'x array):
   all p xs <=>
   (forall i, 0 <= i < size xs => p xs.[i]).
-proof. by rewrite allP_mem; split; expect 2 by smt timeout=30. qed.
+proof. rewrite allP_mem. split. smt. progress. smt timeout=60. qed.
 
 (** cons *)
 op (::) (x : 'x) (xs : 'x array) = (mkarray [x]) || xs axiomatized by consE.
@@ -257,6 +257,11 @@ lemma get_sub (xs:'x array) (s l i:int):
   (sub xs s l).[i] = xs.[i + s]
 by (rewrite subE; smt).
 
+lemma sub_complete (xs : 'x array) (l : int):
+  l = size xs => 
+  sub xs 0 l = xs.
+proof. by move => hl; apply arrayP; split; smt. qed. 
+    
 (** snoc *)
 op (:::) (xs : 'x array) (x : 'x) : 'x array = xs || (mkarray [x]) axiomatized by snocE.
 

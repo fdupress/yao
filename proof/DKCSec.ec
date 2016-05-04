@@ -60,7 +60,6 @@ theory DKCSecurity.
       var lsb : bool;
       var i : int;
 
-      DKCp.b = ${0,1};
       lsb = ${0,1};
       DKCp.k = $Dword.dwordLsb lsb;
       DKCp.rr = $Darray.darray Dword.dword bound;
@@ -75,30 +74,32 @@ theory DKCSecurity.
       return lsb;
     }
 
+    proc get_challenge() : bool = {
+      return DKCp.b;
+    }
+    
     proc encrypt(q:query) : answer = {
       var aa,bb,xx : word;
       var i,j : int;
       var pos : bool;
       var t : word;
       var ans : answer;
-
+      var b : bool;
+      
       ans = bad;
       (i,j,pos,t) = q;
+      b = get_challenge();
       
       if (!(mem DKCp.used t || j < i)) {
         DKCp.used = DKCp.used `|` fset1 t;
 
         (aa,bb) = if pos then (DKCp.k, DKCp.kk.[i]) else (DKCp.kk.[i], DKCp.k);
-        xx = if DKCp.b then DKCp.kk.[j] else DKCp.rr.[j];
+        xx = if b then DKCp.kk.[j] else DKCp.rr.[j];
         
         ans = (DKCp.kk.[i], DKCp.kk.[j], E t aa bb xx);
       }
 
       return ans;
-    }
-
-    proc get_challenge() : bool = {
-      return DKCp.b;
     }
   }.
 
@@ -127,28 +128,27 @@ theory DKCSecurity.
   module Game(D:DKC_t, A:Adv_DKC_t) = {
     module B = BatchDKC(D)
 
-    proc game() : bool = {
+    proc game(b : bool) : bool = {
       var queries : query array;
       var answers : answer array;
       var a : answer array;
       var i : int;
       var lsb : bool;
-      var advChallenge : bool;
-      var realChallenge : bool;
+      var b' : bool;
       var nquery : int;
       var answer : answer;
 
       lsb = D.initialize();
       queries = A.gen_queries(lsb);
       answers = B.encrypt(queries);
-      advChallenge = A.get_challenge(answers);
-      realChallenge = D.get_challenge();
-      return advChallenge = realChallenge;
+      b' = A.get_challenge(answers);
+      return b' = b;
     }
 
     proc main() : bool = {
       var adv : bool;
-      adv = game();
+      DKCp.b = ${0,1}; 
+      adv = game(DKCp.b);
       return adv;
     }
   }.
