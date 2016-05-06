@@ -415,7 +415,7 @@ theory SomeGarble.
     pose ar1 := (GarbleTools.appendInit input q (GarbleTools.extract (fun (g : int) (x1 x2 : bool), oget ff.[(g, x1, x2)]) aa bb)).
     pose ar2 := (GarbleTools.appendInit inputEnc q (GarbleTools.extract eval aa bb)).
     move => k kPos hypRec kbound.
-    case (n <= k)=> hk.
+    case (n <= k)=> hk. 
       (* Induction case : use the correction of one gate and the induction hypothesis*)
       rewrite /ar1 /ar2 !appendInit_getFinal; first by idtac=>/#.
         exact H2.
@@ -423,49 +423,45 @@ theory SomeGarble.
         rewrite appendInit_size; first by idtac=>/#.
         simplify n => /#.
         idtac=>/#.
-        smt ["Alt-Ergo"] tmo=5.
+        smt ["Alt-Ergo"] tmo=10.
         (simplify inputEnc encode; rewrite size_offun max_ler; first by idtac => /#); simplify => /#.
-        exact H2.
-        smt ["Alt-Ergo"] tmo=10.  do 4!(congr); smt ["Alt-Ergo"] tmo=15.
-          apply arrayP; split.
-            rewrite size_sub; first 2 by done.
-            (rewrite appendInit_size; first by idtac=>/#); simplify n => /#.
-            (rewrite appendInit_size; first by idtac=>/#). simplify n;  smt. /#.
-            
-          done. exact kPos. rrewrite sub_complete. => /#. congr. congr. congr.  time smt tmo=30.  smt. smt. smt. smt. smt. smt. simplify extract;rewrite ! get_sub;smt.
+        exact H2. 
+        smt tmo=30.
       rewrite -/ar1 -/ar2.
       simplify extract.
-      cut -> : (k - 1 + 1 = k) by smt.
-      rewrite - ! hypRec;first 4 smt.
+      cut -> : (k - 1 + 1 = k) by idtac=>/#.
+      rewrite - ! hypRec; first 4 by idtac=>/#.
       simplify eval.
-      rewrite get_initGates;first smt.
+      rewrite get_initGates;first by idtac=>/#. 
       simplify enc fst snd.
       cut ->: (getlsb (oget x.[(aa.[k], ar1.[aa.[k]])]) ^^
                getlsb (oget x.[(aa.[k], false)])) = ar1.[aa.[k]].
-        case ar1.[aa.[k]]=> h;last smt.
-        cut := H9 aa.[k] _;first clear h;smt.
+        case ar1.[aa.[k]]=> h; last by idtac=>/#.
+        cut := H9 aa.[k] _; first clear h; idtac=>/#. 
         move : (getlsb (oget x.[(aa.[k], false)]))=> a.
         move : (getlsb (oget x.[(aa.[k], true)]))=> b.
         move => [_ [_ [HH _ ]]].
-        by cut -> : b = ! a by smt;smt.
+        by cut -> : b = ! a by idtac=>/#; smt.
       cut ->: (getlsb (oget x.[(bb.[k], ar1.[bb.[k]])]) ^^
                getlsb (oget x.[(bb.[k], false)])) = ar1.[bb.[k]].
-        case ar1.[bb.[k]]=> h;last smt.
-        cut := H9 bb.[k] _;first clear h;smt.
+        case ar1.[bb.[k]]=> h; last by idtac=>/#.
+        cut := H9 bb.[k] _; first clear h; idtac=>/#.
         move : (getlsb (oget x.[(bb.[k], false)]))=> a.
         move : (getlsb (oget x.[(bb.[k], true)]))=> b.
         move => [_ [_ [HH _ ]]].
-        by cut -> : b = ! a by smt;smt.
-      case (n <= k < n + q); last smt (* absurd *).
+        by cut -> : b = ! a by idtac=>/#;smt.
+      case (n <= k < n + q); last by idtac=>/#. 
       by rewrite /oget /=; do !rewrite -/(oget _); rewrite DKCHyp.
 
     (* Base case : prove main for the inputs by using encode and inputK definitions *)
-    rewrite /ar1 /ar2 ! appendInit_get1;first 4 smt.
+    rewrite /ar1 /ar2 ! appendInit_get1; first 2 by idtac=>/#.
+      by simplify inputEnc; rewrite size_offun max_ler /#.
+      by idtac=>/#.
     rewrite -/ar1 -/ar2.
     simplify inputEnc GSch.Sch.Scheme.Input.encode GSch.Sch.Scheme.inputK fst.
-    rewrite offunE /=; first by smt.
+    rewrite offunE /=; first by idtac=>/#.
     rewrite FMap.get_filter /=.
-    by (cut -> : 0 <= k < n = true by smt). 
+    by (cut -> : 0 <= k < n = true by idtac=>/#). 
     qed.
 
   (*******************************************************)
