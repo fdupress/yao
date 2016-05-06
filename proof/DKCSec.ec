@@ -30,14 +30,14 @@ theory DKCSecurity.
   axiom bound_pos : 1 < bound. 
     
   (* i * j * pos * tweak *)
-  type query = int * int * bool * word.
-  type answer = word * word * word.
+  type query_DKC = int * int * bool * word.
+  type answer_DKC = word * word * word.
 
-  op bad : answer.
+  op bad : answer_DKC.
 
   module type Adv_DKC_t = {
-    proc gen_queries (lsb:bool) : query array
-    proc get_challenge (answers : answer array) : bool
+    proc garble(lsb:bool) : bool
+    proc * query(rn: bool, alpha : bool, betha : bool) : word
   }.
 
   module DKCp = {
@@ -50,7 +50,7 @@ theory DKCSecurity.
 
   module type DKC_t = {
     proc initialize() : bool
-    proc encrypt(q : query) : answer
+    proc encrypt(q : query_DKC) : answer_DKC
     proc get_challenge() : bool
   }.
   
@@ -78,12 +78,12 @@ theory DKCSecurity.
       return DKCp.b;
     }
     
-    proc encrypt(q:query) : answer = {
+    proc encrypt(q:query_DKC) : answer_DKC = {
       var aa,bb,xx : word;
       var i,j : int;
       var pos : bool;
       var t : word;
-      var ans : answer;
+      var ans : answer_DKC;
       var b : bool;
       
       ans = bad;
@@ -103,7 +103,7 @@ theory DKCSecurity.
     }
   }.
 
-  module type Batch_t = {
+(*  module type Batch_t = {
     proc encrypt(qs:query array): answer array
   }.
 
@@ -123,25 +123,19 @@ theory DKCSecurity.
 
       return answers;
     }
-  }.
+  }.*)
 
   module Game(D:DKC_t, A:Adv_DKC_t) = {
-    module B = BatchDKC(D)
+    (*module B = BatchDKC(D)*)
 
     proc game(b : bool) : bool = {
-      var queries : query array;
-      var answers : answer array;
-      var a : answer array;
-      var i : int;
+      var query : query_DKC;
+      var answer : answer_DKC;
       var lsb : bool;
       var b' : bool;
-      var nquery : int;
-      var answer : answer;
 
       lsb = D.initialize();
-      queries = A.gen_queries(lsb);
-      answers = B.encrypt(queries);
-      b' = A.get_challenge(answers);
+      b' = A.garble(lsb);
       return b' = b;
     }
 

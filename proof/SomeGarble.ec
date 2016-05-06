@@ -3071,8 +3071,8 @@ qed.
       garb(yy, alpha, bet);
       return yy;
     }
-    
-    proc query (rn : bool, alpha : bool, betha : bool) : query * word = {
+
+    proc query (rn : bool, alpha : bool, betha : bool) : word = {
       var twe : word;
       var gamma, pos : bool;
       var i,j : int;
@@ -3101,26 +3101,25 @@ qed.
         R.xx.[(G.g, C.v.[G.g] ^^ gamma)] = kj;
       }
 
-      return ((i,j,pos,twe), kj);
+      return (kj);
     }
 
-    proc gen_queries (lsb:bool) : query array = {
+    proc garble(lsb:bool) : bool = {
       var query_ind : GSch.EncSecurity.query_IND;
       var i : int;
       var p : GSch.EncSecurity.Encryption.plain;
-      var queries : query array;
-      var q : query;
+      var adv : bool;
+      var ret : bool;
       var yy : word;
-      
-      (*initialisation of query array?*)
-      queries = ArrayExt.empty;
+      var real : bool;
+      var c : funG_t*inputG_t*outputK_t;
       
       query_ind = Adv_IND.gen_query();
       if (GSch.EncSecurity.queryValid_IND query_ind) {
-        c = ${0,1};
-        p = if c then snd query_ind else fst query_ind;
+        real = ${0,1};
+        p = if real then snd query_ind else fst query_ind;
         CircuitInit.init(p);
-        RandomInit.init(true);
+        (*RandomInit.init(true);*)
 
         G.g = C.n;
         while (G.g < C.n + C.q) {
@@ -3129,32 +3128,27 @@ qed.
           R.t.[l] = !lsb;
 
           if (G.a = l) {
-            (q, yy) = query(false,true,false);
-            queries = q :: queries;
+            query(false,true,false);
           }
-          (q, yy) = query(false,true,true);
-          queries = q :: queries;
+          query(false,true,true);
           
           if (G.b = l) {
-            (q, yy) = query(false,false,true);
-            queries = q :: queries;
+            query(false,false,true);
           }
-          (q, yy) = query(true,true,true);
-          queries = q :: queries;
+          yy = query(true,true,true);
           G.yy.[G.g] = yy;
         }
-      }
-      
-      return (queries);
-    }
-    
-    proc get_challenge (answers : answer array) : bool = {
-      var yy : word;
-      var ciph : funG_t*inputG_t*outputK_t;
-      var c' : bool;
-      var ret : bool;
 
-      if (0 < size answers) {
+        i = 0;
+        while (i < C.n + C.q) {
+          if (oget R.xx.[(i, !C.v.[i])] = witness /\ i <> l) {
+            R.xx.[(i, !C.v.[i])] = $Dword.dwordLsb (!R.t.[i]);
+          }
+          if (oget R.xx.[(i, C.v.[i])] = witness) {
+            R.xx.[(i, C.v.[i])] = $Dword.dwordLsb (R.t.[i]);
+          }
+        }
+
         G.g = C.n;
         while (G.g < C.n + C.q) {
           G.a = C.aa.[G.g];
@@ -3169,28 +3163,31 @@ qed.
             if (G.a <= l < G.b /\ C.gg.[(G.g, !C.v.[G.a], false)] = C.gg.[(G.g, !C.v.[G.a], true)]) {
               garb(yy, true, false);
             }
-            else {
-              if (G.a = l) {
-                garb'(false, false, true);
-              }
-              else {
-                garb'(true, true, false);
-              }
+          }
+          else {
+            if (G.a = l) {
+              garb'(false, false, true);
             }
+            else {
+              garb'(true, true, false);
 
-            if (C.gg.[(G.g, !C.v.[G.a], false)] = C.gg.[(G.g, !C.v.[G.a], true)]) {
-              garb(G.yy.[G.g], true, false);
+              if (C.gg.[(G.g, !C.v.[G.a], false)] = C.gg.[(G.g, !C.v.[G.a], true)]) {
+                garb(G.yy.[G.g], true, false);
+              }
             }
           }
         }
-      
-        ciph = (((C.n, C.m, C.q, C.aa, C.bb), G.pp), encode (inputK C.f R.xx) C.x, tt);
-        c' = Adv_IND.get_challenge(ciph);
-        ret = (c = c');
+
+        c = (((C.n, C.m, C.q, C.aa, C.bb), G.pp), encode (inputK C.f R.xx) C.x, tt);
+        
+        adv = Adv_IND.get_challenge(c);
+        ret = (real = adv);
       }
+
       else {
         ret = ${0,1};
       }
+
       return ret;
     }
   }.
@@ -3222,9 +3219,7 @@ qed.
     Pr[GameHybrid(A).garble(l-1)@ &m: res] =
     Pr[DKCSecurity.Game(DKCSecurity.DKC, DKC_Adv(DKCSecurity.DKC, A)).game(true)@ &m: res].
   proof. by move=> AgenLL AgetL; byequiv (GameHybrid_l1_sim A _ _). qed. 
-    
-  print GSch.EncSecurity.
-    
+        
   lemma gsch_is_ind (A <: GSch.EncSecurity.Adv_IND_t) (Adv <: Adv_DKC_t) &m:
     `|2%r * Pr[GSch.EncSecurity.Game_IND(Rand,A).main()@ &m:res] - 1%r| =
     2%r * (bound)%r * `|2%r * Pr[GameDKC(Adv).main()@ &m:res] - 1%r|.
