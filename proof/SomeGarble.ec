@@ -8,6 +8,7 @@ require import Array.
 require import Distr.
 require import Bool.
 require import Pair.
+require import DInterval.
 
 require (*--*) DKC.
 require (*--*) DKCSec.
@@ -991,7 +992,7 @@ theory SomeGarble.
     elim (p{2})=> fn ii /=; subst.
     elim (fn)=> tt gg. 
     elim (tt) => n m q aa bb /=; subst.
-    by progress; expect 11 smt.
+    by progress; expect 11 by smt ["Alt-Ergo"] tmo=10.
   qed.
 
   equiv InitEquiv_rnd: CircuitInit.init ~ CircuitInit.init:
@@ -1096,7 +1097,7 @@ theory SomeGarble.
                                   oget C.gg{2}.[(g, x1, x2)]) C.aa{2} C.bb{2}))
                     w C.m{2}).[i{2}-w]
             by rewrite H3.
-          by case ((i = j){2}) => _; rewrite get_sub; smt.
+          by case ((i = j){2}) => _; rewrite get_sub; smt ["Alt-Ergo"] tmo=5.
           rewrite Array.get_set; first smt.
           by case ((i = j){2}) => _;
             rewrite /evali /evalComplete ?appendInit_get1; smt.
@@ -1325,7 +1326,7 @@ theory SomeGarble.
   proof.
     proc => //.
     while (0 <= i <= n+q) (n+q-i).
-      by move => z; auto; smt.
+      by move => z; auto; progress; expect 6 by smt.
     by auto; smt.
   qed.
   
@@ -1548,19 +1549,19 @@ theory SomeGarble.
     simplify validInputsP valid_circuitP fst snd.
     progress.
       smt.
-      by move : H2; case realL; first 2 by smt.  
-      by move : H2; case realL; first 2 by smt.
-      by move : H2; case realL; first 2 by smt.
-      by move : H2; case realL; first 2 by smt.
-      by move : H2; case realL; first 2 by smt.
-      by move : H2; case realL; first 2 by smt. 
-      by move : H2; case realL; first 2 by smt.
-      by move : H2; case realL; first 2 by smt.
-      by move : H2; case realL; first 2 by smt.
-      by move : H2; case realL; first 2 by smt. 
-      by move : H2; case realL; first 2 by smt. 
-      by move : H2; case realL; first 2 by smt.
-      by move : H2; case realL; first 2 by smt.
+      by move : H2; case realL; first 2 by smt tmo=30.  
+      by move : H2; case realL; first 2 by smt tmo=30.
+      by move : H2; case realL; first 2 by smt tmo=30.
+      by move : H2; case realL; first 2 by smt tmo=30.
+      by move : H2; case realL; first 2 by smt tmo=30.
+      by move : H2; case realL; first 2 by smt tmo=30. 
+      by move : H2; case realL; first 2 by smt tmo=30.
+      by move : H2; case realL; first 2 by smt tmo=30.
+      by move : H2; case realL; first 2 by smt tmo=30.
+      by move : H2; case realL; first 2 by smt tmo=30. 
+      by move : H2; case realL; first 2 by smt tmo=30. 
+      by move : H2; case realL; first 2 by smt tmo=30.
+      by move : H2; case realL; first 2 by smt tmo=30.
       by smt. 
       by smt.
       by smt.
@@ -1792,14 +1793,14 @@ theory SomeGarble.
   proof.
     simplify validInputsP valid_circuitP fst snd. 
     elim (f.`1) => n m q aa bb; simplify.
-    progress; expect 2 by smt.
+    progress; expect 2 by smt tmo=30.
   qed.
 
   lemma valid_inputs_allB f x k : validInputsP (f,x) => f.`1.`1 <= k < f.`1.`1 + f.`1.`3 => 0 <= f.`1.`5.[k] < f.`1.`1 + f.`1.`3.
   proof.
     simplify validInputsP valid_circuitP fst snd. 
     elim (f.`1) => n m q aa bb; simplify.
-    progress; expect 2 by smt.
+    progress; expect 2 by smt tmo=30.
   qed.
   
   equiv GarbleInitFake'InitEquiv: GarbleInitFake'.init ~ GarbleInitFake'.init:
@@ -1842,7 +1843,7 @@ theory SomeGarble.
       (forall g a b, g < C.n{1} => G.pp{2}.[(g, a, b)] = None) /\
       (forall g a b, G.g{1} <= g => G.pp{2}.[(g, a, b)] = None) /\
       ={G.g} /\ C.n{1} <= G.g{1} <= C.n{1} + C.q{1}).
-    auto. progress. rewrite ?get_set. simplify. case (G.g{2} = g) => hc. simplify. case (getlsb (oget R'.ii{1}.[C.aa{2}.[G.g{2}]]) = a) => ha. simplify. case (getlsb (oget R'.ii{1}.[C.bb{2}.[G.g{2}]]) = b) => hb. cut ->: getlsb (oget R'.ii{2}.[C.aa{2}.[G.g{2}]]) = a <=> true by smt. cut ->: getlsb (oget R'.ii{2}.[C.bb{2}.[G.g{2}]]) = b <=> true by smt. cut ->: getlsb (oget R'.vv{2}.[C.bb{2}.[G.g{2}]]) = b <=> false by smt. cut ->: getlsb (oget R'.vv{2}.[C.aa{2}.[G.g{2}]]) = a <=> false by smt. simplify. smt. simplify. cut ->: getlsb (oget R'.vv{1}.[C.bb{2}.[G.g{2}]]) = b <=> true by smt. simplify. cut ->: getlsb (oget R'.ii{2}.[C.aa{2}.[G.g{2}]]) = a <=> true by smt. simplify. cut ->: getlsb (oget R'.ii{2}.[C.bb{2}.[G.g{2}]]) = b <=> false by smt. cut ->: getlsb (oget R'.vv{2}.[C.bb{2}.[G.g{2}]]) = b <=> true by smt. cut ->: getlsb (oget R'.vv{2}.[C.aa{2}.[G.g{2}]]) = a <=> false by smt. simplify. smt. simplify. cut ->: getlsb (oget R'.vv{1}.[C.aa{2}.[G.g{2}]]) = a <=> true by smt. simplify. case (getlsb (oget R'.ii{1}.[C.bb{2}.[G.g{2}]]) = b) => hb. cut ->: getlsb (oget R'.ii{2}.[C.aa{2}.[G.g{2}]]) = a <=> false by smt. simplify. cut ->: getlsb (oget R'.vv{2}.[C.aa{2}.[G.g{2}]]) = a <=> true by smt. cut ->: getlsb (oget R'.ii{2}.[C.bb{2}.[G.g{2}]]) = b <=> true by smt. simplify. smt. cut ->: getlsb (oget R'.vv{1}.[C.bb{2}.[G.g{2}]]) = b <=> true by smt. simplify. cut ->: getlsb (oget R'.ii{2}.[C.aa{2}.[G.g{2}]]) = a <=> false by smt. cut ->: getlsb (oget R'.ii{2}.[C.bb{2}.[G.g{2}]]) = b <=> false by smt. cut ->: getlsb (oget R'.vv{2}.[C.bb{2}.[G.g{2}]]) = b <=> true by smt. cut ->: getlsb (oget R'.vv{2}.[C.aa{2}.[G.g{2}]]) = a <=> true by smt. simplify. smt. simplify. smt.
+    auto. progress. rewrite ?get_set. simplify. case (G.g{2} = g) => hc. simplify. case (getlsb (oget R'.ii{1}.[C.aa{2}.[G.g{2}]]) = a) => ha. simplify. case (getlsb (oget R'.ii{1}.[C.bb{2}.[G.g{2}]]) = b) => hb. cut ->: getlsb (oget R'.ii{2}.[C.aa{2}.[G.g{2}]]) = a <=> true by smt. cut ->: getlsb (oget R'.ii{2}.[C.bb{2}.[G.g{2}]]) = b <=> true by smt. cut ->: getlsb (oget R'.vv{2}.[C.bb{2}.[G.g{2}]]) = b <=> false by smt. cut ->: getlsb (oget R'.vv{2}.[C.aa{2}.[G.g{2}]]) = a <=> false by smt. simplify. smt. simplify. cut ->: getlsb (oget R'.vv{1}.[C.bb{2}.[G.g{2}]]) = b <=> true by smt. simplify. cut ->: getlsb (oget R'.ii{2}.[C.aa{2}.[G.g{2}]]) = a <=> true by smt. simplify. cut ->: getlsb (oget R'.ii{2}.[C.bb{2}.[G.g{2}]]) = b <=> false by smt. cut ->: getlsb (oget R'.vv{2}.[C.bb{2}.[G.g{2}]]) = b <=> true by smt. cut ->: getlsb (oget R'.vv{2}.[C.aa{2}.[G.g{2}]]) = a <=> false by smt. simplify. smt. simplify. cut ->: getlsb (oget R'.vv{1}.[C.aa{2}.[G.g{2}]]) = a <=> true by smt. simplify. case (getlsb (oget R'.ii{1}.[C.bb{2}.[G.g{2}]]) = b) => hb. cut ->: getlsb (oget R'.ii{2}.[C.aa{2}.[G.g{2}]]) = a <=> false by smt. simplify. cut ->: getlsb (oget R'.vv{2}.[C.aa{2}.[G.g{2}]]) = a <=> true by smt. cut ->: getlsb (oget R'.ii{2}.[C.bb{2}.[G.g{2}]]) = b <=> true by smt. simplify. smt. cut ->: getlsb (oget R'.vv{1}.[C.bb{2}.[G.g{2}]]) = b <=> true by smt. simplify. cut ->: getlsb (oget R'.ii{2}.[C.aa{2}.[G.g{2}]]) = a <=> false by smt. cut ->: getlsb (oget R'.ii{2}.[C.bb{2}.[G.g{2}]]) = b <=> false by smt. cut ->: getlsb (oget R'.vv{2}.[C.bb{2}.[G.g{2}]]) = b <=> true by smt. cut ->: getlsb (oget R'.vv{2}.[C.aa{2}.[G.g{2}]]) = a <=> true by smt. simplify. smt tmo=30. simplify. smt.
   
     (*rewrite ?get_set. simplify. case (G.g{2} = g) => hc. simplify. case (getlsb (oget R'.ii{1}.[C.aa{2}.[G.g{2}]]) = a) => ha. case (getlsb (oget R'.ii{1}.[C.bb{2}.[G.g{2}]]) = b) => hb. simplify. cut ? : G.g{2} <= C.n{2} by smt.*)
 
@@ -2004,11 +2005,11 @@ theory SomeGarble.
     
     call Random'InitEquiv.
     call InitEquiv_rnd.
-    auto; progress. smt. smt. smt. smt. smt. move : H9. simplify validInputsP valid_circuitP. simplify fst snd. progress. smt.
+    auto; progress. smt. smt. smt. smt. smt tmo=30. move : H9. simplify validInputsP valid_circuitP. simplify fst snd. progress. smt.
     call GarbleInitFake'InitEquiv.
     skip. progress. smt. smt.
     apply map_ext. rewrite /(==) => x. elim x => g a b. case (C.n{2} <= g < C.n{2} + C.q{2}) => hc. rewrite H22. exact hc. reflexivity. rewrite H23. exact hc. rewrite H24. exact hc. reflexivity. 
-    congr. apply fun_ext. rewrite /(==) => x. congr. rewrite ?get_filter. simplify. case (0 <= x < C.n{2}) => hc; last by done. rewrite H7. cut ? : C.n{2} < C.n{2} + C.q{2} by smt. smt. done.
+    congr. apply fun_ext. rewrite /(==) => x. congr. rewrite ?get_filter. simplify. case (0 <= x < C.n{2}) => hc; last by done. rewrite H7. cut ? : C.n{2} < C.n{2} + C.q{2} by smt tmo=30. smt. done.
     by auto.
   qed.
   
@@ -2465,7 +2466,6 @@ theory SomeGarble.
     }
   }.
   
-  
   lemma same_fakes (A<:GSch.EncSecurity.Adv_IND_t{C,R,R',G}):
     equiv[GameFakeMixedWhiles(A).garble ~ GameFake'MixedWhiles(A).garble :
     ={glob A} ==> ={res}].
@@ -2608,9 +2608,9 @@ theory SomeGarble.
 
     inline*. auto. progress. smt. smt.
 
-    cut ? : 0 <= G.g{2}. cut : 0 <= C.n{2} + C.q{2} - C.m{2}. move : H2. case (real{2}). smt. smt. smt.
-    cut ? : 0 <= C.aa{2}.[G.g{2}] < G.g{2}. move : H2. case (real{2}) => hc. simplify fst snd. move => ?. cut ->: C.aa{2} = query{2}.`2.`1.`1.`4 by smt. smt. simplify fst snd. move => ?. cut ->: C.aa{2} = query{2}.`1.`1.`1.`4 by smt. smt. 
-    cut ? : 0 <= C.bb{2}.[G.g{2}] < G.g{2}. move : H2. case (real{2}) => hc. simplify fst snd. move => ?. cut ->: C.bb{2} = query{2}.`2.`1.`1.`5 by smt. smt. simplify fst snd. move => ?. cut ->: C.bb{2} = query{2}.`1.`1.`1.`5 by smt. smt. 
+    cut ? : 0 <= G.g{2}. cut : 0 <= C.n{2} + C.q{2} - C.m{2}. move : H2. case (real{2}). smt tmo=30. smt tmo=30. smt tmo=30.
+    cut ? : 0 <= C.aa{2}.[G.g{2}] < G.g{2}. move : H2. case (real{2}) => hc. simplify fst snd. move => ?. cut ->: C.aa{2} = query{2}.`2.`1.`1.`4 by smt. smt tmo=30. simplify fst snd. move => ?. cut ->: C.aa{2} = query{2}.`1.`1.`1.`4 by smt. smt tmo=30. 
+    cut ? : 0 <= C.bb{2}.[G.g{2}] < G.g{2}. move : H2. case (real{2}) => hc. simplify fst snd. move => ?. cut ->: C.bb{2} = query{2}.`2.`1.`1.`5 by smt. smt tmo=30. simplify fst snd. move => ?. cut ->: C.bb{2} = query{2}.`1.`1.`1.`5 by smt. smt tmo=30. 
   
     do(congr).  
   
@@ -2694,9 +2694,9 @@ theory SomeGarble.
 
     inline*. auto. progress. smt. smt.
 
-    cut ? : 0 <= G.g{2}. cut : 0 <= C.n{2} + C.q{2} - C.m{2}. move : H2. case (real{2}). smt. smt. smt.
-    cut ? : 0 <= C.aa{2}.[G.g{2}] < G.g{2}. move : H2. case (real{2}) => hc. simplify fst snd. move => ?. cut ->: C.aa{2} = query{2}.`2.`1.`1.`4 by smt. smt. simplify fst snd. move => ?. cut ->: C.aa{2} = query{2}.`1.`1.`1.`4 by smt. smt. 
-    cut ? : 0 <= C.bb{2}.[G.g{2}] < G.g{2}. move : H2. case (real{2}) => hc. simplify fst snd. move => ?. cut ->: C.bb{2} = query{2}.`2.`1.`1.`5 by smt. smt. simplify fst snd. move => ?. cut ->: C.bb{2} = query{2}.`1.`1.`1.`5 by smt. smt. 
+    cut ? : 0 <= G.g{2}. cut : 0 <= C.n{2} + C.q{2} - C.m{2}. move : H2. case (real{2}). smt tmo=30. smt tmo=30. smt tmo=30.
+    cut ? : 0 <= C.aa{2}.[G.g{2}] < G.g{2}. move : H2. case (real{2}) => hc. simplify fst snd. move => ?. cut ->: C.aa{2} = query{2}.`2.`1.`1.`4 by smt. smt tmo=30. simplify fst snd. move => ?. cut ->: C.aa{2} = query{2}.`1.`1.`1.`4 by smt. smt tmo=30. 
+    cut ? : 0 <= C.bb{2}.[G.g{2}] < G.g{2}. move : H2. case (real{2}) => hc. simplify fst snd. move => ?. cut ->: C.bb{2} = query{2}.`2.`1.`1.`5 by smt. smt tmo=30. simplify fst snd. move => ?. cut ->: C.bb{2} = query{2}.`1.`1.`1.`5 by smt. smt tmo=30. 
   
     do(congr). 
   
@@ -2803,9 +2803,9 @@ theory SomeGarble.
     by smt.
     by smt.
     simplify encode. congr. apply fun_ext. rewrite /(==). move => x. congr. simplify inputK. case (real{2}) => hc. simplify fst snd. cut ->: query{2}.`2.`1.`1 = (C.n{2}, C.m{2}, C.q{2}, C.aa{2}, C.bb{2}) by smt. simplify. rewrite ?get_filter. simplify. case (0 <= x < C.n{2}) => hc'; last by done. cut ->: query{2}.`2.`2.[x] = C.v{2}.[x]. cut := H27 x. rewrite hc. simplify. simplify fst snd. move => hevali. rewrite hevali. smt. simplify evali. simplify fst snd. cut ->: query{2}.`2.`1.`1 = (C.n{2}, C.m{2}, C.q{2}, C.aa{2}, C.bb{2}) by smt. simplify. simplify extract evalComplete. rewrite appendInit_get1. smt. smt. reflexivity. smt. simplify fst snd. cut ->: query{2}.`1.`1.`1 = (C.n{2}, C.m{2}, C.q{2}, C.aa{2}, C.bb{2}) by smt. simplify. rewrite ?get_filter. simplify. case (0 <= x < C.n{2}) => hc'; last by done. cut ->: query{2}.`1.`2.[x] = C.v{2}.[x]. cut := H27 x. rewrite hc. simplify. simplify fst snd. move => hevali. rewrite hevali. smt. simplify evali. simplify fst snd. cut ->: query{2}.`1.`1.`1 = (C.n{2}, C.m{2}, C.q{2}, C.aa{2}, C.bb{2}) by smt. simplify. simplify extract evalComplete. rewrite appendInit_get1. smt. smt. reflexivity. smt. 
-    smt.
+    smt tmo=30.
     by auto.
-qed.
+  qed.
 
   (***************)
   (* Game Hybrid *)
@@ -3020,7 +3020,7 @@ qed.
       (forall k a b, k < C.n{1} => G.pp{2}.[(k,a,b)] = None) /\
       (forall k a b, G.g{1} <= k => G.pp{2}.[(k,a,b)] = None)).
       inline*. auto. progress. by cut : false by smt. by cut : false by smt. by cut : false by smt. by cut : false by smt. by cut : false by smt. by cut : false by smt. by cut : false by smt. smt. smt. 
-      cut ->: C.aa{2}.[G.g{2}] <= bound-1 <=> true by smt. cut ->: C.bb{2}.[G.g{2}] <= bound-1 <=> true by smt. simplify. rewrite ?get_set. simplify. case (G.g{2} = k) => hc. simplify. case (R.t{2}.[C.aa{2}.[G.g{2}]] ^^ true = a) => ha. case (R.t{2}.[C.bb{2}.[G.g{2}]] ^^ true = b) => hb. simplify. congr. congr. smt. smt. congr. rewrite ?H3. smt. smt. reflexivity. simplify. cut ->: R.t{2}.[C.bb{2}.[G.g{2}]] ^^ false = b <=> true by smt. simplify. congr. smt. smt. simplify. cut ->: R.t{2}.[C.aa{2}.[G.g{2}]] ^^ false = a <=> true by smt. simplify. case (R.t{2}.[C.bb{2}.[G.g{2}]] ^^ true = b) => hb. congr. congr. rewrite H3. smt. reflexivity. rewrite H3. smt. reflexivity. rewrite H3. smt. cut ->: R.t{2}.[C.bb{2}.[G.g{2}]] ^^ false = b <=> true by smt. simplify. congr. rewrite H3. smt. reflexivity. rewrite H3. smt. reflexivity. simplify. rewrite H4. smt. reflexivity. 
+      cut ->: C.aa{2}.[G.g{2}] <= bound-1 <=> true by smt. cut ->: C.bb{2}.[G.g{2}] <= bound-1 <=> true by smt. simplify. rewrite ?get_set. simplify. case (G.g{2} = k) => hc. simplify. case (R.t{2}.[C.aa{2}.[G.g{2}]] ^^ true = a) => ha. case (R.t{2}.[C.bb{2}.[G.g{2}]] ^^ true = b) => hb. simplify. congr. congr. smt. smt. congr. rewrite ?H3. smt. smt. reflexivity. simplify. cut ->: R.t{2}.[C.bb{2}.[G.g{2}]] ^^ false = b <=> true by smt. simplify. congr. smt. smt. simplify. cut ->: R.t{2}.[C.aa{2}.[G.g{2}]] ^^ false = a <=> true by smt. simplify. case (R.t{2}.[C.bb{2}.[G.g{2}]] ^^ true = b) => hb. congr. congr. rewrite H3. smt. reflexivity. rewrite H3. smt. reflexivity. rewrite H3. smt. cut ->: R.t{2}.[C.bb{2}.[G.g{2}]] ^^ false = b <=> true by smt. simplify. congr. rewrite H3. smt. reflexivity. rewrite H3. smt tmo=30. reflexivity. simplify. rewrite H4. smt. reflexivity. 
     rewrite ?get_set. simplify. cut ->: G.g{2} = k <=> false by smt. simplify. rewrite H5. exact H18. reflexivity.
     rewrite ?get_set. simplify. cut ->: G.g{2} = k <=> false by smt. simplify. rewrite H6. smt. reflexivity.
     rewrite ?get_set. simplify. cut ->: G.g{2} = k <=> false by smt. simplify. rewrite H7. exact H18. reflexivity.
@@ -3044,15 +3044,90 @@ qed.
 
   (*****************)
   (* DKC ADVERSARY *)
-  (*****************)
-      
-  require import DInterval.  
+  (*****************) 
 
   op l : int.
   axiom l_pos : 0 <= l < bound.
 
-  module DKC_Adv (D : DKC_t, Adv_IND : GSch.EncSecurity.Adv_IND_t) : Adv_DKC_t = {
-    var c : bool
+  module AdvRandomInit (D : DKC_t) = {
+    proc query (rn : bool, alpha : bool, betha : bool) : word = {
+      var twe : word;
+      var gamma, pos : bool;
+      var i,j : int;
+      var ki, kj, zz : word;
+      
+      twe = tweak G.g (R.t.[G.a] ^^ alpha) (R.t.[G.b] ^^ betha);
+      gamma = C.v.[G.g] ^^ oget C.gg.[(G.g, C.v.[G.a] ^^ alpha, C.v.[G.b] ^^ betha)];
+
+      pos = (G.a = l);
+      i = if G.a = l then 2*G.b + bti (R.t.[G.b] ^^ betha) else 2*G.a + bti (R.t.[G.a] ^^ alpha);
+      j = $[2*(G.g + C.n + C.q)..2*(G.g + C.n + C.q)+1];
+      j = if rn then j else 2*G.g + (bti (R.t.[G.g] ^^ gamma));
+
+      (ki,kj,zz) = D.encrypt((i,j,pos,twe));
+
+      (*G.pp.[(G.g, R.t.[G.a] ^^ alpha, R.t.[G.b] ^^ betha)] = zz;*)
+
+      if (G.a = l) {
+        R.xx.[(G.b, C.v.[G.b] ^^ betha)] = ki;
+      }
+      else {
+        R.xx.[(G.a, C.v.[G.a] ^^ alpha)] = ki;
+      }
+
+      if (rn) {
+        R.xx.[(G.g, C.v.[G.g] ^^ gamma)] = kj;
+      }
+
+      return (kj);
+    }
+
+    proc init(lsb:bool): unit = {
+      var tok1, tok2, v, trnd;
+      
+      R.t = offun (fun x, false) (C.n + C.q);
+      R.xx = FMap.empty;
+
+      G.g = 0;
+      while (G.g < C.n + C.q) {
+        trnd = ${0,1};
+        v = C.v.[G.g];
+        trnd = if (G.g < C.n + C.q - C.m) then trnd else v;
+        tok1 = $Dword.dwordLsb ( trnd);
+        tok2 = $Dword.dwordLsb (!trnd);
+
+        R.t.[G.g] = trnd;
+
+        if (C.n <= G.g) {
+          G.a = C.aa.[G.g];
+          G.b = C.bb.[G.g];
+          R.t.[l] = !lsb;
+
+          if (G.a = l) {
+            query(false,true,false);
+            query(false,true,true);
+          }
+          
+          if (G.b = l) {
+            query(false,false,true);
+            query(true,true,true);
+            (*yy = query(true,true,true);
+            G.yy.[G.g] = yy;*)
+          }
+
+          if (oget R.xx.[(G.g, !v)] = witness /\ G.g <> l) {
+            R.xx.[(G.g, !v)] = tok2;
+          }
+          if (oget R.xx.[(G.g, v)] = witness) {
+            R.xx.[(G.g, v)] = tok1;
+          }
+        }
+        G.g = G.g + 1;
+      }
+    }
+  }.
+
+  module AdvInit (D : DKC_t) = {
     
     proc garb(yy : word, alpha : bool, bet : bool) : unit = {
       var twe, aa, bb : word;
@@ -3065,7 +3140,7 @@ qed.
 
     proc garb'(rn : bool, alpha : bool, bet : bool) : word = {
       var yy : word;
-        
+      
       yy = $Dword.dword;
       yy = if rn then yy else oget R.xx.[(G.g, oget C.gg.[(G.g, C.v.[G.a] ^^ alpha, C.v.[G.b] ^^ bet)])];
       garb(yy, alpha, bet);
@@ -3090,71 +3165,39 @@ qed.
 
       G.pp.[(G.g, R.t.[G.a] ^^ alpha, R.t.[G.b] ^^ betha)] = zz;
 
-      if (G.a = l) {
-        R.xx.[(G.b, C.v.[G.b] ^^ betha)] = ki;
-      }
-      else {
-        R.xx.[(G.a, C.v.[G.a] ^^ alpha)] = ki;
-      }
-
-      if (rn) {
-        R.xx.[(G.g, C.v.[G.g] ^^ gamma)] = kj;
-      }
-
       return (kj);
     }
+    
+    proc init() : unit = {
+      var tok, yy : word;
 
-    proc garble(lsb:bool) : bool = {
-      var query_ind : GSch.EncSecurity.query_IND;
-      var i : int;
-      var p : GSch.EncSecurity.Encryption.plain;
-      var adv : bool;
-      var ret : bool;
-      var yy : word;
-      var real : bool;
-      var c : funG_t*inputG_t*outputK_t;
+      G.yy = Array.offun (fun x, (W.zeros)) (C.n + C.q);
+      G.pp = FMap.empty;
+      G.randG = FMap.empty;
+      G.a = 0;
+      G.b = 0;
       
-      query_ind = Adv_IND.gen_query();
-      if (GSch.EncSecurity.queryValid_IND query_ind) {
-        real = ${0,1};
-        p = if real then snd query_ind else fst query_ind;
-        CircuitInit.init(p);
-        (*RandomInit.init(true);*)
+      G.g = C.n;
+      while (G.g < C.n + C.q) {
+        G.a = C.aa.[G.g];
+        G.b = C.bb.[G.g];
 
-        G.g = C.n;
-        while (G.g < C.n + C.q) {
-          G.a = C.aa.[G.g];
-          G.b = C.bb.[G.g];
-          R.t.[l] = !lsb;
-
+        if (G.a = l \/ G.b = l) {
           if (G.a = l) {
-            query(false,true,false);
+            query(false, true, false);
+            query(false, true, true);
           }
-          query(false,true,true);
-          
+
           if (G.b = l) {
-            query(false,false,true);
-          }
-          yy = query(true,true,true);
-          G.yy.[G.g] = yy;
-        }
-
-        i = 0;
-        while (i < C.n + C.q) {
-          if (oget R.xx.[(i, !C.v.[i])] = witness /\ i <> l) {
-            R.xx.[(i, !C.v.[i])] = $Dword.dwordLsb (!R.t.[i]);
-          }
-          if (oget R.xx.[(i, C.v.[i])] = witness) {
-            R.xx.[(i, C.v.[i])] = $Dword.dwordLsb (R.t.[i]);
+            query(false, false, true);
+            yy = query(true, true, true);
+            G.yy.[G.g] = yy;
           }
         }
 
-        G.g = C.n;
-        while (G.g < C.n + C.q) {
-          G.a = C.aa.[G.g];
-          G.b = C.bb.[G.g];
+        else {
           garb(oget R.xx.[(G.g, C.v.[G.g])], false, false);
-
+          
           if (G.a <> l /\ G.b <> l) {
             garb'(G.a <= l, true, false);
             garb'(G.b <= l, false, true);
@@ -3177,13 +3220,34 @@ qed.
             }
           }
         }
+      }
+    }
+  }.
+  
+  module DKC_Adv (D : DKC_t, Adv_IND : GSch.EncSecurity.Adv_IND_t) : Adv_DKC_t = {
 
-        c = (((C.n, C.m, C.q, C.aa, C.bb), G.pp), encode (inputK C.f R.xx) C.x, tt);
+    proc garble (lsb:bool) : bool = {
+      var query_ind : GSch.EncSecurity.query_IND;
+      var p : GSch.EncSecurity.Encryption.plain;
+      var ret : bool;
+      var topo : topo_t;
+      var real, adv : bool;
+      var c : funG_t*inputG_t*outputK_t;
+      
+      query_ind = Adv_IND.gen_query();
+      
+      if (GSch.EncSecurity.queryValid_IND query_ind) {
+        real = ${0,1};
+        p = if real then snd query_ind else fst query_ind;
+        CircuitInit.init(p);
+        AdvRandomInit(D).init(lsb);
+        AdvInit(D).init();
         
+        c = (((C.n, C.m, C.q, C.aa, C.bb), G.pp), encode (inputK C.f R.xx) C.x, tt);
+          
         adv = Adv_IND.get_challenge(c);
         ret = (real = adv);
       }
-
       else {
         ret = ${0,1};
       }
@@ -3191,29 +3255,29 @@ qed.
       return ret;
     }
   }.
-
-  lemma GameHybrid_l_sim (A <: GSch.EncSecurity.Adv_IND_t{DKC_Adv}):
+  
+  lemma GameHybrid_l_sim (A <: GSch.EncSecurity.Adv_IND_t{DKC_Adv,DKCp}):
     islossless A.gen_query =>
     islossless A.get_challenge =>
     equiv [ GameHybrid(A).garble ~ DKCSecurity.Game(DKCSecurity.DKC, DKC_Adv(DKCSecurity.DKC, A)).game:
         ={glob A} /\ l{1} = l /\ !b{2} ==> res{1} = !res{2}].
   proof. admit. qed.
 
-  lemma GameHybrid_l1_sim (A <: GSch.EncSecurity.Adv_IND_t):
+  lemma GameHybrid_l1_sim (A <: GSch.EncSecurity.Adv_IND_t{DKC_Adv,DKCp}):
     islossless A.gen_query =>
     islossless A.get_challenge =>
     equiv [ GameHybrid(A).garble ~ DKCSecurity.Game(DKCSecurity.DKC, DKC_Adv(DKCSecurity.DKC, A)).game:
         ={glob A} /\ l{1} = l-1 /\ b{2} ==> ={res}].
   proof. admit. qed.
 
-  lemma GameHybrid_l_sim_pr (A <: GSch.EncSecurity.Adv_IND_t {DKC_Adv}) &m:
+  lemma GameHybrid_l_sim_pr (A <: GSch.EncSecurity.Adv_IND_t{DKC_Adv,DKCp}) &m:
     islossless A.gen_query =>
     islossless A.get_challenge =>
     Pr[GameHybrid(A).garble(l)@ &m: res] =
     Pr[DKCSecurity.Game(DKCSecurity.DKC, DKC_Adv(DKCSecurity.DKC, A)).game(false)@ &m: !res].
   proof. by move=> AgenLL AgetL; byequiv (GameHybrid_l_sim A _ _). qed. 
 
-  lemma GameHybrid_l1_sim_pr (A <: GSch.EncSecurity.Adv_IND_t {DKC_Adv}) &m:
+  lemma GameHybrid_l1_sim_pr (A <: GSch.EncSecurity.Adv_IND_t{DKC_Adv,DKCp}) &m:
     islossless A.gen_query =>
     islossless A.get_challenge =>
     Pr[GameHybrid(A).garble(l-1)@ &m: res] =

@@ -37,7 +37,6 @@ theory DKCSecurity.
 
   module type Adv_DKC_t = {
     proc garble(lsb:bool) : bool
-    proc * query(rn: bool, alpha : bool, betha : bool) : word
   }.
 
   module DKCp = {
