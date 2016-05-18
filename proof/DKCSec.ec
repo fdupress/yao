@@ -41,9 +41,9 @@ theory DKCSecurity.
 
   module DKCp = {
     var b : bool
-    var k : word
-    var rr : word array
-    var kk : word array
+    var ksec : word
+    var rr : (int, word) map
+    var kpub : (int, word) map
     var used : word fset
   }.
 
@@ -53,22 +53,17 @@ theory DKCSecurity.
     proc get_challenge() : bool
   }.
   
-  module DKC : DKC_t = {
+  module DKC : DKC_t = {    
     
     proc initialize(): bool = {
       var lsb : bool;
       var i : int;
 
       lsb = ${0,1};
-      DKCp.k = $Dword.dwordLsb lsb;
-      DKCp.rr = $Darray.darray Dword.dword bound;
-      i = 1;
-      while (i < bound) {
-        DKCp.kk.[i] = $Dword.dwordLsb (i %% 2 = 0);
-        i = i+1;
-      }
-
+      DKCp.ksec = $Dword.dwordLsb lsb;
+      DKCp.kpub = FMap.empty;
       DKCp.used = FSet.fset0;
+      DKCp.rr = FMap.empty;
       
       return lsb;
     }
@@ -76,56 +71,52 @@ theory DKCSecurity.
     proc get_challenge() : bool = {
       return DKCp.b;
     }
+
+    proc get_k(i:int): word = {
+      var k:word;
+
+      k = $Dword.dwordLsb (i %% 2 = 0);
+      if (!mem (dom DKCp.kpub) i) DKCp.kpub.[i] = k;
+      return oget DKCp.kpub.[i];
+    }
+
+    proc get_r(i:int): word = {
+      var r:word;
+
+      r = $Dword.dword;
+      if (!mem (dom DKCp.rr) i) DKCp.rr.[i] = r;
+      return oget DKCp.rr.[i];
+    }
     
     proc encrypt(q:query_DKC) : answer_DKC = {
       var aa,bb,xx : word;
       var i,j : int;
       var pos : bool;
-      var t : word;
+      var t, ki, kj, rj : word;
       var ans : answer_DKC;
       var b : bool;
       
       ans = bad;
       (i,j,pos,t) = q;
-      b = get_challenge();
       
       if (!(mem DKCp.used t || j < i)) {
         DKCp.used = DKCp.used `|` fset1 t;
 
-        (aa,bb) = if pos then (DKCp.k, DKCp.kk.[i]) else (DKCp.kk.[i], DKCp.k);
-        xx = if b then DKCp.kk.[j] else DKCp.rr.[j];
+        ki = get_k(i);
+        kj = get_k(j);
+        rj = get_r(j);
         
-        ans = (DKCp.kk.[i], DKCp.kk.[j], E t aa bb xx);
+        (aa,bb) = if pos then (DKCp.ksec, ki) else (ki, DKCp.ksec);
+        xx = if DKCp.b then kj else rj;
+        
+        ans = (ki, kj, E t aa bb xx);
       }
 
       return ans;
     }
   }.
 
-(*  module type Batch_t = {
-    proc encrypt(qs:query array): answer array
-  }.
-
-  module BatchDKC (D:DKC_t): Batch_t = {
-    proc encrypt(qs:query array): answer array = {
-      var i, n:int;
-      var answers:answer array;
-
-      i = 0;
-      n = size qs;
-      answers = Array.offun (fun x, bad) n;
-      while (i < n)
-      {
-        answers.[i] = D.encrypt(qs.[i]);
-        i = i + 1;
-      }
-
-      return answers;
-    }
-  }.*)
-
   module Game(D:DKC_t, A:Adv_DKC_t) = {
-    (*module B = BatchDKC(D)*)
 
     proc game(b : bool) : bool = {
       var query : query_DKC;
@@ -150,6 +141,42 @@ theory DKCSecurity.
   (* Lossnessness properties *)
   (***************************)
 
+  lemma get_challenge_ll : islossless DKC.get_challenge.
+  proof. by proc. qed.
+
+  lemma get_k_ll : islossless DKC.get_k.
+  proof. by proc; auto; smt. qed.
+
+  lemma get_r_ll : islossless DKC.get_r.
+  proof. by proc; auto; smt. qed.
+      
+  lemma encrypt_ll : islossless DKC.encrypt.
+  proof.
+    proc => //.
+    seq 2 : true => //; first by auto.
+    if; last by auto.
+    by wp; call get_r_ll; call get_k_ll; call get_k_ll; wp.
+  qed.
+
+  lemma init_ll : islossless DKC.initialize.
+  proof. by proc => //; auto; smt. qed.
+
+  lemma game_ll (D <: DKC_t) (A <: Adv_DKC_t) :
+    islossless A.garble =>
+    islossless D.initialize =>  
+    islossless Game(D,A).game.
+  proof. by move => Agarble_ll Dinit_ll; proc; call Agarble_ll; call Dinit_ll. qed.
+
+  lemma main_ll (D <: DKC_t) (A <: Adv_DKC_t) :
+    islossless A.garble =>
+    islossless D.initialize =>  
+    islossless Game(D,A).main.
+  proof.
+    move => Agarble_ll Dinit_ll; proc.
+    call (_ : true); first by call Agarble_ll; call Dinit_ll.
+    by auto; smt.
+  qed.
+  
   (*********************************)
   (* GENERIC ADVANTAGE DEFINITIONS *)
   (*********************************)

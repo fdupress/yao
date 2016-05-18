@@ -427,7 +427,7 @@ theory SomeGarble.
         smt ["Alt-Ergo"] tmo=10.
         (simplify inputEnc encode; rewrite size_offun max_ler; first by idtac => /#); simplify => /#.
         exact H2. 
-        smt tmo=30.
+        smt ["Alt-Ergo"] tmo=60.
       rewrite -/ar1 -/ar2.
       simplify extract.
       cut -> : (k - 1 + 1 = k) by idtac=>/#.
@@ -992,7 +992,7 @@ theory SomeGarble.
     elim (p{2})=> fn ii /=; subst.
     elim (fn)=> tt gg. 
     elim (tt) => n m q aa bb /=; subst.
-    by progress; expect 11 by smt ["Alt-Ergo"] tmo=10.
+    by progress; expect 11 by smt ["Alt-Ergo"] tmo=20.
   qed.
 
   equiv InitEquiv_rnd: CircuitInit.init ~ CircuitInit.init:
@@ -1843,7 +1843,7 @@ theory SomeGarble.
       (forall g a b, g < C.n{1} => G.pp{2}.[(g, a, b)] = None) /\
       (forall g a b, G.g{1} <= g => G.pp{2}.[(g, a, b)] = None) /\
       ={G.g} /\ C.n{1} <= G.g{1} <= C.n{1} + C.q{1}).
-    auto. progress. rewrite ?get_set. simplify. case (G.g{2} = g) => hc. simplify. case (getlsb (oget R'.ii{1}.[C.aa{2}.[G.g{2}]]) = a) => ha. simplify. case (getlsb (oget R'.ii{1}.[C.bb{2}.[G.g{2}]]) = b) => hb. cut ->: getlsb (oget R'.ii{2}.[C.aa{2}.[G.g{2}]]) = a <=> true by smt. cut ->: getlsb (oget R'.ii{2}.[C.bb{2}.[G.g{2}]]) = b <=> true by smt. cut ->: getlsb (oget R'.vv{2}.[C.bb{2}.[G.g{2}]]) = b <=> false by smt. cut ->: getlsb (oget R'.vv{2}.[C.aa{2}.[G.g{2}]]) = a <=> false by smt. simplify. smt. simplify. cut ->: getlsb (oget R'.vv{1}.[C.bb{2}.[G.g{2}]]) = b <=> true by smt. simplify. cut ->: getlsb (oget R'.ii{2}.[C.aa{2}.[G.g{2}]]) = a <=> true by smt. simplify. cut ->: getlsb (oget R'.ii{2}.[C.bb{2}.[G.g{2}]]) = b <=> false by smt. cut ->: getlsb (oget R'.vv{2}.[C.bb{2}.[G.g{2}]]) = b <=> true by smt. cut ->: getlsb (oget R'.vv{2}.[C.aa{2}.[G.g{2}]]) = a <=> false by smt. simplify. smt. simplify. cut ->: getlsb (oget R'.vv{1}.[C.aa{2}.[G.g{2}]]) = a <=> true by smt. simplify. case (getlsb (oget R'.ii{1}.[C.bb{2}.[G.g{2}]]) = b) => hb. cut ->: getlsb (oget R'.ii{2}.[C.aa{2}.[G.g{2}]]) = a <=> false by smt. simplify. cut ->: getlsb (oget R'.vv{2}.[C.aa{2}.[G.g{2}]]) = a <=> true by smt. cut ->: getlsb (oget R'.ii{2}.[C.bb{2}.[G.g{2}]]) = b <=> true by smt. simplify. smt. cut ->: getlsb (oget R'.vv{1}.[C.bb{2}.[G.g{2}]]) = b <=> true by smt. simplify. cut ->: getlsb (oget R'.ii{2}.[C.aa{2}.[G.g{2}]]) = a <=> false by smt. cut ->: getlsb (oget R'.ii{2}.[C.bb{2}.[G.g{2}]]) = b <=> false by smt. cut ->: getlsb (oget R'.vv{2}.[C.bb{2}.[G.g{2}]]) = b <=> true by smt. cut ->: getlsb (oget R'.vv{2}.[C.aa{2}.[G.g{2}]]) = a <=> true by smt. simplify. smt tmo=30. simplify. smt.
+    auto. progress. rewrite ?get_set. simplify. case (G.g{2} = g) => hc. simplify. case (getlsb (oget R'.ii{1}.[C.aa{2}.[G.g{2}]]) = a) => ha. simplify. case (getlsb (oget R'.ii{1}.[C.bb{2}.[G.g{2}]]) = b) => hb. cut ->: getlsb (oget R'.ii{2}.[C.aa{2}.[G.g{2}]]) = a <=> true by smt. cut ->: getlsb (oget R'.ii{2}.[C.bb{2}.[G.g{2}]]) = b <=> true by smt. cut ->: getlsb (oget R'.vv{2}.[C.bb{2}.[G.g{2}]]) = b <=> false by smt. cut ->: getlsb (oget R'.vv{2}.[C.aa{2}.[G.g{2}]]) = a <=> false by smt. simplify. smt. simplify. cut ->: getlsb (oget R'.vv{1}.[C.bb{2}.[G.g{2}]]) = b <=> true by smt. simplify. cut ->: getlsb (oget R'.ii{2}.[C.aa{2}.[G.g{2}]]) = a <=> true by smt. simplify. cut ->: getlsb (oget R'.ii{2}.[C.bb{2}.[G.g{2}]]) = b <=> false by smt. cut ->: getlsb (oget R'.vv{2}.[C.bb{2}.[G.g{2}]]) = b <=> true by smt. cut ->: getlsb (oget R'.vv{2}.[C.aa{2}.[G.g{2}]]) = a <=> false by smt. simplify. smt. simplify. cut ->: getlsb (oget R'.vv{1}.[C.aa{2}.[G.g{2}]]) = a <=> true by smt. simplify. case (getlsb (oget R'.ii{1}.[C.bb{2}.[G.g{2}]]) = b) => hb. cut ->: getlsb (oget R'.ii{2}.[C.aa{2}.[G.g{2}]]) = a <=> false by smt. simplify. cut ->: getlsb (oget R'.vv{2}.[C.aa{2}.[G.g{2}]]) = a <=> true by smt. cut ->: getlsb (oget R'.ii{2}.[C.bb{2}.[G.g{2}]]) = b <=> true by smt. simplify. smt. cut ->: getlsb (oget R'.vv{1}.[C.bb{2}.[G.g{2}]]) = b <=> true by smt. simplify. cut ->: getlsb (oget R'.ii{2}.[C.aa{2}.[G.g{2}]]) = a <=> false by smt. cut ->: getlsb (oget R'.ii{2}.[C.bb{2}.[G.g{2}]]) = b <=> false by smt. cut ->: getlsb (oget R'.vv{2}.[C.bb{2}.[G.g{2}]]) = b <=> true by smt. cut ->: getlsb (oget R'.vv{2}.[C.aa{2}.[G.g{2}]]) = a <=> true by smt. simplify. rewrite ?H. smt. smt. smt. reflexivity. simplify. smt.
   
     (*rewrite ?get_set. simplify. case (G.g{2} = g) => hc. simplify. case (getlsb (oget R'.ii{1}.[C.aa{2}.[G.g{2}]]) = a) => ha. case (getlsb (oget R'.ii{1}.[C.bb{2}.[G.g{2}]]) = b) => hb. simplify. cut ? : G.g{2} <= C.n{2} by smt.*)
 
@@ -3046,9 +3046,76 @@ theory SomeGarble.
   (* DKC ADVERSARY *)
   (*****************) 
 
-  op l : int.
-  axiom l_pos : 0 <= l < bound.
+  (**
+    The DKC adversary, as described in the paper, has 2
+    procedures: 'garble' and 'query'. Shortly, the DKC
+    adversary uses another adversary attacking the IND-
+    -security of the garbling scheme to attack the 
+    underlying DKC primitive. 
+  *)
 
+  (**
+    The 'query' procedure (which the adversary uses to
+    garble the IND query) is here formalised as two
+    different procedures:
+      - One only focused on the generation of random tokens.
+      This procedure does not contain line 52, as this line
+      already deals with the garbling of the circuit.
+      - One only focused on the garbling of the circuit.
+      This procedure does not contain lines 53-58, as this
+      lines deal with the generation of random tokens.
+
+    Defining the 'query' procedure like this, we can then
+    break the DKC adversary into 3 different modules: one
+    for the circuit initalisation, one for the randomness 
+    generation and one for the garbling of the circuit and
+    encoding of the input.
+
+    This structure helps in the development of the proof, 
+    since you are comparing the same structures in both
+    sides of the equality.
+  *)
+
+  (**
+    The DKC adversary, as defined on the paper, samples a 
+    value 'l' that is to be used as the hybrid parameter.
+    
+    Instead of sampling the value 'l', we define it as a
+    global operatior and axiomatise its value. Roughly
+    speaking, this will "simulate" and universal quantification
+    on the value of 'l' when defining the lemmas.
+  *)
+
+  (** 'l' parameter and its position *)
+  op l : int.
+  (*axiom l_pos : 0 <= l < bound.*)
+
+  (** Randomness initialisation for the DKC adversary *)
+  (**
+    The random generation process starts by the generation of all
+    types of the wires i <> l, as in the other games. Note that only
+    the types of wires are generated and not the corresponding tokens.
+    
+    The adversary then procedes to generate the random tokens for the
+    wire 'l' such that 'l' is one of the incoming wires of gate 'g'. 
+    This is done by calling the 'query' procedure, with the adversary
+    calling it at most 4 times.
+
+    Finally, the remaining tokens are generated the same as the other
+    games.
+  *)
+
+  (**
+    The random generation process is described in the paper using 4 
+    while loops:
+      - One for selecting the types of wires in [0.. n+q-m[ (random).
+      - One for selecting the types of wires in [n+q-m.. n+q[ (evaluation).
+      - One for selecting the token of the wire 'l' (by calling 'query').
+      - One for selecting the remaining tokens.
+
+    In order to facilitate the proof, it would be interesting to 
+    encapsulate all the above mentioned steps in just one loop.
+  *)
   module AdvRandomInit (D : DKC_t) = {
     proc query (rn : bool, alpha : bool, betha : bool) : word = {
       var twe : word;
@@ -3097,12 +3164,12 @@ theory SomeGarble.
         tok2 = $Dword.dwordLsb (!trnd);
 
         R.t.[G.g] = trnd;
-
-        if (C.n <= G.g) {
+        R.t.[l] = !lsb;
+        
+        if (C.n <= G.g /\ (C.aa.[G.g] = l \/ C.bb.[G.g] = l)) {
           G.a = C.aa.[G.g];
           G.b = C.bb.[G.g];
-          R.t.[l] = !lsb;
-
+        
           if (G.a = l) {
             query(false,true,false);
             query(false,true,true);
@@ -3111,10 +3178,9 @@ theory SomeGarble.
           if (G.b = l) {
             query(false,false,true);
             query(true,true,true);
-            (*yy = query(true,true,true);
-            G.yy.[G.g] = yy;*)
           }
-
+        }
+        else {
           if (oget R.xx.[(G.g, !v)] = witness /\ G.g <> l) {
             R.xx.[(G.g, !v)] = tok2;
           }
@@ -3126,6 +3192,132 @@ theory SomeGarble.
       }
     }
   }.
+
+  require import NewDistr List.
+  import MUniform Range.
+  
+  lemma query_ll (D <: DKC_t {C,G,R}):
+    islossless D.encrypt =>
+    islossless AdvRandomInit(D).query.
+  proof.
+    move => encrypt_ll.
+    proc => //.
+    wp; call (_ : true) => //; wp; rnd; wp.
+    skip; progress.
+      simplify dinter.
+      rewrite duniform_ll.
+      by rewrite range_ltn => /#. 
+      done.
+  qed.
+
+  lemma wires_diff (f:fun_t) x i k :
+    let (n,m,q,aa,bb) = fst f in
+    validInputsP (f,x) =>  
+    n <= i < n + q =>
+    bb.[i] = k =>
+      aa.[i] <> k.
+  proof. 
+    simplify validInputsP valid_circuitP. 
+    cut ->: fst (fst (f, x)) = fst f by idtac => /#.
+    elim (fst f) => n m q aa bb; simplify.
+    progress => /#. 
+  qed.
+  
+  lemma RandomInitEq_Adv (D <: DKC_t{C,G,R}):
+    islossless D.encrypt =>
+    equiv [RandomInit.init ~ AdvRandomInit(D).init :
+    ={glob C} /\ size C.v{1} = C.n{1} + C.q{1} /\
+    C.f{1} = ((C.n{1}, C.m{1}, C.q{1}, C.aa{1}, C.bb{1}), C.gg{1}) /\
+    validInputsP (C.f, C.x){1} /\
+    (forall i, 0 <= i < C.n => C.v.[i] = C.x.[i]){1} /\
+    (forall i, C.n <= i < C.n + C.q => C.v.[i] = oget C.gg.[(i, C.v.[C.aa.[i]], C.v.[(C.bb.[i])])]){1} /\
+    useVisible{1} /\
+    0 <= l < C.n{2} + C.q{2} ==>
+    size R.t{1} = size R.t{2} /\
+    size R.t{1} = C.n{1} + C.q{1} /\
+    (forall i, 0 <= i < C.n{1} + C.q{1} => i <> l => R.t{1}.[i] = R.t{2}.[i]) /\
+    in_supp R.t{2}.[l] {0,1}].
+  proof.
+    move => encrypt_ll; proc => //.
+    while (={glob C} /\ useVisible{1} /\ size C.v{1} = C.n{1} + C.q{1} /\
+    C.f{1} = ((C.n{1}, C.m{1}, C.q{1}, C.aa{1}, C.bb{1}), C.gg{1}) /\
+    validInputsP (C.f, C.x){1} /\
+    (forall i, 0 <= i < C.n => C.v.[i] = C.x.[i]){1} /\
+    (forall i, C.n <= i < C.n + C.q => C.v.[i] = oget C.gg.[(i, C.v.[C.aa.[i]], C.v.[(C.bb.[i])])]){1} /\
+    0 <= l < C.n{2} + C.q{2} /\ size R.t{1} = size R.t{2} /\
+    size R.t{1} = C.n{1} + C.q{1} /\ G.g{2} = i{1} /\ 0 <= i{1} <= C.n{1} + C.q{1} /\
+    (forall i, 0 <= i < G.g{2} => i <> l => R.t{1}.[i] = R.t{2}.[i]) /\
+    in_supp R.t{2}.[l] {0,1}).
+
+      seq 5 5 : (={glob C} /\ trnd{1} = trnd{2} /\
+      ={v,tok1,tok2} /\ useVisible{1} /\ size C.v{1} = C.n{1} + C.q{1} /\
+      C.f{1} = ((C.n{1}, C.m{1}, C.q{1}, C.aa{1}, C.bb{1}), C.gg{1}) /\
+      validInputsP (C.f, C.x){1} /\
+      (forall i, 0 <= i < C.n => C.v.[i] = C.x.[i]){1} /\
+      (forall i, C.n <= i < C.n + C.q => C.v.[i] = oget C.gg.[(i, C.v.[C.aa.[i]], C.v.[(C.bb.[i])])]){1} /\
+      0 <= l < C.n{2} + C.q{2} /\ size R.t{1} = size R.t{2} /\
+      size R.t{1} = C.n{1} + C.q{1} /\ G.g{2} = i{1} /\ 0 <= i{1} < C.n{1} + C.q{1} /\
+      (forall i, 0 <= i < G.g{2} => i <> l => R.t{1}.[i] = R.t{2}.[i]) /\
+      in_supp R.t{2}.[l] {0,1}). 
+        auto; progress; expect 6 by smt. 
+      auto.
+      case ((C.n <= G.g /\ (C.aa.[G.g] = l \/ C.bb.[G.g] = l)){2}).
+        rcondt{2} 3.
+          by progress; auto.
+        case ((C.bb.[G.g] = l){2}).
+          rcondt{2} 6.
+            progress. 
+            rcondf 5.
+              auto; progress.
+                by rewrite (wires_diff ((C.n{hr}, C.m{hr}, C.q{hr}, C.aa{hr}, C.bb{hr}), C.gg{hr}) (C.x{hr}) _ _) => //. 
+            auto.
+            call{2} (_ : true ==> true). apply (query_ll D) => //. 
+            call{2} (_ : true ==> true). apply (query_ll D) => //. 
+            rcondf{2} 5.
+              progress; auto; progress.
+                by rewrite (wires_diff ((C.n{hr}, C.m{hr}, C.q{hr}, C.aa{hr}, C.bb{hr}), C.gg{hr}) (C.x{hr}) _ _) => //.
+            auto; progress; first 4 by smt. 
+              rewrite ?get_set; first by rewrite H7.
+              by rewrite size_set -H6 H7.
+              by rewrite -H6 H7.
+              (cut ->: i0 = l <=> false by idtac=>/#); simplify.
+              case (i0 = i{1}) => hi; first by done.
+                by rewrite H10; first by idtac=>/#. 
+              rewrite ?get_set; first 2 by rewrite ?size_set -H6 H7.
+              simplify; smt.
+          rcondf{2} 6.
+            progress.
+            rcondt 5.
+              by auto; progress; smt.
+            call (_ : true) => //. 
+            call (_ : true) => //.
+            by auto.
+            rcondt{2} 5.
+              by progress; auto; progress; smt.
+            call{2} (_ : true ==> true). apply (query_ll D) => //. 
+            call{2} (_ : true ==> true). apply (query_ll D) => //.   
+            auto; progress; first 4 by smt.
+              rewrite ?get_set; first by rewrite H7.
+              by rewrite size_set -H6 H7.
+              by rewrite -H6 H7.
+              (cut ->: i0 = l <=> false by idtac=>/#); simplify.
+              case (i0 = i{1}) => hi; first by done.
+                by rewrite H10; first by idtac=>/#. 
+              rewrite ?get_set; first 2 by rewrite ?size_set -H6 H7.
+              simplify; smt.
+        rcondf{2} 3.
+          by progress; auto. 
+        auto; progress; first 4 by smt.
+          rewrite ?get_set; first by rewrite H7.
+          by rewrite size_set -H6 H7.
+          by rewrite -H6 H7.
+          (cut ->: i0 = l <=> false by idtac=>/#); simplify.
+          case (i0 = i{1}) => hi; first by done.
+            by rewrite H10; first by idtac=>/#. 
+          rewrite ?get_set; first 2 by rewrite ?size_set -H6 H7.
+          simplify; smt.
+    auto; progress; expect 4 by smt.
+  qed.
 
   module AdvInit (D : DKC_t) = {
     
