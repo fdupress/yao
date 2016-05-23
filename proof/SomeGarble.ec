@@ -2,6 +2,7 @@
 
 require import Real.
 require import Int.
+require import IntDiv.
 require import FSet.
 require import FMap.
 require import Array.
@@ -13,10 +14,10 @@ require import DInterval.
 require (*--*) DKC.
 require (*--*) DKCSec.
 require (*--*) Sch.
-require (*--*) SchSec.
+require (*--*) SchSec. 
 
 require import GarbleTools.
-
+  
 require import ArrayExt.
 
 import ForLoop.
@@ -3116,8 +3117,8 @@ theory SomeGarble.
     In order to facilitate the proof, it would be interesting to 
     encapsulate all the above mentioned steps in just one loop.
   *)
-  module AdvRandomInit (D : DKC_t) = {
-    proc query (rn : bool, alpha : bool, betha : bool) : word = {
+  module AdvRandomInit = {
+    proc query (rn : bool, alpha : bool, betha : bool) : unit = {
       var twe : word;
       var gamma, pos : bool;
       var i,j : int;
@@ -3131,7 +3132,7 @@ theory SomeGarble.
       j = $[2*(G.g + C.n + C.q)..2*(G.g + C.n + C.q)+1];
       j = if rn then j else 2*G.g + (bti (R.t.[G.g] ^^ gamma));
 
-      (ki,kj,zz) = D.encrypt((i,j,pos,twe));
+      (ki,kj,zz) = DKC.encrypt((i,j,pos,twe));
 
       (*G.pp.[(G.g, R.t.[G.a] ^^ alpha, R.t.[G.b] ^^ betha)] = zz;*)
 
@@ -3145,8 +3146,6 @@ theory SomeGarble.
       if (rn) {
         R.xx.[(G.g, C.v.[G.g] ^^ gamma)] = kj;
       }
-
-      return (kj);
     }
 
     proc init(lsb:bool): unit = {
@@ -3196,13 +3195,11 @@ theory SomeGarble.
   require import NewDistr List.
   import MUniform Range.
   
-  lemma query_ll (D <: DKC_t {C,G,R}):
-    islossless D.encrypt =>
-    islossless AdvRandomInit(D).query.
+  lemma query_ll:
+    islossless AdvRandomInit.query.
   proof.
-    move => encrypt_ll.
     proc => //.
-    wp; call (_ : true) => //; wp; rnd; wp.
+    wp. call encrypt_ll; wp; rnd; wp.
     skip; progress.
       simplify dinter.
       rewrite duniform_ll.
@@ -3222,7 +3219,23 @@ theory SomeGarble.
     elim (fst f) => n m q aa bb; simplify.
     progress => /#. 
   qed.
-  
+
+  lemma query_1call (D <: DKC_t{C,G,R}) : hoare [AdvRandomInit.query : G.a = C.aa.[G.g] /\ G.b = C.bb.[G.g] /\ C.bb.[G.g] <> l /\ G.a = l /\ rn = false /\ alpha = true /\ betha = false ==> getlsb (oget R.xx.[(C.bb.[G.g], !C.v.[C.bb.[G.g]])]) = (!R.t.[C.bb.[G.g]])].
+  proof.
+    proc => //; wp.
+    seq 6 : (G.a = C.aa.[G.g] /\
+  G.b = C.bb.[G.g] /\
+  C.bb.[G.g] <> l /\
+  G.a = l /\
+  (rn, alpha, betha).`1 = false /\
+  (rn, alpha, betha).`2 = true /\ (rn, alpha, betha).`3 = false /\ twe = tweak G.g (R.t.[G.a] ^^ alpha) (R.t.[G.b] ^^ betha) /\ gamma = C.v.[G.g] ^^ oget C.gg.[(G.g, C.v.[G.a] ^^ alpha, C.v.[G.b] ^^ betha)] /\ pos = true /\ i = 2 * G.b + bti (R.t.[G.b] ^^ betha /\ j = 2 * G.g + bti (R.t.[G.g] ^^ gamma))). auto. progress. by rewrite H0. rewrite H0. by simplify. call (_ : (q.`1 = 2 * G.b + bti (R.t.[G.b] ^^ false)) /\ !(mem DKCp.used q.`4 || q.`2 < q.`1) ==> in_supp (res.`1) (Dword.dwordLsb ((2 * G.b + bti (R.t.[G.b] ^^ false)) %% 2 = 0))). proc. seq 2 : (! (mem DKCp.used q.`4 || q.`2 < q.`1) /\ ans = bad /\ (i, j, pos, t) = q /\ q.`1 = 2 * G.b + bti (R.t.[G.b] ^^ false)). auto. progress. smt. if. inline*. auto. progress. auto. progress. smt. auto. progress. smt. rewrite xor_false. rewrite -H1. smt. 
+
+
+
+
+    /\ in_supp (res.`2) (Dword.dwordLsb (q'.`2 %% 2 = 0))). apply (encryptH q'). wp. rnd. wp. skip. progress. rewrite ?xor_false ?xor_true. rewrite H0. simplify. rewrite get_set. simplify. cut ->: C.v{hr}.[C.bb{hr}.[G.g{hr}]] = ! C.v{hr}.[C.bb{hr}.[G.g{hr}]] <=> false by smt. simplify. smt. rewrite H2. rewrite H. simplify. admit. smt. cut ->: G.b{hr} = l <=> false by smt. smt. 
+*)
+      
   lemma RandomInitEq_Adv (D <: DKC_t{C,G,R}):
     islossless D.encrypt =>
     equiv [RandomInit.init ~ AdvRandomInit(D).init :
@@ -3236,7 +3249,12 @@ theory SomeGarble.
     size R.t{1} = size R.t{2} /\
     size R.t{1} = C.n{1} + C.q{1} /\
     (forall i, 0 <= i < C.n{1} + C.q{1} => i <> l => R.t{1}.[i] = R.t{2}.[i]) /\
-    in_supp R.t{2}.[l] {0,1}].
+    in_supp R.t{2}.[l] {0,1} /\
+    (forall i, 0 < i < C.n{1} + C.q{1} => l < i => R.xx{1}.[(i, C.v{1}.[i])] = R.xx{2}.[(i, C.v{2}.[i])]) /\
+    (forall i, 0 < i < C.n{1} + C.q{1} => l < i => R.xx{1}.[(i, !C.v{1}.[i])] = R.xx{2}.[(i, !C.v{2}.[i])]) /\
+    (forall i, 0 < i < C.n{1} + C.q{1} => i < l => R.xx{1}.[(i, C.v{1}.[i])] = R.xx{2}.[(i, !C.v{2}.[i])]) /\
+    (forall i, 0 < i < C.n{1} + C.q{1} => i < l => R.xx{1}.[(i, !C.v{1}.[i])] = R.xx{2}.[(i, C.v{2}.[i])]) /\
+    R.xx{1}.[(l, C.v{1}.[l])] = R.xx{2}.[(l, C.v{2}.[l])]].
   proof.
     move => encrypt_ll; proc => //.
     while (={glob C} /\ useVisible{1} /\ size C.v{1} = C.n{1} + C.q{1} /\
@@ -3247,10 +3265,18 @@ theory SomeGarble.
     0 <= l < C.n{2} + C.q{2} /\ size R.t{1} = size R.t{2} /\
     size R.t{1} = C.n{1} + C.q{1} /\ G.g{2} = i{1} /\ 0 <= i{1} <= C.n{1} + C.q{1} /\
     (forall i, 0 <= i < G.g{2} => i <> l => R.t{1}.[i] = R.t{2}.[i]) /\
-    in_supp R.t{2}.[l] {0,1}).
+    in_supp R.t{2}.[l] {0,1} /\
+    (forall i, 0 < i < G.g{2} => l < i => R.xx{1}.[(i, C.v{1}.[i])] = R.xx{2}.[(i, C.v{2}.[i])]) /\
+    (forall i, 0 < i < G.g{2} => l < i => R.xx{1}.[(i, !C.v{1}.[i])] = R.xx{2}.[(i, !C.v{2}.[i])]) /\
+    (*(forall i, 0 < i < G.g{2} => i < l => R.xx{1}.[(i, C.v{1}.[i])] = R.xx{2}.[(i, !C.v{2}.[i])]) /\
+    (forall i, 0 < i < G.g{2} => i < l => R.xx{1}.[(i, !C.v{1}.[i])] = R.xx{2}.[(i, C.v{2}.[i])]) /\*)
+    R.xx{1}.[(l, C.v{1}.[l])] = R.xx{2}.[(l, C.v{2}.[l])]).
 
       seq 5 5 : (={glob C} /\ trnd{1} = trnd{2} /\
-      ={v,tok1,tok2} /\ useVisible{1} /\ size C.v{1} = C.n{1} + C.q{1} /\
+      ={v,tok1,tok2} /\
+      (trnd{2} = if G.g{2} < C.n{2} + C.q{2} - C.m{2} then trnd{2} else C.v{2}.[G.g{2}]) /\
+      v{2} = C.v{2}.[G.g{2}] /\
+      useVisible{1} /\ size C.v{1} = C.n{1} + C.q{1} /\
       C.f{1} = ((C.n{1}, C.m{1}, C.q{1}, C.aa{1}, C.bb{1}), C.gg{1}) /\
       validInputsP (C.f, C.x){1} /\
       (forall i, 0 <= i < C.n => C.v.[i] = C.x.[i]){1} /\
@@ -3258,8 +3284,13 @@ theory SomeGarble.
       0 <= l < C.n{2} + C.q{2} /\ size R.t{1} = size R.t{2} /\
       size R.t{1} = C.n{1} + C.q{1} /\ G.g{2} = i{1} /\ 0 <= i{1} < C.n{1} + C.q{1} /\
       (forall i, 0 <= i < G.g{2} => i <> l => R.t{1}.[i] = R.t{2}.[i]) /\
-      in_supp R.t{2}.[l] {0,1}). 
-        auto; progress; expect 6 by smt. 
+      in_supp R.t{2}.[l] {0,1} /\
+      (forall i, 0 < i < G.g{2} => l < i => R.xx{1}.[(i, C.v{1}.[i])] = R.xx{2}.[(i, C.v{2}.[i])]) /\
+      (forall i, 0 < i < G.g{2} => l < i => R.xx{1}.[(i, !C.v{1}.[i])] = R.xx{2}.[(i, !C.v{2}.[i])]) /\
+      (*(forall i, 0 < i < G.g{2} => i < l => R.xx{1}.[(i, C.v{1}.[i])] = R.xx{2}.[(i, !C.v{2}.[i])]) /\
+      (forall i, 0 < i < G.g{2} => i < l => R.xx{1}.[(i, !C.v{1}.[i])] = R.xx{2}.[(i, C.v{2}.[i])]) /\*)
+      R.xx{1}.[(l, C.v{1}.[l])] = R.xx{2}.[(l, C.v{2}.[l])]). 
+        auto; progress; first 7 by smt. 
       auto.
       case ((C.n <= G.g /\ (C.aa.[G.g] = l \/ C.bb.[G.g] = l)){2}).
         rcondt{2} 3.
@@ -3271,20 +3302,20 @@ theory SomeGarble.
               auto; progress.
                 by rewrite (wires_diff ((C.n{hr}, C.m{hr}, C.q{hr}, C.aa{hr}, C.bb{hr}), C.gg{hr}) (C.x{hr}) _ _) => //. 
             auto.
-            call{2} (_ : true ==> true). apply (query_ll D) => //. 
+            inline *. auto. call{2} encryptH. inline D.encrypt. call{2} (_ : true ==> true). apply (query_ll D) => //.
             call{2} (_ : true ==> true). apply (query_ll D) => //. 
             rcondf{2} 5.
               progress; auto; progress.
                 by rewrite (wires_diff ((C.n{hr}, C.m{hr}, C.q{hr}, C.aa{hr}, C.bb{hr}), C.gg{hr}) (C.x{hr}) _ _) => //.
             auto; progress; first 4 by smt. 
-              rewrite ?get_set; first by rewrite H7.
-              by rewrite size_set -H6 H7.
-              by rewrite -H6 H7.
+              rewrite ?get_set; first by rewrite H8.
+              by rewrite size_set -H7 H8.
+              by rewrite -H7 H8.
               (cut ->: i0 = l <=> false by idtac=>/#); simplify.
               case (i0 = i{1}) => hi; first by done.
-                by rewrite H10; first by idtac=>/#. 
-              rewrite ?get_set; first 2 by rewrite ?size_set -H6 H7.
-              simplify; smt.
+                by rewrite H11; first by idtac=>/#. 
+              rewrite ?get_set; first 2 by rewrite ?size_set -H7 H8.
+              simplify; smt. rewrite ?get_set. simplify. case (i{1} = i0) => hi. simplify. rewrite ?hi. simplify. cut ->: (!C.v{2}.[i0]) = C.v{2}.[i0] <=> false by smt. simplify. smt. case ((!v{2}) = C.v{2}.[i0]) => hv. simplify. cut ->: (!v{2}) = ! C.v{2}.[i0] <=> false by smt. simplify. cut ->: v{2} = ! C.v{2}.[i0] <=> true by smt. simplify. smt. 
           rcondf{2} 6.
             progress.
             rcondt 5.

@@ -1,5 +1,5 @@
 require import Array.
-require import FMap.
+require import NewFMap.
 require import FSet.
 require import Bool.
 require import Pair.
@@ -42,8 +42,8 @@ theory DKCSecurity.
   module DKCp = {
     var b : bool
     var ksec : word
-    var rr : (int, word) map
-    var kpub : (int, word) map
+    var rr : (int, word) fmap
+    var kpub : (int, word) fmap
     var used : word fset
   }.
 
@@ -61,9 +61,9 @@ theory DKCSecurity.
 
       lsb = ${0,1};
       DKCp.ksec = $Dword.dwordLsb lsb;
-      DKCp.kpub = FMap.empty;
+      DKCp.kpub = map0;
       DKCp.used = FSet.fset0;
-      DKCp.rr = FMap.empty;
+      DKCp.rr = map0;
       
       return lsb;
     }
@@ -77,7 +77,8 @@ theory DKCSecurity.
 
       k = $Dword.dwordLsb (i %% 2 = 0);
       if (!mem (dom DKCp.kpub) i) DKCp.kpub.[i] = k;
-      return oget DKCp.kpub.[i];
+        (*return oget DKCp.kpub.[i];*)
+      return k;
     }
 
     proc get_r(i:int): word = {
@@ -116,6 +117,10 @@ theory DKCSecurity.
     }
   }.
 
+  lemma encryptH q' : hoare [DKC.encrypt : q' = q /\ !(mem DKCp.used q.`4 || q.`2 < q.`1) ==> in_supp (res.`1) (Dword.dwordLsb (q'.`1 %% 2 = 0)) /\ in_supp (res.`2) (Dword.dwordLsb (q'.`2 %% 2 = 0))].
+  proof.
+    proc. seq 2 : (q' = q /\ ans = bad /\ (i, j, pos, t) = q /\ ! (mem DKCp.used q.`4 || q.`2 < q.`1)). auto. progress. smt. if. inline*. auto. progress. qed. 
+      
   module Game(D:DKC_t, A:Adv_DKC_t) = {
 
     proc game(b : bool) : bool = {

@@ -91,7 +91,7 @@ lemma make_append (a:'a) (l1 l2:int):
   0 <= l1 => 0 <= l2 => offun (fun k, a) (l1 + l2) = (offun (fun k, a) l1 || offun (fun k, a) l2).
 proof.
   move=> le0_l1 le0_l2.
-  apply arrayP; split; first by smt.
+  apply arrayP; split; first by rewrite size_append ?size_offun // => /#. 
   move => i Hisize.
   rewrite get_append; first by smt.
   case (0 <= i < size (offun (fun (_ : int) => a) l1)) => hc. 

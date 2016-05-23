@@ -3,7 +3,7 @@
 require import Array.
 require import Int.
 require import Pair.
-require import FMap. (*import OptionGet.*)
+require import NewFMap. (*import OptionGet.*)
 require import Option.
 
 (**

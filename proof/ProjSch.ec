@@ -59,15 +59,13 @@ theory ProjScheme.
       rewrite offunifE //= get_append_left; first by smt.
       rewrite (get_append_left iK1 iK2 k); first by smt.
       by rewrite offunifE //=; first by smt.
-      timeout 60.
-      rewrite get_append_right; first by rewrite ?size_mkarray ?List.size_map; smt.
-      timeout 30.
+      rewrite get_append_right; first by rewrite ?size_mkarray ?List.size_map ?List.Iota.size_iota; (rewrite ?max_ler; first 2 by smt); idtac=>/#.
       rewrite size_offun.
       rewrite offunifE //= get_append_right; first by smt.
       rewrite (get_append_right iK1 iK2 k); first by smt.
       rewrite max_ler in Hk; first by smt. 
-      rewrite Hk. simplify.
-    by rewrite H1 offunifE //=; first by smt.
+      rewrite Hk H1 offunE //=; first by smt.
+      rewrite ?max_ler; expect 2 by smt.
   qed.
 
   (**
@@ -79,7 +77,10 @@ theory ProjScheme.
     take (size i1) (encode iK (i1||i2)).
   proof.
     rewrite size_append=> Hlen.
-    apply arrayP; split; first by smt.
+    apply arrayP; split.
+      simplify encode.
+      (rewrite ?size_take; first by smt); (rewrite size_offun max_ler; first by smt) => //.
+      smt. 
     move=> k; rewrite /encode size_offun.
     rewrite size_take; first by smt.
     move=> Hk.
@@ -100,7 +101,7 @@ theory ProjScheme.
       rewrite size_offun.
       rewrite size_drop; first by smt.
       rewrite size_drop; first by smt.
-      by rewrite /encode size_offun; smt.
+      rewrite /encode size_offun ?max_ler; first 3 by smt.
     move=> k; rewrite /encode size_offun.
     rewrite size_drop; first by smt.
     move=> Hk.
