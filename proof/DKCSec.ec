@@ -115,7 +115,7 @@ theory DKCSecurity.
       return ans;
     }
   }.
-      
+  
   module Game(D:DKC_t, A:Adv_DKC_t) = {
 
     proc game(b : bool) : bool = {
@@ -161,19 +161,17 @@ theory DKCSecurity.
   lemma init_ll : islossless DKC.initialize.
   proof. by proc => //; auto; smt. qed.
 
-  lemma game_ll (D <: DKC_t) (A <: Adv_DKC_t) :
+  lemma game_ll (A <: Adv_DKC_t) :
     islossless A.garble =>
-    islossless D.initialize =>  
-    islossless Game(D,A).game.
-  proof. by move => Agarble_ll Dinit_ll; proc; call Agarble_ll; call Dinit_ll. qed.
+    islossless Game(DKC,A).game.
+  proof. by move => Agarble_ll; proc; call Agarble_ll; call init_ll. qed.
 
   lemma main_ll (D <: DKC_t) (A <: Adv_DKC_t) :
     islossless A.garble =>
-    islossless D.initialize =>  
-    islossless Game(D,A).main.
+    islossless Game(DKC,A).main.
   proof.
-    move => Agarble_ll Dinit_ll; proc.
-    call (_ : true); first by call Agarble_ll; call Dinit_ll.
+    move => Agarble_ll; proc.
+    call (_ : true); first by call Agarble_ll; call init_ll.
     by auto; smt.
   qed.
   
