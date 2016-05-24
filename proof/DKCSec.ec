@@ -77,8 +77,7 @@ theory DKCSecurity.
 
       k = $Dword.dwordLsb (i %% 2 = 0);
       if (!mem (dom DKCp.kpub) i) DKCp.kpub.[i] = k;
-        (*return oget DKCp.kpub.[i];*)
-      return k;
+      return oget DKCp.kpub.[i];
     }
 
     proc get_r(i:int): word = {
@@ -116,10 +115,6 @@ theory DKCSecurity.
       return ans;
     }
   }.
-
-  lemma encryptH q' : hoare [DKC.encrypt : q' = q /\ !(mem DKCp.used q.`4 || q.`2 < q.`1) ==> in_supp (res.`1) (Dword.dwordLsb (q'.`1 %% 2 = 0)) /\ in_supp (res.`2) (Dword.dwordLsb (q'.`2 %% 2 = 0))].
-  proof.
-    proc. seq 2 : (q' = q /\ ans = bad /\ (i, j, pos, t) = q /\ ! (mem DKCp.used q.`4 || q.`2 < q.`1)). auto. progress. smt. if. inline*. auto. progress. qed. 
       
   module Game(D:DKC_t, A:Adv_DKC_t) = {
 

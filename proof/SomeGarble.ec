@@ -4,12 +4,13 @@ require import Real.
 require import Int.
 require import IntDiv.
 require import FSet.
-require import FMap.
+require import NewFMap.
 require import Array.
 require import Distr.
 require import Bool.
 require import Pair.
 require import DInterval.
+require import Option.
 
 require (*--*) DKC.
 require (*--*) DKCSec.
@@ -50,7 +51,7 @@ theory SomeGarble.
 
     The tokens are represented as a map, i.e., X_i^b = X.[i,b].
   *)
-  type tokens_t = (int * bool, word) map.
+  type tokens_t = (int * bool, word) fmap.
 
   (** Gates type *)
   (**
@@ -75,7 +76,7 @@ theory SomeGarble.
 
     We will consider boolean gates for the circuit and word gates for the garbled circuit.
   *)
-  type 'a gates_t = (int * bool * bool, 'a) map.
+  type 'a gates_t = (int * bool * bool, 'a) fmap.
 
   (** Definition of a circuit *)
   (**
@@ -89,7 +90,7 @@ theory SomeGarble.
   (**
     Checks if a given key is the domain of a map
   *)
-  op in_dom (x : 'a) (m : ('a,'b) map) = mem (dom m) x. 
+  op in_dom (x : 'a) (m : ('a,'b) fmap) = mem (dom m) x. 
   
   (** Valid gate predicate *)
   (** 
@@ -176,7 +177,7 @@ theory SomeGarble.
   *)
   op init_gates (base size : int) (f:int -> bool -> bool -> 'a) : 'a gates_t =
     let fill = fun g a b gg, gg.[(g, a, b) <- f g a b] in
-      range base (base + size) FMap.empty
+      range base (base + size) map0
     (fun (g:int) gg, fill g false false (fill g false true (fill g true false (fill g true true gg)))).
     
   (**
@@ -187,11 +188,11 @@ theory SomeGarble.
       0 <= size =>
       (init_gates base size f).[(g, a, b)] = if base <= g < base + size then Some (f g a b) else None.
     proof.
-      simplify init_gates FMap."_.[_]".
+      simplify init_gates NewFMap."_.[_]".
       elim/strongInduction size=> j le0_j hrange /=.
       case (0 < j)=> hj; last by smt ["Alt-Ergo"].
       rewrite range_ind_lazy /=; first by simplify => /#. 
-      rewrite !FMap.get_set /=.
+      rewrite !getP /=.
       case (g = base + j - 1)=> hg; first simplify => /#. 
       cut neq: forall x y, ((base + j - 1, x, y) = (g, a, b)) = false by simplify => /#.
       cut -> : base + j - 1 = base + (j - 1) by simplify => /#. 
@@ -462,9 +463,10 @@ theory SomeGarble.
     rewrite -/ar1 -/ar2.
     simplify inputEnc GSch.Sch.Scheme.Input.encode GSch.Sch.Scheme.inputK fst.
     rewrite offunE /=; first by idtac=>/#.
-    rewrite FMap.get_filter /=.
-    by (cut -> : 0 <= k < n = true by idtac=>/#). 
-    qed.
+    rewrite filterP /=.
+    (cut -> : 0 <= k < n = true by idtac=>/#); simplify.
+    case (mem (dom x) (k, input.[k])) => hdom; expect 2 by smt.
+  qed.
 
   (*******************************************************)
   (* Auxiliary lemmas concerning the validity of queries *)
@@ -1117,7 +1119,7 @@ theory SomeGarble.
       var i, tok1, tok2, v, trnd;
 
       R.t = offun (fun x, false) (C.n + C.q);
-      R.xx = FMap.empty;
+      R.xx = map0;
       i = 0;
       while (i < C.n + C.q) {
         trnd = ${0,1};
@@ -1139,7 +1141,13 @@ theory SomeGarble.
   (**********************************************************)
   (* Lemmas concerning the initialisation of the randomness *)
   (**********************************************************)
-  
+
+  lemma get_set_neq (m:('a,'b) fmap) x x' y: x <> x' => m.[x <- y].[x'] = m.[x'].
+  proof.
+    rewrite -neqF getP => hxx'.
+    by (cut ->: x' = x <=> x = x' by smt); rewrite hxx'; simplify.
+  qed.
+      
   lemma RandomInit_lossless: islossless RandomInit.init.
   proof.
     proc => //.
@@ -1171,26 +1179,26 @@ theory SomeGarble.
       auto; progress.
         smt.
         case (j < i{hr})=> h.
-          by rewrite !FMap.get_set_neq; expect 3 smt.
+          by rewrite !get_set_neq; expect 3 smt.
         cut ->: i{hr} = j by smt.
-        rewrite !FMap.get_set /=.
+        rewrite !getP /=.
         by case (useVisible{hr} && C.v{hr}.[j]).
         case (j < i{hr})=> h.
-          by rewrite !FMap.get_set_neq; expect 3 smt.
+          by rewrite !get_set_neq; expect 3 smt.
         cut ->: i{hr} = j by smt.
-        rewrite !FMap.get_set /=.
+        rewrite !getP /=.
         by case (useVisible{hr} && C.v{hr}.[j])=> //=.
         case (j < i{hr})=> h.
-          by rewrite !FMap.get_set_neq; expect 5 smt.
+          by rewrite !get_set_neq; expect 5 smt.
         cut ->: i{hr} = j by smt.
-        rewrite !FMap.get_set /=.
+        rewrite !getP /=.
         by case (useVisible{hr} && C.v{hr}.[j]); rewrite //= oget_some //=; smt.
         case (j < i{hr})=> h.
-          by rewrite !FMap.get_set_neq; expect 3 smt.
+          by rewrite !get_set_neq; expect 3 smt.
         cut ->: i{hr} = j by smt.
-        rewrite !FMap.get_set /=.
+        rewrite !getP /=.
         by case (useVisible{hr} && C.v{hr}.[j]); rewrite //= oget_some //=; smt.
-  qed.
+    qed.
 
   equiv RandomInitEquiv: RandomInit.init ~ RandomInit.init:
     ={useVisible, C.n, C.m, C.q, C.aa, C.bb} /\
@@ -1223,13 +1231,13 @@ theory SomeGarble.
       (forall i, C.n{1} + C.q{1} - C.m{1} <= i < C.n{1} + C.q{1} => C.v{1}.[i] = C.v{2}.[i]));
         first last.
         auto; progress;
-          first 2 by rewrite !get_empty.
+          first 2 by rewrite !map0P.
           by smt.
           by rewrite H6; first smt.
           by rewrite H7; first smt.
     auto; progress; rewrite H4 //=; first 5 smt.
-    by rewrite !FMap.get_set; smt.
-    by rewrite !FMap.get_set; smt.
+    by rewrite !getP; smt.
+    by rewrite !getP; smt.
     by smt.
   qed.
     
@@ -1266,32 +1274,32 @@ theory SomeGarble.
       case (C.v{1}.[i{1}] = false).
         do !(wp; rnd); skip; progress=> //;
           first 9 (rewrite /t_xor //=; progress=> //; try (cut := H i0); smt).
-        rewrite ! FMap.get_set get_set;first smt.
+        rewrite !getP.
         case (i{2} = j)=> h;[cut := H16;cut := H12;case v0=> hv0 /= |cut := H3 j v0 _].
-          by rewrite h //=; smt.
-          by rewrite h //=; smt.
+          by rewrite h //=; progress; rewrite xorC xor_true; (rewrite get_set; first by smt); simplify; rewrite (Dword.lsb_dwordLsb (! (j < C.n{2} + C.q{2} - C.m{2} && trndL))) //=. 
+          by rewrite h //=; progress; rewrite xorC xor_false; (rewrite ?get_set; first by smt); simplify; rewrite (Dword.lsb_dwordLsb (j < C.n{2} + C.q{2} - C.m{2} && trndL)) //=; smt.
           smt.
           smt.
-        by rewrite !FMap.get_set; case (i{2} = j)=> h;[ |cut := H4 j _]; smt.
-        by rewrite !FMap.get_set; case (i{2} = j)=> h;[ |cut := H4 j _]; smt.
-        by rewrite !FMap.get_set; case (i{2} = j)=> h;[ |cut := H4 j _]; smt.
-        by rewrite !FMap.get_set; case (i{2} = j)=> h;[ |cut := H4 j _]; smt.
+        by rewrite !getP; case (i{2} = j)=> h;[ |cut := H4 j _]; smt.
+        by rewrite !getP; case (i{2} = j)=> h;[ |cut := H4 j _]; smt.
+        by rewrite !getP; case (i{2} = j)=> h;[ |cut := H4 j _]; simplify; smt.
+        by rewrite !getP; case (i{2} = j)=> h;[ |cut := H4 j _]; smt.
       swap{1} 4 1; do 2!(wp; rnd); wp; rnd (fun (x:bool), !x); skip;(progress=> //;first 6 smt).
-        by rewrite FMap.set_set; smt.
+        by rewrite set_set; smt.
         by simplify t_xor; progress; cut:= H i0; smt.
         smt.
         smt.
         smt.
-        rewrite !FMap.get_set get_set; first smt.
+        rewrite !getP. 
         case (i{2} = j)=> h.
           subst; case v0=> h /=.
-            by rewrite oget_some; smt.
-            by smt.
+            by (rewrite get_set; first by smt); rewrite xorC xor_true //=; smt.
+            by (rewrite get_set; first by smt); rewrite xorC xor_false //=; smt.
           by cut:= H3 j v0; smt.
-        by rewrite !FMap.get_set; case (i{2} = j)=> h;[ |cut := H4 j]; smt.
-        by rewrite !FMap.get_set; case (i{2} = j)=> h;[ |cut := H4 j]; smt.
-        by rewrite !FMap.get_set; case (i{2} = j)=> h;[subst=> /= |cut := H4 j]; smt.
-        by rewrite !FMap.get_set; case (i{2} = j)=> h;[ |cut := H4 j]; smt.
+        by rewrite !getP; case (i{2} = j)=> h;[ |cut := H4 j]; smt.
+        by rewrite !getP; case (i{2} = j)=> h;[ |cut := H4 j]; smt.
+        by rewrite !getP; case (i{2} = j)=> h;[subst=> /= |cut := H4 j]; smt.
+        by rewrite !getP; case (i{2} = j)=> h;[ |cut := H4 j]; smt.
     wp; skip; progress=> //;simplify validRand validRand; smt.
   qed.
 
@@ -1308,7 +1316,7 @@ theory SomeGarble.
       (n,m,q,aa,bb) = l;
       
       R.t = offun (fun x, false) (n+q);
-      R.xx = FMap.empty;
+      R.xx = map0;
       i = 0;
       while (i < n+q) {
         t = $DBool.dbool;
@@ -1363,8 +1371,8 @@ theory SomeGarble.
       var tok : word;
 
       G.yy = Array.offun (fun x, (W.zeros)) (C.n + C.q);
-      G.pp = FMap.empty;
-      G.randG = FMap.empty;
+      G.pp = map0;
+      G.randG = map0;
       G.a = 0;
       G.b = 0;
 
@@ -1514,7 +1522,7 @@ theory SomeGarble.
       simplify funG funG fst snd t_xor.
       (progress;first 2 smt);last 4 smt. simplify.
       case (G.g{hr} = i)=> hi.
-        rewrite hi !FMap.get_set get_initGates; first smt.
+        rewrite hi !getP get_initGates; first smt.
         cut -> /=: C.n{m} <= i < C.n{m} + C.q{m} by smt.
         rewrite !xor_true !xor_false /=.
         cut hneq : forall (x:bool), ((! x) = x) = false by smt.
@@ -1535,12 +1543,12 @@ theory SomeGarble.
           by do 2 !congr; rewrite Bool.xorC; [rewrite (Bool.xorC u) | rewrite (Bool.xorC v)]; rewrite Bool.xorA.
           (case (a = R.t{hr}.[C.aa{m}.[i]])=> ha;[rewrite ? ha|cut -> : a = !R.t{hr}.[C.aa{m}.[i]] by smt]);
           (case (b0 = R.t{hr}.[C.bb{m}.[i]])=> hb;[rewrite hb|cut -> : b0 = !R.t{hr}.[C.bb{m}.[i]] by smt]);rewrite ?hneq /=.
-          by cut := lem false false;rewrite (H5 i) ?(fst_pair, snd_pair, (Bool.xorC false), xor_false, (Bool.xorC true), xor_true) //;smt.
-          by cut := lem false true;rewrite /enc !(fst_pair, snd_pair, (Bool.xorC false), xor_false, (Bool.xorC true), xor_true) //.
-          by cut := lem true false;rewrite /enc !(fst_pair, snd_pair, (Bool.xorC false), xor_false, (Bool.xorC true), xor_true) //.
+          by (cut := lem false false;rewrite (H5 i) ?(fst_pair, snd_pair, (Bool.xorC false), xor_false, (Bool.xorC true), xor_true) //; first by idtac=>/#); smt. 
+          by cut := lem false true; rewrite /enc !(fst_pair, snd_pair, (Bool.xorC false), xor_false, (Bool.xorC true), xor_true) //; simplify; progress; (cut ->: R.t{hr}.[C.aa{m}.[i]] = ! R.t{hr}.[C.aa{m}.[i]] <=> false by smt); simplify; smt. 
+          by cut := lem true false;rewrite /enc !(fst_pair, snd_pair, (Bool.xorC false), xor_false, (Bool.xorC true), xor_true) //; simplify; progress; (cut ->: R.t{hr}.[C.bb{m}.[i]] = ! R.t{hr}.[C.bb{m}.[i]] <=> false by smt); simplify; smt. 
           by cut := lem true true;rewrite /enc !(fst_pair, snd_pair, (Bool.xorC false), xor_false, (Bool.xorC true), xor_true) //.
       cut h : forall aa bb, ((G.g{hr}, R.t{hr}.[C.aa{m}.[G.g{hr}]] ^^ aa, R.t{hr}.[C.bb{m}.[G.g{hr}]] ^^ bb) = (i, a, b0)) = false by smt.
-      by rewrite !FMap.get_set !h /=;apply H7;smt.
+      by rewrite !getP; simplify; (cut ->: i = G.g{hr} <=> false by smt); simplify; apply H7; smt.
     wp.
     call RandomGenClassicVisibleE.
     call CircuitInitEquiv.
@@ -1571,7 +1579,7 @@ theory SomeGarble.
       by smt.
       by smt.
       by smt.
-      apply map_ext=> y.
+      apply fmapP=> y.
       elim y=> i a b.
       by cut := H38 i a b; smt. 
     by auto.
@@ -1605,8 +1613,8 @@ theory SomeGarble.
       var tok : word;
 
       G.yy = Array.offun (fun x, (W.zeros)) (C.n + C.q);
-      G.pp = FMap.empty;
-      G.randG = FMap.empty;
+      G.pp = map0;
+      G.randG = map0;
       G.a = 0;
       G.b = 0;
 
@@ -1673,8 +1681,8 @@ theory SomeGarble.
 
   module R' = {
     var t : bool array
-    var vv : (int,word) map
-    var ii : (int,word) map
+    var vv : (int,word) fmap
+    var ii : (int,word) fmap
   }.
 
   module RandomInit' = {
@@ -1682,8 +1690,8 @@ theory SomeGarble.
       var i, tok1, tok2, v, trnd;
 
       R'.t = offun (fun x, false) (C.n + C.q);
-      R'.vv = FMap.empty;
-      R'.ii = FMap.empty;
+      R'.vv = map0;
+      R'.ii = map0;
 
       i = 0;
       while (i < C.n + C.q) {
@@ -1736,7 +1744,7 @@ theory SomeGarble.
       (forall (g : int), 0 <= g < i{1} => getlsb (oget R'.vv{2}.[g]) = !getlsb (oget R'.ii{2}.[g])) /\
       (0 <= C.m{1} <= C.n{1} + C.q{1} /\ size R'.t{1} = C.n{1} + C.q{1}) /\
       (0 <= C.m{2} <= C.n{2} + C.q{2} /\ size R'.t{2} = C.n{2} + C.q{2})).
-      auto; progress. smt. smt. smt. smt. smt. smt. rewrite ?get_set. case (i{2} = g); first by done. smt. rewrite ?get_set. case (i{2} = g); first by done. smt. rewrite ?get_set. smt. smt. simplify. case (g = i{2}) => hc. case (i{2} < C.n{2} + C.q{2} - C.m{2}) => hc'. reflexivity. smt. smt. rewrite ?get_set. case (i{2} = g) => hc. smt. smt. rewrite ?get_set. case (i{2} = g) => hc. smt. smt. rewrite size_set. exact H13. rewrite size_set. exact H16. 
+      auto; progress. smt. smt. smt. smt. smt. smt. rewrite ?getP. case (i{2} = g); first by done. smt. rewrite ?getP. case (i{2} = g); first by done. smt. rewrite H2. rewrite ?get_set. smt. smt. smt. rewrite ?getP. case (g = i{2}) => hc. smt tmo=5. smt tmo=5. rewrite ?getP. case (g = i{2}) => hc. smt tmo=5. smt tmo=5. rewrite size_set. exact H13. rewrite size_set. exact H16. 
     wp; skip; progress. smt. smt. smt. rewrite size_offun max_ler. smt. reflexivity. rewrite size_offun max_ler. smt. reflexivity. apply arrayP. split; first by smt. smt. rewrite H13. smt. reflexivity. rewrite H14. smt. reflexivity. rewrite H16. smt. done. rewrite H17. smt. done.
   qed.  
 
@@ -1748,8 +1756,8 @@ theory SomeGarble.
       var twe : word;
       
       G.yy = Array.offun (fun x, (W.zeros)) (C.n + C.q);
-      G.pp = FMap.empty;
-      G.randG = FMap.empty;
+      G.pp = map0;
+      G.randG = map0;
       G.a = 0;
       G.b = 0;
 
@@ -1844,29 +1852,29 @@ theory SomeGarble.
       (forall g a b, g < C.n{1} => G.pp{2}.[(g, a, b)] = None) /\
       (forall g a b, G.g{1} <= g => G.pp{2}.[(g, a, b)] = None) /\
       ={G.g} /\ C.n{1} <= G.g{1} <= C.n{1} + C.q{1}).
-    auto. progress. rewrite ?get_set. simplify. case (G.g{2} = g) => hc. simplify. case (getlsb (oget R'.ii{1}.[C.aa{2}.[G.g{2}]]) = a) => ha. simplify. case (getlsb (oget R'.ii{1}.[C.bb{2}.[G.g{2}]]) = b) => hb. cut ->: getlsb (oget R'.ii{2}.[C.aa{2}.[G.g{2}]]) = a <=> true by smt. cut ->: getlsb (oget R'.ii{2}.[C.bb{2}.[G.g{2}]]) = b <=> true by smt. cut ->: getlsb (oget R'.vv{2}.[C.bb{2}.[G.g{2}]]) = b <=> false by smt. cut ->: getlsb (oget R'.vv{2}.[C.aa{2}.[G.g{2}]]) = a <=> false by smt. simplify. smt. simplify. cut ->: getlsb (oget R'.vv{1}.[C.bb{2}.[G.g{2}]]) = b <=> true by smt. simplify. cut ->: getlsb (oget R'.ii{2}.[C.aa{2}.[G.g{2}]]) = a <=> true by smt. simplify. cut ->: getlsb (oget R'.ii{2}.[C.bb{2}.[G.g{2}]]) = b <=> false by smt. cut ->: getlsb (oget R'.vv{2}.[C.bb{2}.[G.g{2}]]) = b <=> true by smt. cut ->: getlsb (oget R'.vv{2}.[C.aa{2}.[G.g{2}]]) = a <=> false by smt. simplify. smt. simplify. cut ->: getlsb (oget R'.vv{1}.[C.aa{2}.[G.g{2}]]) = a <=> true by smt. simplify. case (getlsb (oget R'.ii{1}.[C.bb{2}.[G.g{2}]]) = b) => hb. cut ->: getlsb (oget R'.ii{2}.[C.aa{2}.[G.g{2}]]) = a <=> false by smt. simplify. cut ->: getlsb (oget R'.vv{2}.[C.aa{2}.[G.g{2}]]) = a <=> true by smt. cut ->: getlsb (oget R'.ii{2}.[C.bb{2}.[G.g{2}]]) = b <=> true by smt. simplify. smt. cut ->: getlsb (oget R'.vv{1}.[C.bb{2}.[G.g{2}]]) = b <=> true by smt. simplify. cut ->: getlsb (oget R'.ii{2}.[C.aa{2}.[G.g{2}]]) = a <=> false by smt. cut ->: getlsb (oget R'.ii{2}.[C.bb{2}.[G.g{2}]]) = b <=> false by smt. cut ->: getlsb (oget R'.vv{2}.[C.bb{2}.[G.g{2}]]) = b <=> true by smt. cut ->: getlsb (oget R'.vv{2}.[C.aa{2}.[G.g{2}]]) = a <=> true by smt. simplify. rewrite ?H. smt. smt. smt. reflexivity. simplify. smt.
+    auto. progress. rewrite ?getP. simplify. case (g = G.g{2}) => hc. simplify. case (a = getlsb (oget R'.ii{1}.[C.aa{2}.[G.g{2}]])) => ha. simplify. case (b = getlsb (oget R'.ii{1}.[C.bb{2}.[G.g{2}]])) => hb. cut ->: a = getlsb (oget R'.ii{2}.[C.aa{2}.[G.g{2}]]) <=> true by smt. cut ->: b = getlsb (oget R'.ii{2}.[C.bb{2}.[G.g{2}]]) <=> true by smt. cut ->: b = getlsb (oget R'.vv{2}.[C.bb{2}.[G.g{2}]]) <=> false by smt. cut ->: a = getlsb (oget R'.vv{2}.[C.aa{2}.[G.g{2}]]) <=> false by smt. simplify. smt. simplify. cut ->: b = getlsb (oget R'.vv{1}.[C.bb{2}.[G.g{2}]]) <=> true by smt. simplify. cut ->: a = getlsb (oget R'.ii{2}.[C.aa{2}.[G.g{2}]]) <=> true by smt. simplify. cut ->: b = getlsb (oget R'.ii{2}.[C.bb{2}.[G.g{2}]]) <=> false by smt. cut ->: b = getlsb (oget R'.vv{2}.[C.bb{2}.[G.g{2}]]) <=> true by smt. cut ->: a = getlsb (oget R'.vv{2}.[C.aa{2}.[G.g{2}]]) <=> false by smt. simplify. smt. simplify. cut ->: a = getlsb (oget R'.vv{1}.[C.aa{2}.[G.g{2}]]) <=> true by smt. simplify. case (b = getlsb (oget R'.ii{1}.[C.bb{2}.[G.g{2}]])) => hb. cut ->: a = getlsb (oget R'.ii{2}.[C.aa{2}.[G.g{2}]]) <=> false by smt. simplify. cut ->: a = getlsb (oget R'.vv{2}.[C.aa{2}.[G.g{2}]]) <=> true by smt. cut ->: b = getlsb (oget R'.ii{2}.[C.bb{2}.[G.g{2}]]) <=> true by smt. simplify. smt. cut ->: b = getlsb (oget R'.vv{1}.[C.bb{2}.[G.g{2}]]) <=> true by smt. simplify. cut ->: a = getlsb (oget R'.ii{2}.[C.aa{2}.[G.g{2}]]) <=> false by smt. cut ->: b = getlsb (oget R'.ii{2}.[C.bb{2}.[G.g{2}]]) <=> false by smt. cut ->: b = getlsb (oget R'.vv{2}.[C.bb{2}.[G.g{2}]]) <=> true by smt. cut ->: a = getlsb (oget R'.vv{2}.[C.aa{2}.[G.g{2}]]) <=> true by smt. simplify. rewrite ?H. smt. smt. smt. reflexivity. simplify. smt.
   
     (*rewrite ?get_set. simplify. case (G.g{2} = g) => hc. simplify. case (getlsb (oget R'.ii{1}.[C.aa{2}.[G.g{2}]]) = a) => ha. case (getlsb (oget R'.ii{1}.[C.bb{2}.[G.g{2}]]) = b) => hb. simplify. cut ? : G.g{2} <= C.n{2} by smt.*)
 
-    rewrite mem_dom. rewrite ?get_set. simplify. case (G.g{2} = g) => hc. simplify. case (getlsb (oget R'.ii{1}.[C.aa{2}.[G.g{2}]]) = a) => ha. simplify. case (getlsb (oget R'.ii{1}.[C.bb{2}.[G.g{2}]]) = b) => hb. smt. cut ->: getlsb (oget R'.vv{1}.[C.bb{2}.[G.g{2}]]) = b <=> true by smt. by simplify. simplify. cut ->: getlsb (oget R'.vv{1}.[C.aa{2}.[G.g{2}]]) = a <=> true by smt. simplify. case (getlsb (oget R'.ii{1}.[C.bb{2}.[G.g{2}]]) = b) => hb. smt. cut ->: getlsb (oget R'.vv{1}.[C.bb{2}.[G.g{2}]]) = b <=> true by smt. by simplify. simplify. smt. 
+    rewrite in_dom. rewrite ?getP. simplify. case (g = G.g{2}) => hc. simplify. case (a = getlsb (oget R'.ii{1}.[C.aa{2}.[G.g{2}]])) => ha. simplify. case (b = getlsb (oget R'.ii{1}.[C.bb{2}.[G.g{2}]])) => hb. smt. cut ->: b = getlsb (oget R'.vv{1}.[C.bb{2}.[G.g{2}]]) <=> true by smt. by simplify. simplify. cut ->: a = getlsb (oget R'.vv{1}.[C.aa{2}.[G.g{2}]]) <=> true by smt. simplify. case (b = getlsb (oget R'.ii{1}.[C.bb{2}.[G.g{2}]])) => hb. smt. cut ->: b = getlsb (oget R'.vv{1}.[C.bb{2}.[G.g{2}]]) <=> true by smt. by simplify. simplify. smt. 
 
-    rewrite mem_dom. rewrite ?get_set. simplify. case (G.g{2} = g) => hc. simplify. case (getlsb (oget R'.ii{2}.[C.aa{2}.[G.g{2}]]) = a) => ha. simplify. case (getlsb (oget R'.ii{2}.[C.bb{2}.[G.g{2}]]) = b) => hb. smt. cut ->: getlsb (oget R'.vv{2}.[C.bb{2}.[G.g{2}]]) = b <=> true by smt. by simplify. simplify. cut ->: getlsb (oget R'.vv{2}.[C.aa{2}.[G.g{2}]]) = a <=> true by smt. simplify. case (getlsb (oget R'.ii{2}.[C.bb{2}.[G.g{2}]]) = b) => hb. smt. cut ->: getlsb (oget R'.vv{2}.[C.bb{2}.[G.g{2}]]) = b <=> true by smt. by simplify. simplify. smt. 
+    rewrite in_dom. rewrite ?getP. simplify. case (g = G.g{2}) => hc. simplify. case (a = getlsb (oget R'.ii{2}.[C.aa{2}.[G.g{2}]])) => ha. simplify. case (b = getlsb (oget R'.ii{2}.[C.bb{2}.[G.g{2}]])) => hb. smt. cut ->: b = getlsb (oget R'.vv{2}.[C.bb{2}.[G.g{2}]]) <=> true by smt. by simplify. simplify. cut ->: a = getlsb (oget R'.vv{2}.[C.aa{2}.[G.g{2}]]) <=> true by smt. simplify. case (b = getlsb (oget R'.ii{2}.[C.bb{2}.[G.g{2}]])) => hb. smt. cut ->: b = getlsb (oget R'.vv{2}.[C.bb{2}.[G.g{2}]]) <=> true by smt. by simplify. simplify. smt. 
 
-    rewrite mem_dom. rewrite ?get_set. simplify. case (G.g{2} = g) => hc. simplify. case (getlsb (oget R'.ii{1}.[C.aa{2}.[G.g{2}]]) = a) => ha. simplify. case (getlsb (oget R'.ii{1}.[C.bb{2}.[G.g{2}]]) = b) => hb. smt. cut ->: getlsb (oget R'.vv{1}.[C.bb{2}.[G.g{2}]]) = b <=> true by smt. simplify. smt. simplify. cut ->: getlsb (oget R'.vv{1}.[C.aa{2}.[G.g{2}]]) = a <=> true by smt. simplify. case (getlsb (oget R'.ii{1}.[C.bb{2}.[G.g{2}]]) = b) => hb. smt. cut ->: getlsb (oget R'.vv{1}.[C.bb{2}.[G.g{2}]]) = b <=> true by smt. simplify. smt. simplify. smt. 
+    rewrite in_dom. rewrite ?getP. simplify. case (g = G.g{2}) => hc. simplify. case (a = getlsb (oget R'.ii{1}.[C.aa{2}.[G.g{2}]])) => ha. simplify. case (b = getlsb (oget R'.ii{1}.[C.bb{2}.[G.g{2}]])) => hb. smt. cut ->: b = getlsb (oget R'.vv{1}.[C.bb{2}.[G.g{2}]]) <=> true by smt. simplify. smt. simplify. cut ->: a = getlsb (oget R'.vv{1}.[C.aa{2}.[G.g{2}]]) <=> true by smt. simplify. case (b = getlsb (oget R'.ii{1}.[C.bb{2}.[G.g{2}]])) => hb. smt. cut ->: b = getlsb (oget R'.vv{1}.[C.bb{2}.[G.g{2}]]) <=> true by smt. simplify. smt. simplify. smt. 
 
-    rewrite mem_dom. rewrite ?get_set. simplify. case (G.g{2} = g) => hc. simplify. case (getlsb (oget R'.ii{1}.[C.aa{2}.[G.g{2}]]) = a) => ha. simplify. case (getlsb (oget R'.ii{1}.[C.bb{2}.[G.g{2}]]) = b) => hb. smt. cut ->: getlsb (oget R'.vv{1}.[C.bb{2}.[G.g{2}]]) = b <=> true by smt. simplify. smt. simplify. cut ->: getlsb (oget R'.vv{1}.[C.aa{2}.[G.g{2}]]) = a <=> true by smt. simplify. case (getlsb (oget R'.ii{1}.[C.bb{2}.[G.g{2}]]) = b) => hb. smt. cut ->: getlsb (oget R'.vv{1}.[C.bb{2}.[G.g{2}]]) = b <=> true by smt. simplify. smt. simplify. smt. 
+    rewrite in_dom. rewrite ?getP. simplify. case (g = G.g{2}) => hc. simplify. case (a = getlsb (oget R'.ii{1}.[C.aa{2}.[G.g{2}]])) => ha. simplify. case (b = getlsb (oget R'.ii{1}.[C.bb{2}.[G.g{2}]])) => hb. smt. cut ->: b = getlsb (oget R'.vv{1}.[C.bb{2}.[G.g{2}]]) <=> true by smt. simplify. smt. simplify. cut ->: a = getlsb (oget R'.vv{1}.[C.aa{2}.[G.g{2}]]) <=> true by smt. simplify. case (b = getlsb (oget R'.ii{1}.[C.bb{2}.[G.g{2}]])) => hb. smt. cut ->: b = getlsb (oget R'.vv{1}.[C.bb{2}.[G.g{2}]]) <=> true by smt. simplify. smt. simplify. smt. 
 
-    rewrite mem_dom. rewrite ?get_set. simplify. case (G.g{2} = g) => hc. simplify. case (getlsb (oget R'.ii{2}.[C.aa{2}.[G.g{2}]]) = a) => ha. simplify. case (getlsb (oget R'.ii{2}.[C.bb{2}.[G.g{2}]]) = b) => hb. smt. cut ->: getlsb (oget R'.vv{2}.[C.bb{2}.[G.g{2}]]) = b <=> true by smt. simplify. smt. simplify. cut ->: getlsb (oget R'.vv{2}.[C.aa{2}.[G.g{2}]]) = a <=> true by smt. simplify. case (getlsb (oget R'.ii{2}.[C.bb{2}.[G.g{2}]]) = b) => hb. smt. cut ->: getlsb (oget R'.vv{2}.[C.bb{2}.[G.g{2}]]) = b <=> true by smt. simplify. smt. simplify. smt. 
+    rewrite in_dom. rewrite ?getP. simplify. case (g = G.g{2}) => hc. simplify. case (a = getlsb (oget R'.ii{2}.[C.aa{2}.[G.g{2}]])) => ha. simplify. case (b = getlsb (oget R'.ii{2}.[C.bb{2}.[G.g{2}]])) => hb. smt. cut ->: b = getlsb (oget R'.vv{2}.[C.bb{2}.[G.g{2}]]) <=> true by smt. simplify. smt. simplify. cut ->: a = getlsb (oget R'.vv{2}.[C.aa{2}.[G.g{2}]]) <=> true by smt. simplify. case (b = getlsb (oget R'.ii{2}.[C.bb{2}.[G.g{2}]])) => hb. smt. cut ->: b = getlsb (oget R'.vv{2}.[C.bb{2}.[G.g{2}]]) <=> true by smt. simplify. smt. simplify. smt. 
 
-    rewrite mem_dom. rewrite ?get_set. simplify. case (G.g{2} = g) => hc. simplify. case (getlsb (oget R'.ii{2}.[C.aa{2}.[G.g{2}]]) = a) => ha. simplify. case (getlsb (oget R'.ii{2}.[C.bb{2}.[G.g{2}]]) = b) => hb. smt. cut ->: getlsb (oget R'.vv{2}.[C.bb{2}.[G.g{2}]]) = b <=> true by smt. simplify. smt. simplify. cut ->: getlsb (oget R'.vv{2}.[C.aa{2}.[G.g{2}]]) = a <=> true by smt. simplify. case (getlsb (oget R'.ii{2}.[C.bb{2}.[G.g{2}]]) = b) => hb. smt. cut ->: getlsb (oget R'.vv{2}.[C.bb{2}.[G.g{2}]]) = b <=> true by smt. simplify. smt. simplify. smt.
+    rewrite in_dom. rewrite ?getP. simplify. case (g = G.g{2}) => hc. simplify. case (a = getlsb (oget R'.ii{2}.[C.aa{2}.[G.g{2}]])) => ha. simplify. case (b = getlsb (oget R'.ii{2}.[C.bb{2}.[G.g{2}]])) => hb. smt. cut ->: b = getlsb (oget R'.vv{2}.[C.bb{2}.[G.g{2}]]) <=> true by smt. simplify. smt. simplify. cut ->: a = getlsb (oget R'.vv{2}.[C.aa{2}.[G.g{2}]]) <=> true by smt. simplify. case (b = getlsb (oget R'.ii{2}.[C.bb{2}.[G.g{2}]])) => hb. smt. cut ->: b = getlsb (oget R'.vv{2}.[C.bb{2}.[G.g{2}]]) <=> true by smt. simplify. smt. simplify. smt.
 
-    rewrite ?get_set. simplify. case (G.g{2} = g) => hc. simplify. case (getlsb (oget R'.ii{1}.[C.aa{2}.[G.g{2}]]) = a) => ha. simplify. case (getlsb (oget R'.ii{1}.[C.bb{2}.[G.g{2}]]) = b) => hb. smt. cut ->: getlsb (oget R'.vv{1}.[C.bb{2}.[G.g{2}]]) = b <=> true by smt. simplify. smt. simplify. cut ->: getlsb (oget R'.vv{1}.[C.aa{2}.[G.g{2}]]) = a <=> true by smt. simplify. case (getlsb (oget R'.ii{1}.[C.bb{2}.[G.g{2}]]) = b) => hb. smt. cut ->: getlsb (oget R'.vv{1}.[C.bb{2}.[G.g{2}]]) = b <=> true by smt. simplify. smt. simplify. smt.
+    rewrite ?getP. simplify. case (g = G.g{2}) => hc. simplify. case (a = getlsb (oget R'.ii{1}.[C.aa{2}.[G.g{2}]])) => ha. simplify. case (b = getlsb (oget R'.ii{1}.[C.bb{2}.[G.g{2}]])) => hb. smt. cut ->: b = getlsb (oget R'.vv{1}.[C.bb{2}.[G.g{2}]]) <=> true by smt. simplify. smt. simplify. cut ->: a = getlsb (oget R'.vv{1}.[C.aa{2}.[G.g{2}]]) <=> true by smt. simplify. case (b = getlsb (oget R'.ii{1}.[C.bb{2}.[G.g{2}]])) => hb. smt. cut ->: b = getlsb (oget R'.vv{1}.[C.bb{2}.[G.g{2}]]) <=> true by smt. simplify. smt. simplify. smt.
     
-    rewrite ?get_set. simplify. case (G.g{2} = g) => hc. simplify. case (getlsb (oget R'.ii{1}.[C.aa{2}.[G.g{2}]]) = a) => ha. simplify. case (getlsb (oget R'.ii{1}.[C.bb{2}.[G.g{2}]]) = b) => hb. smt. cut ->: getlsb (oget R'.vv{1}.[C.bb{2}.[G.g{2}]]) = b <=> true by smt. simplify. smt. simplify. cut ->: getlsb (oget R'.vv{1}.[C.aa{2}.[G.g{2}]]) = a <=> true by smt. simplify. case (getlsb (oget R'.ii{1}.[C.bb{2}.[G.g{2}]]) = b) => hb. smt. cut ->: getlsb (oget R'.vv{1}.[C.bb{2}.[G.g{2}]]) = b <=> true by smt. simplify. smt. simplify. smt.
+    rewrite ?getP. simplify. case (g = G.g{2}) => hc. simplify. case (a = getlsb (oget R'.ii{1}.[C.aa{2}.[G.g{2}]])) => ha. simplify. case (b = getlsb (oget R'.ii{1}.[C.bb{2}.[G.g{2}]])) => hb. smt. cut ->: b = getlsb (oget R'.vv{1}.[C.bb{2}.[G.g{2}]]) <=> true by smt. simplify. smt. simplify. cut ->: a = getlsb (oget R'.vv{1}.[C.aa{2}.[G.g{2}]]) <=> true by smt. simplify. case (b = getlsb (oget R'.ii{1}.[C.bb{2}.[G.g{2}]])) => hb. smt. cut ->: b = getlsb (oget R'.vv{1}.[C.bb{2}.[G.g{2}]]) <=> true by smt. simplify. smt. simplify. smt.
 
-    rewrite ?get_set. simplify. case (G.g{2} = g) => hc. simplify. case (getlsb (oget R'.ii{2}.[C.aa{2}.[G.g{2}]]) = a) => ha. simplify. case (getlsb (oget R'.ii{2}.[C.bb{2}.[G.g{2}]]) = b) => hb. smt. cut ->: getlsb (oget R'.vv{2}.[C.bb{2}.[G.g{2}]]) = b <=> true by smt. simplify. smt. simplify. cut ->: getlsb (oget R'.vv{2}.[C.aa{2}.[G.g{2}]]) = a <=> true by smt. simplify. case (getlsb (oget R'.ii{2}.[C.bb{2}.[G.g{2}]]) = b) => hb. smt. cut ->: getlsb (oget R'.vv{2}.[C.bb{2}.[G.g{2}]]) = b <=> true by smt. simplify. smt. simplify. smt.
+    rewrite ?getP. simplify. case (g = G.g{2}) => hc. simplify. case (a = getlsb (oget R'.ii{2}.[C.aa{2}.[G.g{2}]])) => ha. simplify. case (b = getlsb (oget R'.ii{2}.[C.bb{2}.[G.g{2}]])) => hb. smt. cut ->: b = getlsb (oget R'.vv{2}.[C.bb{2}.[G.g{2}]]) <=> true by smt. simplify. smt. simplify. cut ->: a = getlsb (oget R'.vv{2}.[C.aa{2}.[G.g{2}]]) <=> true by smt. simplify. case (b = getlsb (oget R'.ii{2}.[C.bb{2}.[G.g{2}]])) => hb. smt. cut ->: b = getlsb (oget R'.vv{2}.[C.bb{2}.[G.g{2}]]) <=> true by smt. simplify. smt. simplify. smt.
 
-    rewrite ?get_set. simplify. case (G.g{2} = g) => hc. simplify. case (getlsb (oget R'.ii{2}.[C.aa{2}.[G.g{2}]]) = a) => ha. simplify. case (getlsb (oget R'.ii{2}.[C.bb{2}.[G.g{2}]]) = b) => hb. smt. cut ->: getlsb (oget R'.vv{2}.[C.bb{2}.[G.g{2}]]) = b <=> true by smt. simplify. smt. simplify. cut ->: getlsb (oget R'.vv{2}.[C.aa{2}.[G.g{2}]]) = a <=> true by smt. simplify. case (getlsb (oget R'.ii{2}.[C.bb{2}.[G.g{2}]]) = b) => hb. smt. cut ->: getlsb (oget R'.vv{2}.[C.bb{2}.[G.g{2}]]) = b <=> true by smt. simplify. smt. simplify. smt.
+    rewrite ?getP. simplify. case (g = G.g{2}) => hc. simplify. case (a = getlsb (oget R'.ii{2}.[C.aa{2}.[G.g{2}]])) => ha. simplify. case (b = getlsb (oget R'.ii{2}.[C.bb{2}.[G.g{2}]])) => hb. smt. cut ->: b = getlsb (oget R'.vv{2}.[C.bb{2}.[G.g{2}]]) <=> true by smt. simplify. smt. simplify. cut ->: a = getlsb (oget R'.vv{2}.[C.aa{2}.[G.g{2}]]) <=> true by smt. simplify. case (b = getlsb (oget R'.ii{2}.[C.bb{2}.[G.g{2}]])) => hb. smt. cut ->: b = getlsb (oget R'.vv{2}.[C.bb{2}.[G.g{2}]]) <=> true by smt. simplify. smt. simplify. smt.
 
     by smt.
     by smt. 
@@ -2006,11 +2014,11 @@ theory SomeGarble.
     
     call Random'InitEquiv.
     call InitEquiv_rnd.
-    auto; progress. smt. smt. smt. smt. smt tmo=30. move : H9. simplify validInputsP valid_circuitP. simplify fst snd. progress. smt.
+    auto; progress; first 4 by smt tmo=30. move : H9. simplify validInputsP valid_circuitP. simplify fst snd. progress. smt. move : H9. simplify validInputsP valid_circuitP. simplify fst snd. progress. smt.
     call GarbleInitFake'InitEquiv.
     skip. progress. smt. smt.
-    apply map_ext. rewrite /(==) => x. elim x => g a b. case (C.n{2} <= g < C.n{2} + C.q{2}) => hc. rewrite H22. exact hc. reflexivity. rewrite H23. exact hc. rewrite H24. exact hc. reflexivity. 
-    congr. apply fun_ext. rewrite /(==) => x. congr. rewrite ?get_filter. simplify. case (0 <= x < C.n{2}) => hc; last by done. rewrite H7. cut ? : C.n{2} < C.n{2} + C.q{2} by smt tmo=30. smt. done.
+    apply fmapP. rewrite /(==) => x. elim x => g a b. case (C.n{2} <= g < C.n{2} + C.q{2}) => hc. rewrite H22. exact hc. reflexivity. rewrite H23. exact hc. rewrite H24. exact hc. reflexivity. 
+    congr. apply fun_ext. rewrite /(==) => x. congr. rewrite ?filterP. simplify. case (0 <= x < C.n{2}) => hc; last by done. simplify. cut ? : C.n{2} < C.n{2} + C.q{2} by smt tmo=30. rewrite ?H7. smt. smt. 
     by auto.
   qed.
   
@@ -2057,13 +2065,13 @@ theory SomeGarble.
 
         (*random init*)
         R.t = offun (fun x, false) (C.n + C.q);
-        R.xx = FMap.empty;
+        R.xx = map0;
         (*/random init*)
 
         (*garble init*)
         G.yy = Array.offun (fun x, (W.zeros)) (C.n + C.q);
-        G.pp = FMap.empty;
-        G.randG = FMap.empty;
+        G.pp = map0;
+        G.randG = map0;
         G.a = 0;
         G.b = 0;
         G.g = 0;
@@ -2173,14 +2181,14 @@ theory SomeGarble.
 
         (*random init*)
         R'.t = offun (fun x, false) (C.n + C.q);
-        R'.vv = FMap.empty;
-        R'.ii = FMap.empty;
+        R'.vv = map0;
+        R'.ii = map0;
         (*/random init*)
 
         (*garble init*)
         G.yy = Array.offun (fun x, (W.zeros)) (C.n + C.q);
-        G.pp = FMap.empty;
-        G.randG = FMap.empty;
+        G.pp = map0;
+        G.randG = map0;
         G.a = 0;
         G.b = 0;
         G.g = 0;
@@ -2331,14 +2339,14 @@ theory SomeGarble.
 
         (*random init*)
         R'.t = offun (fun x, false) (C.n + C.q);
-        R'.vv = FMap.empty;
-        R'.ii = FMap.empty;
+        R'.vv = map0;
+        R'.ii = map0;
         (*/random init*)
 
         (*garble init*)
         G.yy = Array.offun (fun x, (W.zeros)) (C.n + C.q);
-        G.pp = FMap.empty;
-        G.randG = FMap.empty;
+        G.pp = map0;
+        G.randG = map0;
         G.a = 0;
         G.b = 0;
         G.g = 0;
@@ -2549,13 +2557,13 @@ theory SomeGarble.
     C.v{1} = C.v{2} /\
      (R.t{1} = offun (fun (_ : int) => false) (C.n{1} + C.q{1})) /\
      (R'.t{2} = offun (fun (_ : int) => false) (C.n{2} + C.q{2})) /\ 
-     (R.xx{1} = FMap.empty) /\
-     (R'.vv{2} = FMap.empty) /\
-     (R'.ii{2} = FMap.empty) /\
+     (R.xx{1} = map0) /\
+     (R'.vv{2} = map0) /\
+     (R'.ii{2} = map0) /\
      (G.yy{1} = offun (fun (_ : int) => W.zeros) (C.n{1} + C.q{1})) /\
      (G.yy{2} = offun (fun (_ : int) => W.zeros) (C.n{2} + C.q{2})) /\
-     (G.pp{1} = FMap.empty) /\  (G.pp{2} = FMap.empty) /\
-     (G.randG{1} = FMap.empty) /\ (G.randG{2} = FMap.empty) /\
+     (G.pp{1} = map0) /\  (G.pp{2} = map0) /\
+     (G.randG{1} = map0) /\ (G.randG{2} = map0) /\
      (G.a{1} = 0) /\ (G.a{2} = 0) /\ 
      (G.b{1} = 0) /\ (G.b{2} = 0) /\ 
      size R.t{1} = C.n{1} + C.q{1} /\ size R'.t{2} = C.n{2} + C.q{2}
@@ -2586,8 +2594,8 @@ theory SomeGarble.
     (*G.yy{2} = offun (fun (_ : int) => W.zeros) (C.n{2} + C.q{2}) /\*)
     G.pp{1} = G.pp{2} /\
     G.yy{1} = G.yy{2} /\
-    G.randG{1} = FMap.empty /\
-    G.randG{2} = FMap.empty /\
+    G.randG{1} = map0 /\
+    G.randG{2} = map0 /\
     (*G.a{1} = 0 /\
     G.a{2} = 0 /\
     G.b{1} = 0 /\
@@ -2615,38 +2623,38 @@ theory SomeGarble.
   
     do(congr).  
   
-    rewrite xor_false. rewrite ?get_set. smt. case (C.aa{2}.[G.g{2}] = G.g{2}) => hc. rewrite hc. simplify. rewrite oget_some. rewrite (Dword.lsb_dwordLsb (C.v{2}.[G.g{2}]) _). exact H14. reflexivity. cut ->: G.g{2} = C.aa{2}.[G.g{2}] <=> false by smt. simplify. cut ? : forall (j : int), 0 <= j < G.g{2} => getlsb (oget R'.vv{2}.[j]) = R'.t{2}.[j] by smt. cut ? : forall (j : int), 0 <= j < G.g{2} => R.t{1}.[j] = R'.t{2}.[j] by smt. rewrite H26. smt. rewrite H27. smt. reflexivity. 
-    rewrite xor_false. rewrite ?get_set. smt. case (C.bb{2}.[G.g{2}] = G.g{2}) => hc. rewrite hc. simplify. rewrite oget_some. rewrite (Dword.lsb_dwordLsb (C.v{2}.[G.g{2}]) _). exact H14. reflexivity. cut ->: G.g{2} = C.bb{2}.[G.g{2}] <=> false by smt. simplify. cut ? : forall (j : int), 0 <= j < G.g{2} => getlsb (oget R'.vv{2}.[j]) = R'.t{2}.[j] by smt. cut ? : forall (j : int), 0 <= j < G.g{2} => R.t{1}.[j] = R'.t{2}.[j] by smt. rewrite H26. smt. smt. 
-    rewrite xor_false. rewrite get_set. smt. rewrite get_set. case (C.aa{2}.[G.g{2}] = G.g{2}) => hc. rewrite hc. simplify. rewrite oget_some. rewrite (Dword.lsb_dwordLsb (C.v{2}.[G.g{2}]) _). exact H14. reflexivity. cut ->: G.g{2} = C.aa{2}.[G.g{2}] <=> false by smt. simplify. cut ? : forall (j : int), 0 <= j < G.g{2} => getlsb (oget R'.vv{2}.[j]) = R'.t{2}.[j] by smt. cut ? : forall (j : int), 0 <= j < G.g{2} => R.t{1}.[j] = R'.t{2}.[j] by smt. rewrite H26. smt. smt. 
-    rewrite xor_false. rewrite get_set. smt. rewrite get_set. case (C.bb{2}.[G.g{2}] = G.g{2}) => hc. rewrite hc. simplify. rewrite oget_some. rewrite (Dword.lsb_dwordLsb (C.v{2}.[G.g{2}]) _). exact H14. reflexivity. cut ->: G.g{2} = C.bb{2}.[G.g{2}] <=> false by smt. simplify. cut ? : forall (j : int), 0 <= j < G.g{2} => getlsb (oget R'.vv{2}.[j]) = R'.t{2}.[j] by smt. cut ? : forall (j : int), 0 <= j < G.g{2} => R.t{1}.[j] = R'.t{2}.[j] by smt. rewrite H26. smt. smt.
-    rewrite ?get_set. simplify. case (G.g{2} = C.aa{2}.[G.g{2}]) => hc. simplify. case ((! C.v{2}.[G.g{2}]) = C.v{2}.[C.aa{2}.[G.g{2}]] ^^ false) => hc'. smt. cut ->: C.v{2}.[G.g{2}] = C.v{2}.[C.aa{2}.[G.g{2}]] ^^ false <=> true by smt. by simplify. simplify. rewrite xor_false. smt. 
-    rewrite ?get_set. simplify. case (G.g{2} = C.bb{2}.[G.g{2}]) => hc. simplify. case ((! C.v{2}.[G.g{2}]) = C.v{2}.[C.bb{2}.[G.g{2}]] ^^ false) => hc'. smt. cut ->: C.v{2}.[G.g{2}] = C.v{2}.[C.bb{2}.[G.g{2}]] ^^ false <=> true by smt. by simplify. rewrite xor_false. case ((! C.v{2}.[G.g{2}]) = C.v{2}.[C.bb{2}.[G.g{2}]] ^^ false) => hc'. simplify. smt. simplify. smt.  
-    rewrite ?get_set. simplify. case ((! C.v{2}.[G.g{2}]) = C.v{2}.[G.g{2}]) => hc. smt. trivial.
-    rewrite xor_false. rewrite get_set. smt. rewrite get_set. case (C.aa{2}.[G.g{2}] = G.g{2}) => hc. rewrite hc. simplify. rewrite oget_some. rewrite (Dword.lsb_dwordLsb (C.v{2}.[G.g{2}]) _). exact H14. reflexivity. cut ->: G.g{2} = C.aa{2}.[G.g{2}] <=> false by smt. simplify. cut ? : forall (j : int), 0 <= j < G.g{2} => getlsb (oget R'.vv{2}.[j]) = R'.t{2}.[j] by smt. cut ? : forall (j : int), 0 <= j < G.g{2} => R.t{1}.[j] = R'.t{2}.[j] by smt. rewrite H26. smt. smt. 
-    rewrite xor_true. rewrite get_set. smt. rewrite get_set. case (C.bb{2}.[G.g{2}] = G.g{2}) => hc. rewrite hc. simplify. rewrite oget_some. rewrite (Dword.lsb_dwordLsb (!C.v{2}.[G.g{2}]) _). exact H16. reflexivity. cut ->: G.g{2} = C.bb{2}.[G.g{2}] <=> false by smt. simplify. cut ? : forall (j : int), 0 <= j < G.g{2} => getlsb (oget R'.ii{2}.[j]) = !R'.t{2}.[j] by smt. cut ? : forall (j : int), 0 <= j < G.g{2} => R.t{1}.[j] = R'.t{2}.[j] by smt. rewrite H26. smt. smt.
-    rewrite xor_false. rewrite get_set. smt. rewrite get_set. case (C.aa{2}.[G.g{2}] = G.g{2}) => hc. rewrite hc. simplify. rewrite oget_some. rewrite (Dword.lsb_dwordLsb (C.v{2}.[G.g{2}]) _). exact H14. reflexivity. cut ->: G.g{2} = C.aa{2}.[G.g{2}] <=> false by smt. simplify. cut ? : forall (j : int), 0 <= j < G.g{2} => getlsb (oget R'.vv{2}.[j]) = R'.t{2}.[j] by smt. cut ? : forall (j : int), 0 <= j < G.g{2} => R.t{1}.[j] = R'.t{2}.[j] by smt. rewrite H26. smt. smt.
-    rewrite xor_true. rewrite get_set. smt. rewrite get_set. case (C.bb{2}.[G.g{2}] = G.g{2}) => hc. rewrite hc. simplify. rewrite oget_some. rewrite (Dword.lsb_dwordLsb (!C.v{2}.[G.g{2}]) _). exact H16. reflexivity. cut ->: G.g{2} = C.bb{2}.[G.g{2}] <=> false by smt. simplify. cut ? : forall (j : int), 0 <= j < G.g{2} => getlsb (oget R'.ii{2}.[j]) = !R'.t{2}.[j] by smt. cut ? : forall (j : int), 0 <= j < G.g{2} => R.t{1}.[j] = R'.t{2}.[j] by smt. rewrite H26. smt. smt.
-    rewrite xor_false. rewrite ?get_set. simplify. case (G.g{2} = C.aa{2}.[G.g{2}]) => hc. simplify. case ((! C.v{2}.[G.g{2}]) = C.v{2}.[C.aa{2}.[G.g{2}]]) => hc'. smt. simplify. cut ->: C.v{2}.[G.g{2}] = C.v{2}.[C.aa{2}.[G.g{2}]] <=> true by smt. by simplify. simplify. smt. 
-    rewrite xor_true. rewrite ?get_set. simplify. case (G.g{2} = C.bb{2}.[G.g{2}]) => hc. simplify. case ((! C.v{2}.[G.g{2}]) = ! C.v{2}.[C.bb{2}.[G.g{2}]]) => hc'. by simplify. simplify. cut ->: C.v{2}.[G.g{2}] = ! C.v{2}.[C.bb{2}.[G.g{2}]] <=> true by smt. simplify. smt. simplify. smt. 
-    rewrite xor_true. rewrite ?get_set. smt. case (C.aa{2}.[G.g{2}] = G.g{2}) => hc. rewrite hc. simplify. rewrite oget_some. rewrite (Dword.lsb_dwordLsb (!C.v{2}.[G.g{2}]) _). exact H16. reflexivity. cut ->: G.g{2} = C.aa{2}.[G.g{2}] <=> false by smt. simplify. cut ? : forall (j : int), 0 <= j < G.g{2} => getlsb (oget R'.ii{2}.[j]) = !R'.t{2}.[j] by smt. cut ? : forall (j : int), 0 <= j < G.g{2} => R.t{1}.[j] = R'.t{2}.[j] by smt. rewrite H26. smt. smt.
-    rewrite xor_false. rewrite ?get_set. smt. case (C.bb{2}.[G.g{2}] = G.g{2}) => hc. rewrite hc. simplify. rewrite oget_some. rewrite (Dword.lsb_dwordLsb (C.v{2}.[G.g{2}]) _). exact H14. reflexivity. cut ->: G.g{2} = C.bb{2}.[G.g{2}] <=> false by smt. simplify. cut ? : forall (j : int), 0 <= j < G.g{2} => getlsb (oget R'.vv{2}.[j]) = R'.t{2}.[j] by smt. cut ? : forall (j : int), 0 <= j < G.g{2} => R.t{1}.[j] = R'.t{2}.[j] by smt. rewrite H26. smt. smt.
-    rewrite xor_true. rewrite ?get_set. smt. case (C.aa{2}.[G.g{2}] = G.g{2}) => hc. rewrite hc. simplify. rewrite oget_some. rewrite (Dword.lsb_dwordLsb (!C.v{2}.[G.g{2}]) _). exact H16. reflexivity. cut ->: G.g{2} = C.aa{2}.[G.g{2}] <=> false by smt. simplify. cut ? : forall (j : int), 0 <= j < G.g{2} => getlsb (oget R'.ii{2}.[j]) = !R'.t{2}.[j] by smt. cut ? : forall (j : int), 0 <= j < G.g{2} => R.t{1}.[j] = R'.t{2}.[j] by smt. rewrite H26. smt. smt.
-    rewrite xor_false. rewrite ?get_set. smt. case (C.bb{2}.[G.g{2}] = G.g{2}) => hc. rewrite hc. simplify. rewrite oget_some. rewrite (Dword.lsb_dwordLsb (C.v{2}.[G.g{2}]) _). exact H14. reflexivity. cut ->: G.g{2} = C.bb{2}.[G.g{2}] <=> false by smt. simplify. cut ? : forall (j : int), 0 <= j < G.g{2} => getlsb (oget R'.vv{2}.[j]) = R'.t{2}.[j] by smt. cut ? : forall (j : int), 0 <= j < G.g{2} => R.t{1}.[j] = R'.t{2}.[j] by smt. rewrite H26. smt. smt.
-    rewrite xor_true. rewrite ?get_set. simplify. case (G.g{2} = C.aa{2}.[G.g{2}]) => hc. simplify. case ((! C.v{2}.[C.aa{2}.[G.g{2}]]) = ! C.v{2}.[C.aa{2}.[C.aa{2}.[G.g{2}]]]) => hc'.  rewrite -hc. by simplify. rewrite -hc.  by simplify. simplify. smt. 
-    rewrite xor_false. rewrite ?get_set. simplify. case (G.g{2} = C.bb{2}.[G.g{2}]) => hc. simplify. case ((! C.v{2}.[C.bb{2}.[G.g{2}]]) = C.v{2}.[C.bb{2}.[C.bb{2}.[G.g{2}]]]) => hc'. rewrite -hc. cut ->: (! C.v{2}.[G.g{2}]) = C.v{2}.[G.g{2}] <=> false by smt. by simplify. rewrite -hc. cut ->: (! C.v{2}.[G.g{2}]) = C.v{2}.[G.g{2}] <=> false by smt. by simplify. simplify. smt. 
-    rewrite xor_true. rewrite ?get_set. smt. case (C.aa{2}.[G.g{2}] = G.g{2}) => hc. rewrite hc. simplify. rewrite (Dword.lsb_dwordLsb (!C.v{2}.[G.g{2}]) _). exact H16. reflexivity. cut ->: G.g{2} = C.aa{2}.[G.g{2}] <=> false by smt. simplify. cut ? : forall (j : int), 0 <= j < G.g{2} => getlsb (oget R'.ii{2}.[j]) = !R'.t{2}.[j] by smt. cut ? : forall (j : int), 0 <= j < G.g{2} => R.t{1}.[j] = R'.t{2}.[j] by smt. rewrite H26. smt. smt.
-    rewrite xor_true. rewrite ?get_set. smt. case (C.bb{2}.[G.g{2}] = G.g{2}) => hc. rewrite hc. simplify. rewrite (Dword.lsb_dwordLsb (!C.v{2}.[G.g{2}]) _). exact H16. reflexivity. cut ->: G.g{2} = C.bb{2}.[G.g{2}] <=> false by smt. simplify. cut ? : forall (j : int), 0 <= j < G.g{2} => getlsb (oget R'.ii{2}.[j]) = !R'.t{2}.[j] by smt. cut ? : forall (j : int), 0 <= j < G.g{2} => R.t{1}.[j] = R'.t{2}.[j] by smt. rewrite H26. smt. smt.
-    rewrite xor_true. rewrite ?get_set. smt. case (C.aa{2}.[G.g{2}] = G.g{2}) => hc. rewrite hc. simplify. rewrite (Dword.lsb_dwordLsb (!C.v{2}.[G.g{2}]) _). exact H16. reflexivity. cut ->: G.g{2} = C.aa{2}.[G.g{2}] <=> false by smt. simplify. cut ? : forall (j : int), 0 <= j < G.g{2} => getlsb (oget R'.ii{2}.[j]) = !R'.t{2}.[j] by smt. cut ? : forall (j : int), 0 <= j < G.g{2} => R.t{1}.[j] = R'.t{2}.[j] by smt. rewrite H26. smt. smt.
-    rewrite xor_true. rewrite ?get_set. smt. case (C.bb{2}.[G.g{2}] = G.g{2}) => hc. rewrite hc. simplify. rewrite (Dword.lsb_dwordLsb (!C.v{2}.[G.g{2}]) _). exact H16. reflexivity. cut ->: G.g{2} = C.bb{2}.[G.g{2}] <=> false by smt. simplify. cut ? : forall (j : int), 0 <= j < G.g{2} => getlsb (oget R'.ii{2}.[j]) = !R'.t{2}.[j] by smt. cut ? : forall (j : int), 0 <= j < G.g{2} => R.t{1}.[j] = R'.t{2}.[j] by smt. rewrite H26. smt. smt.
-    rewrite xor_true. rewrite ?get_set. simplify. case (G.g{2} = C.aa{2}.[G.g{2}]) => hc. simplify. case ((! C.v{2}.[C.aa{2}.[G.g{2}]]) = ! C.v{2}.[C.aa{2}.[C.aa{2}.[G.g{2}]]]) => hc'. rewrite -hc. by simplify. rewrite -hc. by simplify. simplify. smt. 
-    rewrite xor_true. rewrite ?get_set. simplify. case (G.g{2} = C.bb{2}.[G.g{2}]) => hc. simplify. case ((! C.v{2}.[C.bb{2}.[G.g{2}]]) = ! C.v{2}.[C.bb{2}.[C.bb{2}.[G.g{2}]]]) => hc'. rewrite -hc. by simplify. rewrite -hc. by simplify. simplify. smt. 
+    rewrite xor_false. rewrite ?get_set. smt. rewrite getP. case (C.aa{2}.[G.g{2}] = G.g{2}) => hc. simplify. rewrite oget_some. rewrite (Dword.lsb_dwordLsb (C.v{2}.[G.g{2}]) _). exact H14. reflexivity. cut ? : forall (j : int), 0 <= j < G.g{2} => getlsb (oget R'.vv{2}.[j]) = R'.t{2}.[j] by smt. cut ? : forall (j : int), 0 <= j < G.g{2} => R.t{1}.[j] = R'.t{2}.[j] by smt. rewrite H26. smt. rewrite H27. smt. reflexivity. 
+    rewrite xor_false. rewrite ?get_set. smt. rewrite getP. case (C.bb{2}.[G.g{2}] = G.g{2}) => hc. simplify. rewrite oget_some. rewrite (Dword.lsb_dwordLsb (C.v{2}.[G.g{2}]) _). exact H14. reflexivity. cut ? : forall (j : int), 0 <= j < G.g{2} => getlsb (oget R'.vv{2}.[j]) = R'.t{2}.[j] by smt. cut ? : forall (j : int), 0 <= j < G.g{2} => R.t{1}.[j] = R'.t{2}.[j] by smt. rewrite H26. smt. rewrite H27. smt. reflexivity.
+    rewrite xor_false. rewrite ?get_set. smt. rewrite getP. case (C.aa{2}.[G.g{2}] = G.g{2}) => hc. simplify. rewrite oget_some. rewrite (Dword.lsb_dwordLsb (C.v{2}.[G.g{2}]) _). exact H14. reflexivity. cut ? : forall (j : int), 0 <= j < G.g{2} => getlsb (oget R'.vv{2}.[j]) = R'.t{2}.[j] by smt. cut ? : forall (j : int), 0 <= j < G.g{2} => R.t{1}.[j] = R'.t{2}.[j] by smt. rewrite H26. smt. rewrite H27. smt. reflexivity.
+    rewrite xor_false. rewrite ?get_set. smt. rewrite getP. case (C.bb{2}.[G.g{2}] = G.g{2}) => hc. simplify. rewrite oget_some. rewrite (Dword.lsb_dwordLsb (C.v{2}.[G.g{2}]) _). exact H14. reflexivity. cut ? : forall (j : int), 0 <= j < G.g{2} => getlsb (oget R'.vv{2}.[j]) = R'.t{2}.[j] by smt. cut ? : forall (j : int), 0 <= j < G.g{2} => R.t{1}.[j] = R'.t{2}.[j] by smt. rewrite H26. smt. rewrite H27. smt. reflexivity.
+    rewrite xor_false. rewrite ?getP. simplify. case (C.aa{2}.[G.g{2}] = G.g{2}) => hc. simplify. rewrite hc. cut ->: C.v{2}.[G.g{2}] = ! C.v{2}.[G.g{2}] <=> false by smt. by simplify. simplify. smt. 
+    rewrite xor_false. rewrite ?getP. simplify. case (C.bb{2}.[G.g{2}] = G.g{2}) => hc. simplify. rewrite hc. cut ->: C.v{2}.[G.g{2}] = ! C.v{2}.[G.g{2}] <=> false by smt. by simplify. simplify. smt.
+    rewrite ?getP. simplify. cut ->: C.v{2}.[G.g{2}] = ! C.v{2}.[G.g{2}] <=> false by smt. by simplify. 
+    rewrite xor_false. rewrite ?get_set ?getP. smt. cut ->: C.aa{2}.[G.g{2}] = G.g{2} <=> false by smt. simplify.  cut ? : forall (j : int), 0 <= j < G.g{2} => getlsb (oget R'.vv{2}.[j]) = R'.t{2}.[j] by smt. cut ? : forall (j : int), 0 <= j < G.g{2} => R.t{1}.[j] = R'.t{2}.[j] by smt. rewrite H26. smt. rewrite H27. smt. reflexivity.
+    rewrite xor_true. rewrite ?get_set ?getP. smt. cut ->: C.bb{2}.[G.g{2}] = G.g{2} <=> false by smt. simplify. cut ? : forall (j : int), 0 <= j < G.g{2} => getlsb (oget R'.ii{2}.[j]) = !R'.t{2}.[j] by smt. cut ? : forall (j : int), 0 <= j < G.g{2} => R.t{1}.[j] = R'.t{2}.[j] by smt. rewrite H26. smt. rewrite H27. smt. reflexivity.
+    rewrite xor_false. rewrite ?get_set ?getP. smt. cut ->: C.aa{2}.[G.g{2}] = G.g{2} <=> false by smt. simplify. cut ? : forall (j : int), 0 <= j < G.g{2} => getlsb (oget R'.vv{2}.[j]) = R'.t{2}.[j] by smt. cut ? : forall (j : int), 0 <= j < G.g{2} => R.t{1}.[j] = R'.t{2}.[j] by smt. rewrite H26. smt. rewrite H27. smt. reflexivity.
+    rewrite xor_true. rewrite ?get_set ?getP. smt. cut ->: C.bb{2}.[G.g{2}] = G.g{2} <=> false by smt. simplify. cut ? : forall (j : int), 0 <= j < G.g{2} => getlsb (oget R'.ii{2}.[j]) = !R'.t{2}.[j] by smt. cut ? : forall (j : int), 0 <= j < G.g{2} => R.t{1}.[j] = R'.t{2}.[j] by smt. rewrite H26. smt. rewrite H27. smt. reflexivity.
+    rewrite xor_false. rewrite ?get_set ?getP. simplify. cut ->: (C.aa{2}.[G.g{2}] = G.g{2}) <=> false by smt. simplify. smt. 
+    rewrite xor_true. rewrite ?get_set ?getP. simplify. cut ->: (C.bb{2}.[G.g{2}] = G.g{2}) <=> false by smt. simplify. smt. 
+    rewrite xor_true. rewrite ?get_set ?getP. smt. cut ->: (C.aa{2}.[G.g{2}] = G.g{2}) <=> false by smt. simplify. smt.
+    rewrite xor_false. rewrite ?get_set ?getP. smt. cut ->: (C.bb{2}.[G.g{2}] = G.g{2}) <=> false by smt. simplify. smt. 
+    rewrite xor_true. rewrite ?get_set ?getP. smt. cut ->: (C.aa{2}.[G.g{2}] = G.g{2}) <=> false by smt. simplify. smt.
+    rewrite xor_false. rewrite ?get_set ?getP. smt. cut ->: (C.bb{2}.[G.g{2}] = G.g{2}) <=> false by smt. simplify. smt. 
+    rewrite xor_true. rewrite ?get_set ?getP. simplify. cut ->: (C.aa{2}.[G.g{2}] = G.g{2}) <=> false by smt. simplify. smt. 
+    rewrite xor_false. rewrite ?get_set ?getP. simplify. cut ->: (C.bb{2}.[G.g{2}] = G.g{2}) <=> false by smt. simplify. smt. 
+    rewrite xor_true. rewrite ?get_set ?getP. smt. simplify. cut ->: (C.aa{2}.[G.g{2}] = G.g{2}) <=> false by smt. simplify. smt. 
+    rewrite xor_true. rewrite ?get_set ?getP. smt. simplify. cut ->: (C.bb{2}.[G.g{2}] = G.g{2}) <=> false by smt. simplify. smt. 
+    rewrite xor_true. rewrite ?get_set ?getP. smt. simplify. cut ->: (C.aa{2}.[G.g{2}] = G.g{2}) <=> false by smt. simplify. smt. 
+    rewrite xor_true. rewrite ?get_set ?getP. smt. simplify. cut ->: (C.bb{2}.[G.g{2}] = G.g{2}) <=> false by smt. simplify. smt. 
+    rewrite xor_true. rewrite ?get_set ?getP. simplify. cut ->: (C.aa{2}.[G.g{2}] = G.g{2}) <=> false by smt. simplify. smt. 
+    rewrite xor_true. rewrite ?get_set ?getP. simplify. cut ->: (C.bb{2}.[G.g{2}] = G.g{2}) <=> false by smt. simplify. smt. 
     rewrite ?get_set. smt. smt. case (j = G.g{2}) => hc. reflexivity. smt.
-    rewrite ?get_set. simplify. case (G.g{2} = j) => hc. simplify. rewrite hc. simplify. case ((! C.v{2}.[j]) = C.v{2}.[j]) => hc'. smt. reflexivity. simplify. smt. 
-    rewrite ?get_set. simplify. case (G.g{2} = j) => hc. simplify. rewrite hc. by simplify. simplify. smt. 
-    rewrite ?get_set. simplify. case (G.g{2} = j) => hc. simplify. rewrite hc. simplify. cut ->: (! C.v{2}.[j]) = C.v{2}.[j] <=> false by smt. by simplify. simplify. smt.
-    rewrite ?get_set. simplify. case (G.g{2} = j) => hc. simplify. rewrite hc. by simplify. simplify. smt. 
-    rewrite ?get_set. smt. case (G.g{2} = j) => hc. rewrite hc. simplify. smt. cut ->: j = G.g{2} <=> false by smt. simplify. smt.
-    rewrite ?get_set. smt. simplify. case (G.g{2} = j) => hc. rewrite hc. simplify. smt. cut ->: j = G.g{2} <=> false by smt. simplify. smt.
+    rewrite ?getP. simplify. case (j = G.g{2}) => hc. simplify. rewrite hc. cut ->: C.v{2}.[G.g{2}] = ! C.v{2}.[G.g{2}] <=> false by smt. by simplify. simplify. smt. 
+    rewrite ?getP. simplify. case (j = G.g{2}) => hc. simplify. rewrite hc. by simplify. simplify. smt. 
+    rewrite ?getP. simplify. case (j = G.g{2}) => hc. simplify. rewrite hc. simplify. cut ->: C.v{2}.[G.g{2}] = ! C.v{2}.[G.g{2}] <=> false by smt. by simplify. simplify. smt.
+    rewrite ?getP. simplify. case (j = G.g{2}) => hc. rewrite hc. by simplify. simplify. smt. 
+    rewrite ?get_set ?getP. smt. case (j = G.g{2}) => hc. smt. smt.
+    rewrite ?get_set ?getP. smt. case (j = G.g{2}) => hc. smt. smt. 
     rewrite size_set. exact H7.
     rewrite size_set. exact H8.
   
@@ -2672,8 +2680,8 @@ theory SomeGarble.
     (*G.yy{2} = offun (fun (_ : int) => W.zeros) (C.n{2} + C.q{2}) /\*)
     G.pp{1} = G.pp{2} /\
     G.yy{1} = G.yy{2} /\
-    G.randG{1} = FMap.empty /\
-    G.randG{2} = FMap.empty /\
+    G.randG{1} = map0 /\
+    G.randG{2} = map0 /\
     (*G.a{1} = 0 /\
     G.a{2} = 0 /\
     G.b{1} = 0 /\
@@ -2699,40 +2707,40 @@ theory SomeGarble.
     cut ? : 0 <= C.aa{2}.[G.g{2}] < G.g{2}. move : H2. case (real{2}) => hc. simplify fst snd. move => ?. cut ->: C.aa{2} = query{2}.`2.`1.`1.`4 by smt. smt tmo=30. simplify fst snd. move => ?. cut ->: C.aa{2} = query{2}.`1.`1.`1.`4 by smt. smt tmo=30. 
     cut ? : 0 <= C.bb{2}.[G.g{2}] < G.g{2}. move : H2. case (real{2}) => hc. simplify fst snd. move => ?. cut ->: C.bb{2} = query{2}.`2.`1.`1.`5 by smt. smt tmo=30. simplify fst snd. move => ?. cut ->: C.bb{2} = query{2}.`1.`1.`1.`5 by smt. smt tmo=30. 
   
-    do(congr). 
+    do(congr).  
   
-    rewrite xor_false. rewrite ?get_set. smt. case (C.aa{2}.[G.g{2}] = G.g{2}) => hc. rewrite hc. simplify. rewrite oget_some. rewrite (Dword.lsb_dwordLsb trndL _). exact H14. reflexivity. cut ->: G.g{2} = C.aa{2}.[G.g{2}] <=> false by smt. simplify. cut ? : forall (j : int), 0 <= j < G.g{2} => getlsb (oget R'.vv{2}.[j]) = R'.t{2}.[j] by smt. cut ? : forall (j : int), 0 <= j < G.g{2} => R.t{1}.[j] = R'.t{2}.[j] by smt. rewrite H26. smt. rewrite H27. smt. reflexivity. 
-    rewrite xor_false. rewrite ?get_set. smt. case (C.bb{2}.[G.g{2}] = G.g{2}) => hc. rewrite hc. simplify. rewrite oget_some. rewrite (Dword.lsb_dwordLsb trndL _). exact H14. reflexivity. cut ->: G.g{2} = C.bb{2}.[G.g{2}] <=> false by smt. simplify. cut ? : forall (j : int), 0 <= j < G.g{2} => getlsb (oget R'.vv{2}.[j]) = R'.t{2}.[j] by smt. cut ? : forall (j : int), 0 <= j < G.g{2} => R.t{1}.[j] = R'.t{2}.[j] by smt. rewrite H26. smt. smt. 
-    rewrite xor_false. rewrite ?get_set. smt. case (C.aa{2}.[G.g{2}] = G.g{2}) => hc. rewrite hc. simplify. rewrite oget_some. rewrite (Dword.lsb_dwordLsb trndL _). exact H14. reflexivity. cut ->: G.g{2} = C.aa{2}.[G.g{2}] <=> false by smt. simplify. cut ? : forall (j : int), 0 <= j < G.g{2} => getlsb (oget R'.vv{2}.[j]) = R'.t{2}.[j] by smt. cut ? : forall (j : int), 0 <= j < G.g{2} => R.t{1}.[j] = R'.t{2}.[j] by smt. rewrite H26. smt. smt. 
-    rewrite xor_false. rewrite ?get_set. smt. case (C.bb{2}.[G.g{2}] = G.g{2}) => hc. rewrite hc. simplify. rewrite oget_some. rewrite (Dword.lsb_dwordLsb trndL _). exact H14. reflexivity. cut ->: G.g{2} = C.bb{2}.[G.g{2}] <=> false by smt. simplify. cut ? : forall (j : int), 0 <= j < G.g{2} => getlsb (oget R'.vv{2}.[j]) = R'.t{2}.[j] by smt. cut ? : forall (j : int), 0 <= j < G.g{2} => R.t{1}.[j] = R'.t{2}.[j] by smt. rewrite H26. smt. smt.
-    rewrite xor_false. rewrite ?get_set. simplify. case (G.g{2} = C.aa{2}.[G.g{2}]) => hc. simplify. rewrite -hc. case ((! C.v{2}.[G.g{2}]) = C.v{2}.[G.g{2}]) => hc'. smt. by cut ->: C.v{2}.[G.g{2}] = C.v{2}.[G.g{2}] <=> true by smt. simplify. cut ? : forall (j : int), 0 <= j < G.g{2} => R.xx{1}.[(j, C.v{2}.[j])] = R'.vv{2}.[j] by smt. rewrite H26. smt. reflexivity. 
-    rewrite ?get_set. simplify. case (G.g{2} = C.bb{2}.[G.g{2}]) => hc. simplify. case ((! C.v{2}.[G.g{2}]) = C.v{2}.[C.bb{2}.[G.g{2}]] ^^ false) => hc'. smt. cut ->: C.v{2}.[G.g{2}] = C.v{2}.[C.bb{2}.[G.g{2}]] ^^ false <=> true by smt. by simplify. rewrite xor_false. simplify. smt.  
-    rewrite ?get_set. simplify. case ((! C.v{2}.[G.g{2}]) = C.v{2}.[G.g{2}]) => hc. smt. trivial.
-    rewrite xor_false. rewrite ?get_set. smt. case (C.aa{2}.[G.g{2}] = G.g{2}) => hc. rewrite hc. simplify. rewrite oget_some. rewrite (Dword.lsb_dwordLsb trndL _). exact H14. reflexivity. cut ->: G.g{2} = C.aa{2}.[G.g{2}] <=> false by smt. simplify. cut ? : forall (j : int), 0 <= j < G.g{2} => getlsb (oget R'.vv{2}.[j]) = R'.t{2}.[j] by smt. cut ? : forall (j : int), 0 <= j < G.g{2} => R.t{1}.[j] = R'.t{2}.[j] by smt. rewrite H26. smt. rewrite H27. smt. reflexivity.
-    rewrite xor_true. rewrite get_set. smt. rewrite get_set. case (C.bb{2}.[G.g{2}] = G.g{2}) => hc. rewrite hc. simplify. rewrite oget_some. rewrite (Dword.lsb_dwordLsb (!trndL) _). exact H16. reflexivity. cut ->: G.g{2} = C.bb{2}.[G.g{2}] <=> false by smt. simplify. cut ? : forall (j : int), 0 <= j < G.g{2} => getlsb (oget R'.ii{2}.[j]) = !R'.t{2}.[j] by smt. cut ? : forall (j : int), 0 <= j < G.g{2} => R.t{1}.[j] = R'.t{2}.[j] by smt. rewrite H26. smt. smt.
-    rewrite xor_false. rewrite get_set. smt. rewrite get_set. case (C.aa{2}.[G.g{2}] = G.g{2}) => hc. rewrite hc. simplify. rewrite oget_some. rewrite (Dword.lsb_dwordLsb trndL _). exact H14. reflexivity. cut ->: G.g{2} = C.aa{2}.[G.g{2}] <=> false by smt. simplify. cut ? : forall (j : int), 0 <= j < G.g{2} => getlsb (oget R'.vv{2}.[j]) = R'.t{2}.[j] by smt. cut ? : forall (j : int), 0 <= j < G.g{2} => R.t{1}.[j] = R'.t{2}.[j] by smt. rewrite H26. smt. smt.
-    rewrite xor_true. rewrite get_set. smt. rewrite get_set. case (C.bb{2}.[G.g{2}] = G.g{2}) => hc. rewrite hc. simplify. rewrite oget_some. rewrite (Dword.lsb_dwordLsb (!trndL) _). exact H16. reflexivity. cut ->: G.g{2} = C.bb{2}.[G.g{2}] <=> false by smt. simplify. cut ? : forall (j : int), 0 <= j < G.g{2} => getlsb (oget R'.ii{2}.[j]) = !R'.t{2}.[j] by smt. cut ? : forall (j : int), 0 <= j < G.g{2} => R.t{1}.[j] = R'.t{2}.[j] by smt. rewrite H26. smt. smt.
-    rewrite xor_false. rewrite ?get_set. simplify. case (G.g{2} = C.aa{2}.[G.g{2}]) => hc. simplify. case ((! C.v{2}.[G.g{2}]) = C.v{2}.[C.aa{2}.[G.g{2}]]) => hc'. smt. simplify. cut ->: C.v{2}.[G.g{2}] = C.v{2}.[C.aa{2}.[G.g{2}]] <=> true by smt. by simplify. simplify. smt. 
-    rewrite xor_true. rewrite ?get_set. simplify. case (G.g{2} = C.bb{2}.[G.g{2}]) => hc. simplify. case ((! C.v{2}.[G.g{2}]) = ! C.v{2}.[C.bb{2}.[G.g{2}]]) => hc'. by simplify. simplify. cut ->: C.v{2}.[G.g{2}] = ! C.v{2}.[C.bb{2}.[G.g{2}]] <=> true by smt. simplify. smt. simplify. smt. 
-    rewrite xor_true. rewrite ?get_set. smt. case (C.aa{2}.[G.g{2}] = G.g{2}) => hc. rewrite hc. simplify. rewrite oget_some. rewrite (Dword.lsb_dwordLsb (!trndL) _). exact H16. reflexivity. cut ->: G.g{2} = C.aa{2}.[G.g{2}] <=> false by smt. simplify. cut ? : forall (j : int), 0 <= j < G.g{2} => getlsb (oget R'.ii{2}.[j]) = !R'.t{2}.[j] by smt. cut ? : forall (j : int), 0 <= j < G.g{2} => R.t{1}.[j] = R'.t{2}.[j] by smt. rewrite H26. smt. smt.
-    rewrite xor_false. rewrite get_set. smt. rewrite get_set. case (C.bb{2}.[G.g{2}] = G.g{2}) => hc. rewrite hc. simplify. rewrite oget_some. rewrite (Dword.lsb_dwordLsb (trndL) _). exact H14. reflexivity. cut ->: G.g{2} = C.bb{2}.[G.g{2}] <=> false by smt. simplify. cut ? : forall (j : int), 0 <= j < G.g{2} => getlsb (oget R'.vv{2}.[j]) = R'.t{2}.[j] by smt. cut ? : forall (j : int), 0 <= j < G.g{2} => R.t{1}.[j] = R'.t{2}.[j] by smt. rewrite H26. smt. smt.
-    rewrite xor_true. rewrite get_set. smt. rewrite get_set. case (C.aa{2}.[G.g{2}] = G.g{2}) => hc. rewrite hc. simplify. rewrite oget_some. rewrite (Dword.lsb_dwordLsb (!trndL) _). exact H16. reflexivity. cut ->: G.g{2} = C.aa{2}.[G.g{2}] <=> false by smt. simplify. cut ? : forall (j : int), 0 <= j < G.g{2} => getlsb (oget R'.ii{2}.[j]) = !R'.t{2}.[j] by smt. cut ? : forall (j : int), 0 <= j < G.g{2} => R.t{1}.[j] = R'.t{2}.[j] by smt. rewrite H26. smt. smt.
-    rewrite xor_false. rewrite get_set. smt. rewrite get_set. case (C.bb{2}.[G.g{2}] = G.g{2}) => hc. rewrite hc. simplify. rewrite oget_some. rewrite (Dword.lsb_dwordLsb (trndL) _). exact H14. reflexivity. cut ->: G.g{2} = C.bb{2}.[G.g{2}] <=> false by smt. simplify. cut ? : forall (j : int), 0 <= j < G.g{2} => getlsb (oget R'.vv{2}.[j]) = R'.t{2}.[j] by smt. cut ? : forall (j : int), 0 <= j < G.g{2} => R.t{1}.[j] = R'.t{2}.[j] by smt. rewrite H26. smt. smt.
-    rewrite xor_true. rewrite ?get_set. simplify. case (G.g{2} = C.aa{2}.[G.g{2}]) => hc. simplify. case ((! C.v{2}.[C.aa{2}.[G.g{2}]]) = ! C.v{2}.[C.aa{2}.[C.aa{2}.[G.g{2}]]]) => hc'.  rewrite -hc. by simplify. rewrite -hc.  by simplify. simplify. smt. 
-    rewrite xor_false. rewrite ?get_set. simplify. case (G.g{2} = C.bb{2}.[G.g{2}]) => hc. simplify. case ((! C.v{2}.[C.bb{2}.[G.g{2}]]) = C.v{2}.[C.bb{2}.[C.bb{2}.[G.g{2}]]]) => hc'. rewrite -hc. cut ->: (! C.v{2}.[G.g{2}]) = C.v{2}.[G.g{2}] <=> false by smt. by simplify. rewrite -hc. cut ->: (! C.v{2}.[G.g{2}]) = C.v{2}.[G.g{2}] <=> false by smt. by simplify. simplify. smt. 
-    rewrite xor_true. rewrite ?get_set. smt. case (C.aa{2}.[G.g{2}] = G.g{2}) => hc. rewrite hc. simplify. rewrite (Dword.lsb_dwordLsb (!trndL) _). exact H16. reflexivity. cut ->: G.g{2} = C.aa{2}.[G.g{2}] <=> false by smt. simplify. cut ? : forall (j : int), 0 <= j < G.g{2} => getlsb (oget R'.ii{2}.[j]) = !R'.t{2}.[j] by smt. cut ? : forall (j : int), 0 <= j < G.g{2} => R.t{1}.[j] = R'.t{2}.[j] by smt. rewrite H26. smt. smt.
-    rewrite xor_true. rewrite ?get_set. smt. case (C.bb{2}.[G.g{2}] = G.g{2}) => hc. rewrite hc. simplify. rewrite (Dword.lsb_dwordLsb (!trndL) _). exact H16. reflexivity. cut ->: G.g{2} = C.bb{2}.[G.g{2}] <=> false by smt. simplify. cut ? : forall (j : int), 0 <= j < G.g{2} => getlsb (oget R'.ii{2}.[j]) = !R'.t{2}.[j] by smt. cut ? : forall (j : int), 0 <= j < G.g{2} => R.t{1}.[j] = R'.t{2}.[j] by smt. rewrite H26. smt. smt.
-    rewrite xor_true. rewrite ?get_set. smt. case (C.aa{2}.[G.g{2}] = G.g{2}) => hc. rewrite hc. simplify. rewrite (Dword.lsb_dwordLsb (!trndL) _). exact H16. reflexivity. cut ->: G.g{2} = C.aa{2}.[G.g{2}] <=> false by smt. simplify. cut ? : forall (j : int), 0 <= j < G.g{2} => getlsb (oget R'.ii{2}.[j]) = !R'.t{2}.[j] by smt. cut ? : forall (j : int), 0 <= j < G.g{2} => R.t{1}.[j] = R'.t{2}.[j] by smt. rewrite H26. smt. smt.
-    rewrite xor_true. rewrite ?get_set. smt. case (C.bb{2}.[G.g{2}] = G.g{2}) => hc. rewrite hc. simplify. rewrite (Dword.lsb_dwordLsb (!trndL) _). exact H16. reflexivity. cut ->: G.g{2} = C.bb{2}.[G.g{2}] <=> false by smt. simplify. cut ? : forall (j : int), 0 <= j < G.g{2} => getlsb (oget R'.ii{2}.[j]) = !R'.t{2}.[j] by smt. cut ? : forall (j : int), 0 <= j < G.g{2} => R.t{1}.[j] = R'.t{2}.[j] by smt. rewrite H26. smt. smt.
-    rewrite xor_true. rewrite ?get_set. simplify. case (G.g{2} = C.aa{2}.[G.g{2}]) => hc. simplify. case ((! C.v{2}.[C.aa{2}.[G.g{2}]]) = ! C.v{2}.[C.aa{2}.[C.aa{2}.[G.g{2}]]]) => hc'. rewrite -hc. by simplify. rewrite -hc. by simplify. simplify. smt. 
-    rewrite xor_true. rewrite ?get_set. simplify. case (G.g{2} = C.bb{2}.[G.g{2}]) => hc. simplify. case ((! C.v{2}.[C.bb{2}.[G.g{2}]]) = ! C.v{2}.[C.bb{2}.[C.bb{2}.[G.g{2}]]]) => hc'. rewrite -hc. by simplify. rewrite -hc. by simplify. simplify. smt. 
+    rewrite xor_false. rewrite ?get_set. smt. rewrite getP. cut ->: C.aa{2}.[G.g{2}] = G.g{2} <=> false by smt. simplify. smt. 
+    rewrite xor_false. rewrite ?get_set. smt. rewrite getP. cut ->: C.bb{2}.[G.g{2}] = G.g{2} <=> false by smt. simplify. smt. 
+    rewrite xor_false. rewrite ?get_set. smt. rewrite getP. cut ->: C.aa{2}.[G.g{2}] = G.g{2} <=> false by smt. simplify. smt. 
+    rewrite xor_false. rewrite ?get_set ?getP. smt. cut ->: C.bb{2}.[G.g{2}] = G.g{2} <=> false by smt. simplify. smt. 
+    rewrite xor_false. rewrite ?getP. simplify. cut ->: C.aa{2}.[G.g{2}] = G.g{2} <=> false by smt. simplify. smt.  
+    rewrite xor_false. rewrite ?getP. simplify. cut ->: C.bb{2}.[G.g{2}] = G.g{2} <=> false by smt. simplify. smt. 
+    rewrite ?getP. simplify. cut ->: C.v{2}.[G.g{2}] = ! C.v{2}.[G.g{2}] <=> false by smt. by simplify. 
+    rewrite xor_false. rewrite ?get_set ?getP. smt. cut ->: C.aa{2}.[G.g{2}] = G.g{2} <=> false by smt. simplify.  cut ? : forall (j : int), 0 <= j < G.g{2} => getlsb (oget R'.vv{2}.[j]) = R'.t{2}.[j] by smt. cut ? : forall (j : int), 0 <= j < G.g{2} => R.t{1}.[j] = R'.t{2}.[j] by smt. rewrite H26. smt. rewrite H27. smt. reflexivity.
+    rewrite xor_true. rewrite ?get_set ?getP. smt. cut ->: C.bb{2}.[G.g{2}] = G.g{2} <=> false by smt. simplify. cut ? : forall (j : int), 0 <= j < G.g{2} => getlsb (oget R'.ii{2}.[j]) = !R'.t{2}.[j] by smt. cut ? : forall (j : int), 0 <= j < G.g{2} => R.t{1}.[j] = R'.t{2}.[j] by smt. rewrite H26. smt. rewrite H27. smt. reflexivity.
+    rewrite xor_false. rewrite ?get_set ?getP. smt. cut ->: C.aa{2}.[G.g{2}] = G.g{2} <=> false by smt. simplify. cut ? : forall (j : int), 0 <= j < G.g{2} => getlsb (oget R'.vv{2}.[j]) = R'.t{2}.[j] by smt. cut ? : forall (j : int), 0 <= j < G.g{2} => R.t{1}.[j] = R'.t{2}.[j] by smt. rewrite H26. smt. rewrite H27. smt. reflexivity.
+    rewrite xor_true. rewrite ?get_set ?getP. smt. cut ->: C.bb{2}.[G.g{2}] = G.g{2} <=> false by smt. simplify. cut ? : forall (j : int), 0 <= j < G.g{2} => getlsb (oget R'.ii{2}.[j]) = !R'.t{2}.[j] by smt. cut ? : forall (j : int), 0 <= j < G.g{2} => R.t{1}.[j] = R'.t{2}.[j] by smt. rewrite H26. smt. rewrite H27. smt. reflexivity.
+    rewrite xor_false. rewrite ?get_set ?getP. simplify. cut ->: (C.aa{2}.[G.g{2}] = G.g{2}) <=> false by smt. simplify. smt. 
+    rewrite xor_true. rewrite ?get_set ?getP. simplify. cut ->: (C.bb{2}.[G.g{2}] = G.g{2}) <=> false by smt. simplify. smt. 
+    rewrite xor_true. rewrite ?get_set ?getP. smt. cut ->: (C.aa{2}.[G.g{2}] = G.g{2}) <=> false by smt. simplify. smt.
+    rewrite xor_false. rewrite ?get_set ?getP. smt. cut ->: (C.bb{2}.[G.g{2}] = G.g{2}) <=> false by smt. simplify. smt. 
+    rewrite xor_true. rewrite ?get_set ?getP. smt. cut ->: (C.aa{2}.[G.g{2}] = G.g{2}) <=> false by smt. simplify. smt.
+    rewrite xor_false. rewrite ?get_set ?getP. smt. cut ->: (C.bb{2}.[G.g{2}] = G.g{2}) <=> false by smt. simplify. smt. 
+    rewrite xor_true. rewrite ?get_set ?getP. simplify. cut ->: (C.aa{2}.[G.g{2}] = G.g{2}) <=> false by smt. simplify. smt. 
+    rewrite xor_false. rewrite ?get_set ?getP. simplify. cut ->: (C.bb{2}.[G.g{2}] = G.g{2}) <=> false by smt. simplify. smt. 
+    rewrite xor_true. rewrite ?get_set ?getP. smt. simplify. cut ->: (C.aa{2}.[G.g{2}] = G.g{2}) <=> false by smt. simplify. smt. 
+    rewrite xor_true. rewrite ?get_set ?getP. smt. simplify. cut ->: (C.bb{2}.[G.g{2}] = G.g{2}) <=> false by smt. simplify. smt. 
+    rewrite xor_true. rewrite ?get_set ?getP. smt. simplify. cut ->: (C.aa{2}.[G.g{2}] = G.g{2}) <=> false by smt. simplify. smt. 
+    rewrite xor_true. rewrite ?get_set ?getP. smt. simplify. cut ->: (C.bb{2}.[G.g{2}] = G.g{2}) <=> false by smt. simplify. smt. 
+    rewrite xor_true. rewrite ?get_set ?getP. simplify. cut ->: (C.aa{2}.[G.g{2}] = G.g{2}) <=> false by smt. simplify. smt. 
+    rewrite xor_true. rewrite ?get_set ?getP. simplify. cut ->: (C.bb{2}.[G.g{2}] = G.g{2}) <=> false by smt. simplify. smt. 
     rewrite ?get_set. smt. smt. case (j = G.g{2}) => hc. reflexivity. smt.
-    rewrite ?get_set. simplify. case (G.g{2} = j) => hc. simplify. rewrite hc. simplify. case ((! C.v{2}.[j]) = C.v{2}.[j]) => hc'. smt. reflexivity. simplify. smt. 
-    rewrite ?get_set. simplify. case (G.g{2} = j) => hc. simplify. rewrite hc. by simplify. simplify. smt. 
-    rewrite ?get_set. simplify. case (G.g{2} = j) => hc. simplify. rewrite hc. simplify. cut ->: (! C.v{2}.[j]) = C.v{2}.[j] <=> false by smt. by simplify. simplify. smt. 
-    rewrite ?get_set. simplify. case (G.g{2} = j) => hc. simplify. rewrite hc. by simplify. simplify. smt. 
-    rewrite ?get_set. smt. case (G.g{2} = j) => hc. rewrite hc. simplify. smt. cut ->: j = G.g{2} <=> false by smt. simplify. smt.
-    rewrite ?get_set. smt. case (G.g{2} = j) => hc. rewrite hc. simplify. smt. cut ->: j = G.g{2} <=> false by smt. simplify. smt.
+    rewrite ?getP. simplify. case (j = G.g{2}) => hc. simplify. rewrite hc. cut ->: C.v{2}.[G.g{2}] = ! C.v{2}.[G.g{2}] <=> false by smt. by simplify. simplify. smt. 
+    rewrite ?getP. simplify. case (j = G.g{2}) => hc. simplify. rewrite hc. by simplify. simplify. smt. 
+    rewrite ?getP. simplify. case (j = G.g{2}) => hc. simplify. rewrite hc. simplify. cut ->: C.v{2}.[G.g{2}] = ! C.v{2}.[G.g{2}] <=> false by smt. by simplify. simplify. smt.
+    rewrite ?getP. simplify. case (j = G.g{2}) => hc. rewrite hc. by simplify. simplify. smt. 
+    rewrite ?get_set ?getP. smt. case (j = G.g{2}) => hc. smt. smt.
+    rewrite ?get_set ?getP. smt. case (j = G.g{2}) => hc. smt. smt. 
     rewrite size_set. exact H7.
     rewrite size_set. exact H8.
 
@@ -2758,8 +2766,8 @@ theory SomeGarble.
     (*G.yy{2} = offun (fun (_ : int) => W.zeros) (C.n{2} + C.q{2}) /\*)
     G.pp{1} = G.pp{2} /\
     G.yy{1} = G.yy{2} /\
-    G.randG{1} = FMap.empty /\
-    G.randG{2} = FMap.empty /\
+    G.randG{1} = map0 /\
+    G.randG{2} = map0 /\
     (*G.a{1} = 0 /\
     G.a{2} = 0 /\
     G.b{1} = 0 /\
@@ -2782,29 +2790,29 @@ theory SomeGarble.
     inline*. auto. progress. smt. smt.
 
     rewrite ?get_set. smt. smt. case (j = G.g{2}) => hc. done. smt.
-    rewrite ?get_set. simplify. case (G.g{2} = j) => hc. simplify. rewrite hc. simplify. cut ->: (! C.v{2}.[j]) = C.v{2}.[j] <=> false by smt. by simplify. simplify. smt.
-    rewrite ?get_set. simplify. case (G.g{2} = j) => hc. simplify. rewrite hc. by simplify. simplify. smt. 
-    rewrite ?get_set. simplify. case (G.g{2} = j) => hc. simplify. rewrite hc. simplify. cut ->: (! C.v{2}.[j]) = C.v{2}.[j] <=> false by smt. by simplify. simplify. smt.
-    rewrite ?get_set. simplify. case (G.g{2} = j) => hc. simplify. rewrite hc. by simplify. simplify. smt. 
-    rewrite ?get_set. smt. case (G.g{2} = j) => hc. rewrite hc. simplify. rewrite (Dword.lsb_dwordLsb trndL _). exact H13. reflexivity. cut ->: j = G.g{2} <=> false by smt. simplify. smt.
-    rewrite ?get_set. smt. case (G.g{2} = j) => hc. rewrite hc. simplify. rewrite (Dword.lsb_dwordLsb (!trndL) _). exact H15. reflexivity. cut ->: j = G.g{2} <=> false by smt. simplify. smt.
+    rewrite ?getP. simplify. case (j = G.g{2}) => hc. simplify. rewrite hc. cut ->: C.v{2}.[G.g{2}] = ! C.v{2}.[G.g{2}] <=> false by smt. by simplify. simplify. smt.
+    rewrite ?getP. simplify. case (j = G.g{2}) => hc. simplify. rewrite hc. by simplify. simplify. smt.
+    rewrite ?getP. simplify. case (j = G.g{2}) => hc. simplify. rewrite hc. cut ->: C.v{2}.[G.g{2}] = ! C.v{2}.[G.g{2}] <=> false by smt. by simplify. simplify. smt.
+    rewrite ?getP. simplify. case (j = G.g{2}) => hc. rewrite hc. by simplify. simplify. smt. 
+    rewrite ?get_set ?getP. smt. case (j = G.g{2}) => hc. smt. smt. 
+    rewrite ?get_set ?getP. smt. case (j = G.g{2}) => hc. smt. smt. 
     rewrite size_set. exact H7.
     rewrite size_set. exact H8.
 
     skip. progress.
     smt.
-    by rewrite ?get_empty.
-    by rewrite ?get_empty.
-    by rewrite ?get_empty.
-    by rewrite ?get_empty.
+    by rewrite ?map0P.
+    by rewrite ?map0P.
+    by rewrite ?map0P.
+    by rewrite ?map0P.
     smt.
     smt.
     smt.
     cut ->: g_R = C.n{2} by smt. case (real{2}) => hc. cut ->: C.n{2} = query{2}.`2.`1.`1.`1 by smt. cut ->: C.q{2} = query{2}.`2.`1.`1.`3 by smt. cut ->: C.m{2} = query{2}.`2.`1.`1.`2 by smt. smt. cut ->: C.n{2} = query{2}.`1.`1.`1.`1 by smt. cut ->: C.q{2} = query{2}.`1.`1.`1.`3 by smt. cut ->: C.m{2} = query{2}.`1.`1.`1.`2 by smt. smt.
     by smt.
     by smt.
-    simplify encode. congr. apply fun_ext. rewrite /(==). move => x. congr. simplify inputK. case (real{2}) => hc. simplify fst snd. cut ->: query{2}.`2.`1.`1 = (C.n{2}, C.m{2}, C.q{2}, C.aa{2}, C.bb{2}) by smt. simplify. rewrite ?get_filter. simplify. case (0 <= x < C.n{2}) => hc'; last by done. cut ->: query{2}.`2.`2.[x] = C.v{2}.[x]. cut := H27 x. rewrite hc. simplify. simplify fst snd. move => hevali. rewrite hevali. smt. simplify evali. simplify fst snd. cut ->: query{2}.`2.`1.`1 = (C.n{2}, C.m{2}, C.q{2}, C.aa{2}, C.bb{2}) by smt. simplify. simplify extract evalComplete. rewrite appendInit_get1. smt. smt. reflexivity. smt. simplify fst snd. cut ->: query{2}.`1.`1.`1 = (C.n{2}, C.m{2}, C.q{2}, C.aa{2}, C.bb{2}) by smt. simplify. rewrite ?get_filter. simplify. case (0 <= x < C.n{2}) => hc'; last by done. cut ->: query{2}.`1.`2.[x] = C.v{2}.[x]. cut := H27 x. rewrite hc. simplify. simplify fst snd. move => hevali. rewrite hevali. smt. simplify evali. simplify fst snd. cut ->: query{2}.`1.`1.`1 = (C.n{2}, C.m{2}, C.q{2}, C.aa{2}, C.bb{2}) by smt. simplify. simplify extract evalComplete. rewrite appendInit_get1. smt. smt. reflexivity. smt. 
-    smt tmo=30.
+    simplify encode. congr. apply fun_ext. rewrite /(==). move => x. congr. simplify inputK. case (real{2}) => hc. simplify fst snd. cut ->: query{2}.`2.`1.`1 = (C.n{2}, C.m{2}, C.q{2}, C.aa{2}, C.bb{2}) by smt. simplify. rewrite ?filterP. simplify. case (0 <= x < C.n{2}) => hc'; last by done. cut ->: query{2}.`2.`2.[x] = C.v{2}.[x]. cut := H27 x. rewrite hc. simplify. simplify fst snd. move => ->. smt. simplify evali. simplify fst snd. cut ->: query{2}.`2.`1.`1 = (C.n{2}, C.m{2}, C.q{2}, C.aa{2}, C.bb{2}) by smt. simplify. simplify extract evalComplete. rewrite appendInit_get1. smt. smt. reflexivity. smt. simplify fst snd. cut ->: query{2}.`1.`1.`1 = (C.n{2}, C.m{2}, C.q{2}, C.aa{2}, C.bb{2}) by smt. simplify. rewrite ?filterP. simplify. case (0 <= x < C.n{2}) => hc'; last by done. cut ->: query{2}.`1.`2.[x] = C.v{2}.[x]. cut := H27 x. rewrite hc. simplify. simplify fst snd. move => hevali. rewrite hevali. smt. simplify evali. simplify fst snd. cut ->: query{2}.`1.`1.`1 = (C.n{2}, C.m{2}, C.q{2}, C.aa{2}, C.bb{2}) by smt. simplify. simplify extract evalComplete. rewrite appendInit_get1. smt. smt. reflexivity. smt. 
+    move : H. rewrite /queryValid_IND /valid_plain /validInputs ?valid_wireinput /valid_circuitP. simplify fst snd. smt.
     by auto.
   qed.
 
@@ -2836,8 +2844,8 @@ theory SomeGarble.
       var tok : word;
 
       G.yy = Array.offun (fun x, (W.zeros)) (C.n + C.q);
-      G.pp = FMap.empty;
-      G.randG = FMap.empty;
+      G.pp = map0;
+      G.randG = map0;
       G.a = 0;
       G.b = 0;
 
@@ -2939,11 +2947,11 @@ theory SomeGarble.
       (forall k a b, k < C.n{1} => G.pp{2}.[(k,a,b)] = None) /\
       (forall k a b, G.g{1} <= k => G.pp{2}.[(k,a,b)] = None)).
       inline*. auto. progress. by cut : false by smt. by cut : false by smt. by cut : false by smt. by cut : false by smt. by cut : false by smt. by cut : false by smt. by cut : false by smt. smt. smt. 
-      cut ->: C.aa{2}.[G.g{2}] <= -1 <=> false by smt. cut ->: C.bb{2}.[G.g{2}] <= -1 <=> false by smt. simplify. rewrite ?get_set. simplify. case (G.g{2} = k) => hc. simplify. case (R.t{2}.[C.aa{2}.[G.g{2}]] ^^ true = a) => ha. case (R.t{2}.[C.bb{2}.[G.g{2}]] ^^ true = b) => hb. simplify. congr. congr. smt. smt. congr. rewrite H3. smt. reflexivity. simplify. cut ->: R.t{2}.[C.bb{2}.[G.g{2}]] ^^ false = b <=> true by smt. simplify. congr. smt. smt. congr. rewrite H3. smt. reflexivity. simplify. cut ->: R.t{2}.[C.aa{2}.[G.g{2}]] ^^ false = a <=> true by smt. simplify. case (R.t{2}.[C.bb{2}.[G.g{2}]] ^^ true = b) => hb. congr. congr. rewrite H3. smt. reflexivity. rewrite H3. smt. reflexivity. rewrite H3. smt. reflexivity. cut ->: R.t{2}.[C.bb{2}.[G.g{2}]] ^^ false = b <=> true by smt. simplify. congr. rewrite H3. smt. reflexivity. rewrite H3. smt. reflexivity. rewrite H3. smt. reflexivity. simplify. rewrite H4. smt. reflexivity. 
-    rewrite ?get_set. simplify. cut ->: G.g{2} = k <=> false by smt. simplify. rewrite H5. exact H18. reflexivity.
-    rewrite ?get_set. simplify. cut ->: G.g{2} = k <=> false by smt. simplify. rewrite H6. smt. reflexivity.
-    rewrite ?get_set. simplify. cut ->: G.g{2} = k <=> false by smt. simplify. rewrite H7. exact H18. reflexivity.
-    rewrite ?get_set. simplify. cut ->: G.g{2} = k <=> false by smt. simplify. rewrite H8. smt. reflexivity.
+      cut ->: C.aa{2}.[G.g{2}] <= -1 <=> false by smt. cut ->: C.bb{2}.[G.g{2}] <= -1 <=> false by smt. simplify. rewrite ?getP. simplify. case (k = G.g{2}) => hc. simplify. case (a = R.t{2}.[C.aa{2}.[G.g{2}]] ^^ true) => ha. case (b = R.t{2}.[C.bb{2}.[G.g{2}]] ^^ true) => hb. simplify. congr. congr. smt. smt. congr. rewrite H3. smt. reflexivity. simplify. cut ->: b = R.t{2}.[C.bb{2}.[G.g{2}]] ^^ false <=> true by smt. simplify. congr. smt. smt. congr. rewrite H3. smt. reflexivity. simplify. cut ->: a = R.t{2}.[C.aa{2}.[G.g{2}]] ^^ false <=> true by smt. simplify. case (b = R.t{2}.[C.bb{2}.[G.g{2}]] ^^ true) => hb. congr. congr. rewrite H3. smt. reflexivity. rewrite H3. smt. reflexivity. rewrite H3. smt. reflexivity. cut ->: b = R.t{2}.[C.bb{2}.[G.g{2}]] ^^ false <=> true by smt. simplify. congr. rewrite H3. smt. reflexivity. rewrite H3. smt. reflexivity. rewrite H3. smt. reflexivity. simplify. rewrite H4. smt. reflexivity. 
+    rewrite ?getP. simplify. cut ->: k = G.g{2} <=> false by smt. simplify. rewrite H5. exact H18. reflexivity.
+    rewrite ?getP. simplify. cut ->: k = G.g{2} <=> false by smt. simplify. rewrite H6. smt. reflexivity.
+    rewrite ?getP. simplify. cut ->: k = G.g{2} <=> false by smt. simplify. rewrite H7. exact H18. reflexivity.
+    rewrite ?getP. simplify. cut ->: k = G.g{2} <=> false by smt. simplify. rewrite H8. smt. reflexivity.
     wp.
     call RandomInitEquiv.
     call CircuitInitEquiv.
@@ -2953,12 +2961,12 @@ theory SomeGarble.
     move : H4. simplify validInputsP valid_circuitP. simplify fst snd. progress. smt. 
     move : H4. simplify validInputsP valid_circuitP. simplify fst snd. progress. smt.
     case (b = v_R.[k]) => hb. rewrite hb. rewrite H10. smt. reflexivity. cut ->: b = !v_R.[k] by smt. rewrite H11. smt. reflexivity.
-    by rewrite get_empty.
-    by rewrite get_empty.
-    by rewrite get_empty.
-    by rewrite get_empty.
-    apply map_ext. rewrite /(==) => x. elim x => k a b. case (n_R <= k < g_R) => hk. rewrite H23. exact hk. reflexivity. smt. 
-    simplify encode. congr. apply fun_ext. rewrite /(==) => x. congr. simplify inputK. simplify fst snd. rewrite ?get_filter. simplify. case (0 <= x < n_R) => hc. rewrite H22. smt. reflexivity. reflexivity. 
+    by rewrite map0P.
+    by rewrite map0P.
+    by rewrite map0P.
+    by rewrite map0P.
+    apply fmapP. rewrite /(==) => x. elim x => k a b. case (n_R <= k < g_R) => hk. rewrite H23. exact hk. reflexivity. smt. 
+    simplify encode. congr. apply fun_ext. rewrite /(==) => x. congr. simplify inputK. simplify fst snd. rewrite ?filterP. simplify. case (0 <= x < n_R) => hc. rewrite H22. smt. smt. reflexivity.  
   qed.    
 
   (**************************************************************)
@@ -3013,7 +3021,7 @@ theory SomeGarble.
       validInputsP (((C.n{1}, C.m{1}, C.q{1}, C.aa{1}, C.bb{1}), C.gg{1}), C.x{1}) /\
       C.n{1} <= G.g{1} <= C.n{1} + C.q{1} /\
       l{2} = bound-1 /\
-      l{2} = l0{2} /\
+      l0{2} = l{2} /\
       (forall k b, 0 <= k < C.n{1} + C.q{1} => R.xx{1}.[(k,b)] = R.xx{2}.[(k,b)]) /\
       (forall k a b, C.n{1} <= k < G.g{1} => G.pp{1}.[(k,a,b)] = G.pp{2}.[(k,a,b)]) /\
       (forall k a b, k < C.n{1} => G.pp{1}.[(k,a,b)] = None) /\
@@ -3021,11 +3029,11 @@ theory SomeGarble.
       (forall k a b, k < C.n{1} => G.pp{2}.[(k,a,b)] = None) /\
       (forall k a b, G.g{1} <= k => G.pp{2}.[(k,a,b)] = None)).
       inline*. auto. progress. by cut : false by smt. by cut : false by smt. by cut : false by smt. by cut : false by smt. by cut : false by smt. by cut : false by smt. by cut : false by smt. smt. smt. 
-      cut ->: C.aa{2}.[G.g{2}] <= bound-1 <=> true by smt. cut ->: C.bb{2}.[G.g{2}] <= bound-1 <=> true by smt. simplify. rewrite ?get_set. simplify. case (G.g{2} = k) => hc. simplify. case (R.t{2}.[C.aa{2}.[G.g{2}]] ^^ true = a) => ha. case (R.t{2}.[C.bb{2}.[G.g{2}]] ^^ true = b) => hb. simplify. congr. congr. smt. smt. congr. rewrite ?H3. smt. smt. reflexivity. simplify. cut ->: R.t{2}.[C.bb{2}.[G.g{2}]] ^^ false = b <=> true by smt. simplify. congr. smt. smt. simplify. cut ->: R.t{2}.[C.aa{2}.[G.g{2}]] ^^ false = a <=> true by smt. simplify. case (R.t{2}.[C.bb{2}.[G.g{2}]] ^^ true = b) => hb. congr. congr. rewrite H3. smt. reflexivity. rewrite H3. smt. reflexivity. rewrite H3. smt. cut ->: R.t{2}.[C.bb{2}.[G.g{2}]] ^^ false = b <=> true by smt. simplify. congr. rewrite H3. smt. reflexivity. rewrite H3. smt tmo=30. reflexivity. simplify. rewrite H4. smt. reflexivity. 
-    rewrite ?get_set. simplify. cut ->: G.g{2} = k <=> false by smt. simplify. rewrite H5. exact H18. reflexivity.
-    rewrite ?get_set. simplify. cut ->: G.g{2} = k <=> false by smt. simplify. rewrite H6. smt. reflexivity.
-    rewrite ?get_set. simplify. cut ->: G.g{2} = k <=> false by smt. simplify. rewrite H7. exact H18. reflexivity.
-    rewrite ?get_set. simplify. cut ->: G.g{2} = k <=> false by smt. simplify. rewrite H8. smt. reflexivity.
+      cut ->: C.aa{2}.[G.g{2}] <= bound-1 <=> true by smt. cut ->: C.bb{2}.[G.g{2}] <= bound-1 <=> true by smt. simplify. rewrite ?getP. simplify. case (k = G.g{2}) => hc. simplify. case (a = R.t{2}.[C.aa{2}.[G.g{2}]] ^^ true) => ha. case (b = R.t{2}.[C.bb{2}.[G.g{2}]] ^^ true) => hb. simplify. congr. congr. smt. smt. congr. congr. congr. rewrite H3. smt. reflexivity. rewrite H3. smt. reflexivity. simplify. cut ->: b = R.t{2}.[C.bb{2}.[G.g{2}]] ^^ false <=> true by smt. simplify. congr. smt. smt. congr. congr. congr. rewrite H3. smt. reflexivity. rewrite H3. smt. reflexivity. simplify. cut ->: a = R.t{2}.[C.aa{2}.[G.g{2}]] ^^ false <=> true by smt. simplify. case (b = R.t{2}.[C.bb{2}.[G.g{2}]] ^^ true) => hb. congr. congr. rewrite H3. smt. reflexivity. rewrite H3. smt. reflexivity. rewrite H3. smt. cut ->: b = R.t{2}.[C.bb{2}.[G.g{2}]] ^^ false <=> true by smt. simplify. congr. rewrite H3. smt. reflexivity. rewrite H3. smt tmo=30. reflexivity. simplify. rewrite H4. smt. reflexivity. 
+    rewrite ?getP. simplify. cut ->: k = G.g{2} <=> false by smt. simplify. rewrite H5. exact H18. reflexivity.
+    rewrite ?getP. simplify. cut ->: k = G.g{2} <=> false by smt. simplify. rewrite H6. smt. reflexivity.
+    rewrite ?getP. simplify. cut ->: k = G.g{2} <=> false by smt. simplify. rewrite H7. exact H18. reflexivity.
+    rewrite ?getP. simplify. cut ->: k = G.g{2} <=> false by smt. simplify. rewrite H8. smt. reflexivity.
     wp.
     call RandomInitEquiv.
     call CircuitInitEquiv.
@@ -3035,12 +3043,12 @@ theory SomeGarble.
     move : H4. simplify validInputsP valid_circuitP. simplify fst snd. progress. smt. 
     move : H4. simplify validInputsP valid_circuitP. simplify fst snd. progress. smt.
     case (b = v_R.[k]) => hb. rewrite hb. rewrite H10. smt. reflexivity. cut ->: b = !v_R.[k] by smt. rewrite H11. smt. reflexivity.
-    by rewrite get_empty.
-    by rewrite get_empty.
-    by rewrite get_empty.
-    by rewrite get_empty.
-    apply map_ext. rewrite /(==) => x. elim x => k a b. case (n_R <= k < g_R) => hk. rewrite H23. exact hk. reflexivity. smt. 
-    simplify encode. congr. apply fun_ext. rewrite /(==) => x. congr. simplify inputK. simplify fst snd. rewrite ?get_filter. simplify. case (0 <= x < n_R) => hc. rewrite H22. smt. reflexivity. reflexivity. 
+    by rewrite map0P.
+    by rewrite map0P.
+    by rewrite map0P.
+    by rewrite map0P.
+    apply fmapP. rewrite /(==) => x. elim x => k a b. case (n_R <= k < g_R) => hk. rewrite H23. exact hk. reflexivity. smt. 
+    simplify encode. congr. apply fun_ext. rewrite /(==) => x. congr. simplify inputK. simplify fst snd. rewrite ?filterP. simplify. case (0 <= x < n_R) => hc. rewrite H22. smt. smt. reflexivity.  
   qed. 
 
   (*****************)
@@ -3152,7 +3160,7 @@ theory SomeGarble.
       var tok1, tok2, v, trnd;
       
       R.t = offun (fun x, false) (C.n + C.q);
-      R.xx = FMap.empty;
+      R.xx = map0;
 
       G.g = 0;
       while (G.g < C.n + C.q) {
@@ -3395,8 +3403,8 @@ theory SomeGarble.
       var tok, yy : word;
 
       G.yy = Array.offun (fun x, (W.zeros)) (C.n + C.q);
-      G.pp = FMap.empty;
-      G.randG = FMap.empty;
+      G.pp = map0;
+      G.randG = map0;
       G.a = 0;
       G.b = 0;
       
