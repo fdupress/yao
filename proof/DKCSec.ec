@@ -45,6 +45,7 @@ theory DKCSecurity.
     var rr : (int, word) fmap
     var kpub : (int, word) fmap
     var used : word fset
+    var lsb : bool
   }.
 
   module type DKC_t = {
@@ -56,16 +57,14 @@ theory DKCSecurity.
   module DKC : DKC_t = {    
     
     proc initialize(): bool = {
-      var lsb : bool;
-      var i : int;
 
-      lsb = ${0,1};
-      DKCp.ksec = $Dword.dwordLsb lsb;
+      DKCp.lsb = ${0,1};
+      DKCp.ksec = $Dword.dwordLsb DKCp.lsb;
       DKCp.kpub = map0;
       DKCp.used = FSet.fset0;
       DKCp.rr = map0;
       
-      return lsb;
+      return DKCp.lsb;
     }
 
     proc get_challenge() : bool = {
@@ -99,18 +98,18 @@ theory DKCSecurity.
       ans = bad;
       (i,j,pos,t) = q;
       
-      if (!(mem DKCp.used t || j < i)) {
-        DKCp.used = DKCp.used `|` fset1 t;
+      (*if (!(mem DKCp.used t || j < i)) {*)
+      DKCp.used = DKCp.used `|` fset1 t;
 
-        ki = get_k(i);
-        kj = get_k(j);
-        rj = get_r(j);
+      ki = get_k(i);
+      kj = get_k(j);
+      rj = get_r(j);
         
-        (aa,bb) = if pos then (DKCp.ksec, ki) else (ki, DKCp.ksec);
-        xx = if DKCp.b then kj else rj;
+      (aa,bb) = if pos then (DKCp.ksec, ki) else (ki, DKCp.ksec);
+      xx = if DKCp.b then kj else rj;
         
-        ans = (ki, kj, E t aa bb xx);
-      }
+      ans = (ki, kj, E t aa bb xx);
+      (*}*)
 
       return ans;
     }
@@ -154,7 +153,6 @@ theory DKCSecurity.
   proof.
     proc => //.
     seq 2 : true => //; first by auto.
-    if; last by auto.
     by wp; call get_r_ll; call get_k_ll; call get_k_ll; wp.
   qed.
 
