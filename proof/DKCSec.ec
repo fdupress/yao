@@ -53,6 +53,8 @@ theory DKCSecurity.
     proc encrypt(q : query_DKC) : answer_DKC
     proc get_challenge() : bool
   }.
+
+  op itb (x:int) = if x = 1 then true else false.
   
   module DKC : DKC_t = {    
     
@@ -74,17 +76,20 @@ theory DKCSecurity.
     proc get_k(i:int): word = {
       var k:word;
 
-      k = $Dword.dwordLsb (i %% 2 = 0);
-      if (!mem (dom DKCp.kpub) i) DKCp.kpub.[i] = k;
-      return oget DKCp.kpub.[i];
+      k = $Dword.dwordLsb (itb (i %% 2));
+      (*if (!mem (dom DKCp.kpub) i) DKCp.kpub.[i] = k;
+        return oget DKCp.kpub.[i];*)
+      return k;
     }
 
     proc get_r(i:int): word = {
       var r:word;
 
       r = $Dword.dword;
-      if (!mem (dom DKCp.rr) i) DKCp.rr.[i] = r;
-      return oget DKCp.rr.[i];
+      (*if (!mem (dom DKCp.rr) i) DKCp.rr.[i] = r;
+        return oget DKCp.rr.[i];*)
+
+      return r;
     }
     
     proc encrypt(q:query_DKC) : answer_DKC = {
