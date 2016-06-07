@@ -77,8 +77,8 @@ theory DKCSecurity.
       var k:word;
 
       k = $Dword.dwordLsb (itb (i %% 2));
-      (*if (!mem (dom DKCp.kpub) i) DKCp.kpub.[i] = k;
-        return oget DKCp.kpub.[i];*)
+      DKCp.kpub.[i] = k;
+  
       return k;
     }
 
@@ -86,8 +86,7 @@ theory DKCSecurity.
       var r:word;
 
       r = $Dword.dword;
-      (*if (!mem (dom DKCp.rr) i) DKCp.rr.[i] = r;
-        return oget DKCp.rr.[i];*)
+      DKCp.rr.[i] = r;
 
       return r;
     }
