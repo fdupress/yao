@@ -36,7 +36,7 @@ theory DKCSecurity.
   op bad : answer_DKC.
 
   module type Adv_DKC_t = {
-    proc garble(lsb:bool) : bool
+    proc garble() : bool
   }.
 
   module DKCp = {
@@ -60,13 +60,31 @@ theory DKCSecurity.
     
     proc initialize(): bool = {
 
-      DKCp.lsb = ${0,1};
-      DKCp.ksec = $Dword.dwordLsb DKCp.lsb;
+      DKCp.lsb = witness;
+      DKCp.ksec = witness;
       DKCp.kpub = map0;
       DKCp.used = FSet.fset0;
       DKCp.rr = map0;
       
       return DKCp.lsb;
+    }
+
+    proc get_lsb() : bool = {
+      var lsb : bool;
+      
+      lsb = ${0,1};
+      DKCp.lsb = lsb;
+
+      return lsb;
+    }
+
+    proc get_ksec () : word = {
+      var ksec : word;
+
+      ksec = $Dword.dwordLsb (DKCp.lsb);
+      DKCp.ksec = ksec;
+      
+      return ksec;
     }
 
     proc get_challenge() : bool = {
@@ -128,7 +146,7 @@ theory DKCSecurity.
       var b' : bool;
 
       lsb = D.initialize();
-      b' = A.garble(lsb);
+      b' = A.garble();
       return b' = b;
     }
 
@@ -152,7 +170,13 @@ theory DKCSecurity.
 
   lemma get_r_ll : islossless DKC.get_r.
   proof. by proc; auto; smt. qed.
-      
+
+  lemma get_ksec_ll : islossless DKC.get_ksec.
+  proof. by proc; auto; smt. qed.
+
+  lemma get_lsb_ll : islossless DKC.get_lsb.
+  proof. by proc; auto; smt. qed.
+
   lemma encrypt_ll : islossless DKC.encrypt.
   proof.
     proc => //.
