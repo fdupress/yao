@@ -250,29 +250,6 @@ module DKC_Adv (D : DKC_t, Adv_IND : GSch.EncSecurity.Adv_IND_t) : Adv_DKC_t = {
   }
 }.
 
-module SampleDword = {
-  proc sample () : word = {
-    var w : word;
-    w <$ Dword.dword;
-    return w;
-  }
-}.
-
-module SampleDwordLsb = {
-  proc sample () : word = {
-    var b : bool;
-    var w : word;
-    b <$ {0,1};
-    w <$ Dword.dwordLsb b;
-    return w;
-  }
-}.
-  
-lemma DwordDwordLsb_equiv:
-  equiv [ SampleDword.sample ~ SampleDwordLsb.sample
-    : true ==> ={res} ].
-proof. admit. qed.
-
 lemma GameHybrid_l1_sim (A <: GSch.EncSecurity.Adv_IND_t{DKC_Adv,DKCp,DKC}):
   islossless A.gen_query =>
   islossless A.get_challenge =>
