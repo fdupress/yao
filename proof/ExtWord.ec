@@ -95,7 +95,34 @@ theory Dword.
     except the last significant bit which is put at x 
   *)
   op dwordLsb : bool -> word distr.
+    
+  lemma dwordLsbE b p: mu (dwordLsb b) p = 1%r/(2^(length-1))%r.
+  proof. admit. qed.
 
+  (*lemma dword1E w: mu dword (pred1 w) = 1%r / (Alphabet.card^n)%r.
+  proof. by rewrite dwordE count_uniq_mem 1:enum_uniq // enumP /b2i. qed.
+
+  lemma support_dword w: support dword w.
+  proof.
+    rewrite /support /in_supp dword1E divr_gt0 //.
+    by rewrite lt_fromint; apply/powPos/Alphabet.card_gt0.
+  qed.
+
+  lemma dword_ll: mu dword predT = 1%r.
+  proof.
+    apply/duniform_ll/negP=> zw; move: (enumP witness).
+    by rewrite zw.
+  qed.
+
+  lemma dword_uf: is_uniform dword.
+  proof.
+    apply/duniform_uf/negP=> zw; move: (enumP witness).
+    by rewrite zw.
+  qed.
+
+  lemma dword_fu: support dword = predT.
+  proof. by rewrite pred_ext=> x; rewrite support_dword. qed.*)
+  
   (** Probability definition *)
   axiom dwordLsb_mu_x (b:bool) (x:word) : mu_x (dwordLsb b) x = if getlsb x = b then 1%r/(2^(length-1))%r else 0%r.
 

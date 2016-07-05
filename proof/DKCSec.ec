@@ -36,7 +36,7 @@ theory DKCSecurity.
   op bad : answer_DKC.
 
   module type Adv_DKC_t = {
-    proc garble() : bool
+    proc get_challenge() : bool
   }.
 
   module DKCp = {
@@ -60,22 +60,13 @@ theory DKCSecurity.
     
     proc initialize(): bool = {
 
-      DKCp.lsb = witness;
+      DKCp.lsb = ${0,1};
       DKCp.ksec = witness;
       DKCp.kpub = map0;
       DKCp.used = FSet.fset0;
       DKCp.rr = map0;
       
       return DKCp.lsb;
-    }
-
-    proc get_lsb() : bool = {
-      var lsb : bool;
-      
-      lsb = ${0,1};
-      DKCp.lsb = lsb;
-
-      return lsb;
     }
 
     proc get_ksec () : word = {
@@ -95,18 +86,18 @@ theory DKCSecurity.
       var k:word;
 
       k = $Dword.dwordLsb (itb (i %% 2));
-      DKCp.kpub.[i] = k;
+      if (!mem (dom DKCp.kpub) i) DKCp.kpub.[i] = k;
   
-      return k;
+      return oget DKCp.kpub.[i];
     }
 
     proc get_r(i:int): word = {
       var r:word;
 
       r = $Dword.dword;
-      DKCp.rr.[i] = r;
+      if (!mem (dom DKCp.rr) i) DKCp.rr.[i] = r;
 
-      return r;
+      return oget DKCp.rr.[i];
     }
     
     proc encrypt(q:query_DKC) : answer_DKC = {
@@ -120,18 +111,18 @@ theory DKCSecurity.
       ans = bad;
       (i,j,pos,t) = q;
       
-      (*if (!(mem DKCp.used t || j < i)) {*)
-      DKCp.used = DKCp.used `|` fset1 t;
+      if (!(mem DKCp.used t || j < i)) {
+        DKCp.used = DKCp.used `|` fset1 t;
 
-      ki = get_k(i);
-      kj = get_k(j);
-      rj = get_r(j);
+        ki = get_k(i);
+        kj = get_k(j);
+        rj = get_r(j);
         
-      (aa,bb) = if pos then (DKCp.ksec, ki) else (ki, DKCp.ksec);
-      xx = if DKCp.b then kj else rj;
+        (aa,bb) = if pos then (DKCp.ksec, ki) else (ki, DKCp.ksec);
+        xx = if DKCp.b then kj else rj;
         
-      ans = (ki, kj, E t aa bb xx);
-      (*}*)
+        ans = (ki, kj, E t aa bb xx);
+      }
 
       return ans;
     }
@@ -146,7 +137,7 @@ theory DKCSecurity.
       var b' : bool;
 
       lsb = D.initialize();
-      b' = A.garble();
+      b' = A.get_challenge();
       return b' = b;
     }
 
@@ -174,13 +165,11 @@ theory DKCSecurity.
   lemma get_ksec_ll : islossless DKC.get_ksec.
   proof. by proc; auto; smt. qed.
 
-  lemma get_lsb_ll : islossless DKC.get_lsb.
-  proof. by proc; auto; smt. qed.
-
   lemma encrypt_ll : islossless DKC.encrypt.
   proof.
     proc => //.
     seq 2 : true => //; first by auto.
+    if; last by trivial.
     by wp; call get_r_ll; call get_k_ll; call get_k_ll; wp.
   qed.
 
@@ -188,12 +177,12 @@ theory DKCSecurity.
   proof. by proc => //; auto; smt. qed.
 
   lemma game_ll (A <: Adv_DKC_t) :
-    islossless A.garble =>
+    islossless A.get_challenge =>
     islossless Game(DKC,A).game.
   proof. by move => Agarble_ll; proc; call Agarble_ll; call init_ll. qed.
 
   lemma main_ll (D <: DKC_t) (A <: Adv_DKC_t) :
-    islossless A.garble =>
+    islossless A.get_challenge =>
     islossless Game(DKC,A).main.
   proof.
     move => Agarble_ll; proc.

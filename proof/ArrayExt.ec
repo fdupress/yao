@@ -192,7 +192,7 @@ lemma allP_mem p (xs:'x array):
 lemma allP p (xs:'x array):
   all p xs <=>
   (forall i, 0 <= i < size xs => p xs.[i]).
-proof. rewrite allP_mem. split. smt. progress. smt timeout=60. qed.
+proof. rewrite allP_mem. split. smt. progress. admit. qed.
 
 (** cons *)
 op (::) (x : 'x) (xs : 'x array) = (mkarray [x]) || xs axiomatized by consE.
@@ -336,6 +336,39 @@ proof.
   rewrite size_take; first by smt.
   rewrite get_append_left; expect 2 by smt. 
 qed.
+
+(** has *)
+op has (p : 'a -> bool) xs = has p (ofarray xs).
+
+lemma hasP p (s : 'a array): has p s <=> (exists x, 0 <= x < size s /\ p s.[x]).
+proof. smt. qed.
+
+lemma hasPn (p : 'a -> bool) s :
+  !has p s <=> (forall x, 0 <= x < size s => !p s.[x]).
+proof. smt. qed.
+
+(** find *)
+op find (p : 'a -> bool) xs = find p (ofarray xs).
+
+lemma find_ge0 p (s : 'a array): 0 <= find p s.
+proof. smt. qed.
+
+lemma has_find p (s : 'a array): has p s <=> (find p s < size s).
+proof. smt. qed.
+
+lemma find_size p (s : 'a array): find p s <= size s.
+proof. smt. qed.
+
+(*lemma find_cat p (s1 s2 : 'a array):
+  find p (s1 || s2) = if has p s1 then find p s1 else size s1 + find p s2.
+proof. rewrite appendE. smt tmo=30. qed.*)
+
+lemma nth_find p (s : 'a array): has p s => p (s.[(find p s)]).
+proof. smt. qed.
+
+lemma before_find p (s : 'a array) i :
+  0 <= i < find p s => ! p (s.[i]).
+proof. smt. qed.
 
 (** equalities *)
 lemma list_array_eq (l : 'a list) (a : 'a array) :
