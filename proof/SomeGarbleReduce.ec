@@ -103,27 +103,16 @@ module AdvRandomInit (D : DKC_t) = {
     }
   }
 }.
-  
-lemma RandomInitEq_Adv:
-  equiv [RandomInit.init ~ AdvRandomInit(DKC).init :
-  ={glob C} /\ size C.v{1} = C.n{1} + C.q{1} /\
-  C.f{1} = ((C.n{1}, C.m{1}, C.q{1}, C.aa{1}, C.bb{1}), C.gg{1}) /\
-  validInputsP (C.f, C.x){1} /\
-  useVisible{1}  ==>
-    size R.t{1} = size R.t{2} /\
-    (size R.t = C.n + C.q){1} /\
-    ={R.t} /\
-    (R.t.[l] = !DKCp.lsb){2} /\
-    (forall k, 0 <= k < C.n{1} + C.q{1} => R.xx{1}.[(k, C.v{1}.[k])] = R.xx{2}.[(k, C.v{2}.[k])]) /\
-    (forall k, 0 <= k < C.n{1} + C.q{1} => k <> l => R.xx{1}.[(k, !C.v{1}.[k])] = R.xx{2}.[(k, !C.v{2}.[k])]) /\
-    (forall k, C.n{2} <= k < C.n{2} + C.q{2} => C.aa{2}.[k] = l => DKCp.kpub{2}.[2*C.bb{2}.[k] + bti (R.t{2}.[C.bb{2}.[k]])] = R.xx{2}.[(C.bb{2}.[k], C.v{2}.[C.bb{2}.[k]])]) /\
-    (forall k, C.n{2} <= k < C.n{2} + C.q{2} => C.aa{2}.[k] = l => DKCp.kpub{2}.[2*C.bb{2}.[k] + bti (!R.t{2}.[C.bb{2}.[k]])] = R.xx{2}.[(C.bb{2}.[k], !C.v{2}.[C.bb{2}.[k]])]) /\
-    (forall k, C.n{2} <= k < C.n{2} + C.q{2} => C.aa{2}.[k] = l => DKCp.kpub{2}.[2*k + bti (R.t{2}.[k] ^^ (C.v{2}.[k] ^^ oget C.gg{2}.[(k, !C.v{2}.[C.aa{2}.[k]], C.v{2}.[C.bb{2}.[k]])]))] = R.xx{2}.[(k, C.v{2}.[k] ^^ (C.v{2}.[k] ^^ oget C.gg{2}.[(k, !C.v{2}.[C.aa{2}.[k]], C.v{2}.[C.bb{2}.[k]])]))]) /\
-    (forall k, C.n{2} <= k < C.n{2} + C.q{2} => C.aa{2}.[k] = l => DKCp.kpub{2}.[2*k + bti (R.t{2}.[k] ^^ (C.v{2}.[k] ^^ oget C.gg{2}.[(k, !C.v{2}.[C.aa{2}.[k]], !C.v{2}.[C.bb{2}.[k]])]))] = R.xx{2}.[(k, C.v{2}.[k] ^^ (C.v{2}.[k] ^^ oget C.gg{2}.[(k, !C.v{2}.[C.aa{2}.[k]], !C.v{2}.[C.bb{2}.[k]])]))]) /\
-    (forall k, C.n{2} <= k < C.n{2} + C.q{2} => C.bb{2}.[k] = l => DKCp.kpub{2}.[2*C.aa{2}.[k] + bti (R.t{2}.[C.aa{2}.[k]])] = R.xx{2}.[(C.aa{2}.[k], C.v{2}.[C.aa{2}.[k]])]) /\
-    (forall k, C.n{2} <= k < C.n{2} + C.q{2} => C.bb{2}.[k] = l => DKCp.kpub{2}.[2*C.aa{2}.[k] + bti (!R.t{2}.[C.aa{2}.[k]])] = R.xx{2}.[(C.aa{2}.[k], !C.v{2}.[C.aa{2}.[k]])]) /\
-    (forall k, C.n{2} <= k < C.n{2} + C.q{2} => C.bb{2}.[k] = l => DKCp.kpub{2}.[2*k + bti (R.t{2}.[k] ^^ (C.v{2}.[k] ^^ oget C.gg{2}.[(k, C.v{2}.[C.aa{2}.[k]], !C.v{2}.[C.bb{2}.[k]])]))] = R.xx{2}.[(k, C.v{2}.[k] ^^ (C.v{2}.[k] ^^ oget C.gg{2}.[(k, C.v{2}.[C.aa{2}.[k]], !C.v{2}.[C.bb{2}.[k]])]))])].
-proof. admit. qed.
+
+lemma eq_distr b x:
+  in_supp b {0,1} =>
+  0 <= x =>
+  Dword.dwordLsb b = Dword.dwordLsb (itb ((2*x + bti b) %% 2)).
+proof.
+  move => hb hx.
+  by cut ->: b = (itb ((2 * x + bti b) %% 2));
+    case b; simplify bti; smt.   
+qed.
   
 module AdvInit (D : DKC_t) = {
     
@@ -192,32 +181,6 @@ module AdvInit (D : DKC_t) = {
 
 require import SomeGarbleHy.
 
-lemma HybridInitEq_Adv:
-  equiv [GarbleHybridInit.init ~ AdvInit(DKC).init :
-  ={glob C} /\ size C.v{1} = C.n{1} + C.q{1} /\
-  C.f{1} = ((C.n{1}, C.m{1}, C.q{1}, C.aa{1}, C.bb{1}), C.gg{1}) /\
-  validInputsP (C.f, C.x){1} /\
-  size R.t{1} = size R.t{2} /\
-  (size R.t = C.n + C.q){1} /\
-  ={R.t} /\
-  (R.t.[l] = !DKCp.lsb){2} /\
-  (forall k, 0 <= k < C.n{1} + C.q{1} => R.xx{1}.[(k, C.v{1}.[k])] = R.xx{2}.[(k, C.v{2}.[k])]) /\
-  (forall k, 0 <= k < C.n{1} + C.q{1} => k <> l => R.xx{1}.[(k, !C.v{1}.[k])] = R.xx{2}.[(k, !C.v{2}.[k])]) /\
-  (forall k, C.n{2} <= k < C.n{2} + C.q{2} => C.aa{2}.[k] = l => DKCp.kpub{2}.[2*C.bb{2}.[k] + bti (R.t{2}.[C.bb{2}.[k]])] = R.xx{2}.[(C.bb{2}.[k], C.v{2}.[C.bb{2}.[k]])]) /\
-  (forall k, C.n{2} <= k < C.n{2} + C.q{2} => C.aa{2}.[k] = l => DKCp.kpub{2}.[2*C.bb{2}.[k] + bti (!R.t{2}.[C.bb{2}.[k]])] = R.xx{2}.[(C.bb{2}.[k], !C.v{2}.[C.bb{2}.[k]])]) /\
-  (forall k, C.n{2} <= k < C.n{2} + C.q{2} => C.aa{2}.[k] = l => DKCp.kpub{2}.[2*k + bti (R.t{2}.[k] ^^ (C.v{2}.[k] ^^ oget C.gg{2}.[(k, !C.v{2}.[C.aa{2}.[k]], C.v{2}.[C.bb{2}.[k]])]))] = R.xx{2}.[(k, C.v{2}.[k] ^^ (C.v{2}.[k] ^^ oget C.gg{2}.[(k, !C.v{2}.[C.aa{2}.[k]], C.v{2}.[C.bb{2}.[k]])]))]) /\
-  (forall k, C.n{2} <= k < C.n{2} + C.q{2} => C.aa{2}.[k] = l => DKCp.kpub{2}.[2*k + bti (R.t{2}.[k] ^^ (C.v{2}.[k] ^^ oget C.gg{2}.[(k, !C.v{2}.[C.aa{2}.[k]], !C.v{2}.[C.bb{2}.[k]])]))] = R.xx{2}.[(k, C.v{2}.[k] ^^ (C.v{2}.[k] ^^ oget C.gg{2}.[(k, !C.v{2}.[C.aa{2}.[k]], !C.v{2}.[C.bb{2}.[k]])]))]) /\
-  (forall k, C.n{2} <= k < C.n{2} + C.q{2} => C.bb{2}.[k] = l => DKCp.kpub{2}.[2*C.aa{2}.[k] + bti (R.t{2}.[C.aa{2}.[k]])] = R.xx{2}.[(C.aa{2}.[k], C.v{2}.[C.aa{2}.[k]])]) /\
-  (forall k, C.n{2} <= k < C.n{2} + C.q{2} => C.bb{2}.[k] = l => DKCp.kpub{2}.[2*C.aa{2}.[k] + bti (!R.t{2}.[C.aa{2}.[k]])] = R.xx{2}.[(C.aa{2}.[k], !C.v{2}.[C.aa{2}.[k]])]) /\
-  (forall k, C.n{2} <= k < C.n{2} + C.q{2} => C.bb{2}.[k] = l => DKCp.kpub{2}.[2*k + bti (R.t{2}.[k] ^^ (C.v{2}.[k] ^^ oget C.gg{2}.[(k, C.v{2}.[C.aa{2}.[k]], !C.v{2}.[C.bb{2}.[k]])]))] = R.xx{2}.[(k, C.v{2}.[k] ^^ (C.v{2}.[k] ^^ oget C.gg{2}.[(k, C.v{2}.[C.aa{2}.[k]], !C.v{2}.[C.bb{2}.[k]])]))]) ==>
-
-    (forall k a b, C.n{1} <= k < C.n{1} + C.q{1} => G.pp{1}.[(k,a,b)] = G.pp{2}.[(k,a,b)]) /\
-    (forall k a b, k < C.n{1} => G.pp{1}.[(k,a,b)] = None) /\
-    (forall k a b, C.n{1} + C.q{1} <= k => G.pp{1}.[(k,a,b)] = None) /\
-    (forall k a b, k < C.n{1} => G.pp{2}.[(k,a,b)] = None) /\
-    (forall k a b, C.n{1} + C.q{1} <= k => G.pp{2}.[(k,a,b)] = None)].
-proof. admit. qed.
-
 module DKC_Adv (D : DKC_t, Adv_IND : GSch.EncSecurity.Adv_IND_t) : Adv_DKC_t = {
 
   proc get_challenge () : bool = {
@@ -259,7 +222,7 @@ proof.
   move => Agen_ll Aget_ll.
   proc => //.
   inline DKC.initialize DKC_Adv(DKC, A).get_challenge.
-  seq 1 7 : (={glob A} /\ l{1} = l - 1 /\ DKCp.b{2} /\ b{2} /\ DKCp.b{2} = b{2} /\ query{1} = query_ind{2} /\ DKCp.kpub{2} = map0 /\ DKCp.used{2} = fset0 /\ DKCp.rr{2} = map0 /\ lsb{2} = DKCp.lsb{2} /\ 0 <= l < SomeGarble.bound).
+  seq 1 10 : (={glob A} /\ l{1} = l - 1 /\ DKCp.b{2} /\ b{2} /\ DKCp.b{2} = b{2} /\ query{1} = query_ind{2} /\ DKCp.kpub{2} = map0 /\ DKCp.used{2} = fset0 /\ DKCp.rr{2} = map0 /\ lsb{2} = DKCp.lsb{2} /\ 0 <= l < SomeGarble.bound /\ lsb{2} = DKCp.lsb{2} /\ ).
     by call (_ : true) => //; auto; progress; first 3 by smt.
 
   if; first by progress.
