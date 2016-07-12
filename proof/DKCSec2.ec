@@ -74,7 +74,10 @@ theory DKCSecurity.
     
     proc initialize(): unit = {
       var i;
-            
+
+      DKCp.lsb = witness;
+      DKCp.ksec = witness;
+      
       DKCp.used = FSet.fset0;
 
       DKCp.kpub = map0;

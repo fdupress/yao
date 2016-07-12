@@ -281,7 +281,7 @@ proof.
   move => Agen_ll Aget_ll.
   proc => //.
   inline DKC.initialize DKC_Adv(DKC, A).get_challenge.
-  swap{2} 6 -5.
+  swap{2} 8 -7.
   seq 1 1 : (={glob A} /\ query{1} = query_ind{2} /\
     (forall (plain:fun_t*input_t), let (n,m,q,aa,bb) = fst (fst plain) in DKCSecurity.bound = n + q) /\
     DKCSecurity.l = Top.l /\ DKCSecurity.boundl = SomeGarble.bound /\
@@ -289,10 +289,10 @@ proof.
 
   case (GSch.EncSecurity.queryValid_IND query{1}).
     rcondt{1} 1; first by progress.
-    rcondt{2} 6; first by auto; (while (true); first by auto); auto. 
-    swap{2} 6 -5.
-    swap{2} 7 -5.
-    swap{2} 8 -5.
+    rcondt{2} 8; first by auto; (while (true); first by auto); auto. 
+    swap{2} 8 -7.
+    swap{2} 9 -7.
+    swap{2} 10 -7.
     seq 3 3 : ((={glob A,real,p} /\
       query{1} = query_ind{2} /\ 
       DKCSecurity.bound = C.n{1} + C.q{1} /\
@@ -309,7 +309,7 @@ proof.
         by move : H4; rewrite /queryValid_IND /valid_plain /validInputs /validInputsP ?valid_wireinput /valid_circuitP /fst /snd; case realL => /#. 
         simplify validBound; case realL => /#.
 
-    seq 1 6 : (={glob A, real, p} /\
+    seq 1 8 : (={glob A, real, p} /\
       query{1} = query_ind{2} /\
       DKCSecurity.bound = C.n{1} + C.q{1} /\
       DKCSecurity.l = Top.l /\ 
@@ -333,7 +333,9 @@ proof.
     
       inline RandomInit.init AdvRandomInit(DKC).init.
 
-  transitivity{2} {
+      transitivity{2} {
+        DKCp.lsb = witness;
+        DKCp.ksec = witness;
         DKCp.used = fset0;
         DKCp.kpub = map0;
         DKCp.rr = map0;
@@ -413,7 +415,7 @@ proof.
           R.xx{1}.[(k, ! C.v{1}.[k])] = DKCp.kpub{2}.[(k, ! R.t{2}.[k])])
       )
       
-      ( (={glob A, real, p} /\
+      ( (={glob A, real, p, DKCp.b, b, query_ind} /\
           query_ind{1} = query_ind{2} /\
         DKCSecurity.bound = C.n{1} + C.q{1} /\
         DKCSecurity.l = Top.l /\ 
@@ -431,12 +433,12 @@ proof.
 
         ==> 
 
-        ={glob A, real, p, R.t, DKCp.kpub, query_ind} /\
+        ={glob A, real, p, R.t, DKCp.b, DKCp.kpub, b, query_ind} /\
           DKCSecurity.bound = C.n{1} + C.q{1} /\
           DKCSecurity.l = Top.l /\
         l{1} = Top.l /\ i{1} = i0{2} /\
           !DKCp.b{2} /\
-          !b{2} /\
+          !b{2} /\ i{1} = i0{2} /\ 
           DKCp.b{2} = b{2} /\ DKCSecurity.boundl = SomeGarble.bound /\
         GSch.EncSecurity.queryValid_IND query_ind{1} /\
         ={glob C} /\
@@ -448,12 +450,12 @@ proof.
           C.n{2} <= i0_0 < C.n{2} + C.q{2} =>
           C.v{2}.[i0_0] =
           oget C.gg{2}.[(i0_0, C.v{2}.[C.aa{2}.[i0_0]], C.v{2}.[C.bb{2}.[i0_0]])]) /\
-        ={R.t, DKCp.kpub} /\ R.t{2}.[l] = !DKCp.lsb{2} )
+        R.t{2}.[l] = !DKCp.lsb{2} )
           .
 
-          progress. exists (glob A){2}. exists (b{2}). exists (((C.n{2}, C.m{2}, C.q{2}, C.aa{2}, C.bb{2}), C.gg{2})). exists (C.x{2}). exists C.n{2}. exists C.m{2}. exists C.q{2}. exists C.aa{2}. exists C.bb{2}. exists (C.gg{2}). exists C.v{2}. exists (b{2}). exists (query_ind{2}). exists (p{2}). exists (real{2}). by progress. by progress. 
+          progress. exists (glob A){2}. exists (b{2}). exists (((C.n{2}, C.m{2}, C.q{2}, C.aa{2}, C.bb{2}), C.gg{2})). exists (C.x{2}). exists C.n{2}. exists C.m{2}. exists C.q{2}. exists C.aa{2}. exists C.bb{2}. exists (C.gg{2}). exists C.v{2}. exists (b{2}). exists (query_ind{2}). exists (p{2}). exists (real{2}). by progress. by progress.
 
-      swap{2} 7 -4. swap{2} 8 -5. swap{2} 8 -4. fusion{2} 8!1 @ 2,1.
+      swap{2} 8 -4. swap{2} 9 -5. swap{2} 10 -4. fusion{2} 10!1 @ 2,1.
       
   while (={glob A, real, p, i} /\
     query{1} = query_ind{2} /\ ={useVisible} /\ useVisible{2} /\
@@ -495,9 +497,9 @@ proof.
       cut ? : 0 <= l < SomeGarble.bound by rewrite l_pos. rewrite ?get_set => /#. 
       rewrite ?get_set => /#. 
   
-      cut ? : 0 <= l < SomeGarble.bound by rewrite l_pos. rewrite ?getP //=. case (k = l) => hc //=. rewrite H ?hc //=. cut ->: C.v{2}.[l] = ! C.v{2}.[l] <=> false by idtac=>/#. simplify. cut ->: R.t{1}.[l <- if l < C.n{2} + C.q{2} - C.m{2} then trndL else C.v{2}.[l]].[l] = false <=> true by smt. simplify. cut ->: R.t{1}.[l <- if l < C.n{2} + C.q{2} - C.m{2} then trndL else C.v{2}.[l]].[l] = true <=> false by smt. by simplify. smt. 
+      cut ? : 0 <= l < SomeGarble.bound by rewrite l_pos. rewrite ?getP //=. case (k = l) => hc //=. rewrite H ?hc //=. cut ->: C.v{2}.[l] = ! C.v{2}.[l] <=> false by idtac=>/#. simplify. cut ->: R.t{1}.[l <- if l < C.n{2} + C.q{2} - C.m{2} then trndL else C.v{2}.[l]].[l] = false <=> true by smt tmo=30. simplify. cut ->: R.t{1}.[l <- if l < C.n{2} + C.q{2} - C.m{2} then trndL else C.v{2}.[l]].[l] = true <=> false by smt tmo=30. by simplify. smt. 
   
-      rewrite ?getP //=. case (k = l) => hc //=. rewrite H ?hc //=. cut ->: (!R.t{1}.[l <- if l < C.n{2} + C.q{2} - C.m{2} then trndL else C.v{2}.[l]].[l]) = false <=> false by smt. simplify. cut ->: (!R.t{1}.[l <- if l < C.n{2} + C.q{2} - C.m{2} then trndL else C.v{2}.[l]].[l]) = true <=> true by smt tmo=30. by simplify. smt.   
+      rewrite ?getP //=. case (k = l) => hc //=. rewrite H ?hc //=. cut ->: (!R.t{1}.[l <- if l < C.n{2} + C.q{2} - C.m{2} then trndL else C.v{2}.[l]].[l]) = false <=> false by smt tmo=30. simplify. cut ->: (!R.t{1}.[l <- if l < C.n{2} + C.q{2} - C.m{2} then trndL else C.v{2}.[l]].[l]) = true <=> true by smt tmo=30. by simplify. smt.   
 
       rcondf{2} 3; first by auto.
       swap{2} 3-2. wp. rnd. rnd. wp. rnd. (auto; progress; first 4 by smt); first 2 by idtac=>/#.
@@ -533,7 +535,65 @@ proof.
         by idtac=>/#.
         by idtac=>/#. 
 
-sim. admit.
+      while (={glob A, real, p, R.t, DKCp.b, DKCp.kpub, DKCp.lsb, b, query_ind} /\
+      DKCSecurity.bound = C.n{1} + C.q{1} /\ DKCSecurity.l = Top.l /\
+  Top.l = Top.l /\ i{1} = i0{2} /\
+  i{1} = i0{2} /\ 0 <= i{1} <= C.n{1} + C.q{1} /\
+  !DKCp.b{2} /\ ={useVisible} /\ useVisible{1} /\
+  !b{2} /\ size R.t{1} = size R.t{2} /\
+  i{1} = i0{2} /\ size R.t{1} = C.n{1} + C.q{1} /\
+  DKCp.b{2} = b{2} /\ DKCp.b{1} = b{1} /\
+  boundl = SomeGarble.bound /\
+  GSch.EncSecurity.queryValid_IND query_ind{1} /\
+  ={glob C} /\
+  size C.v{1} = C.n{1} + C.q{1} /\
+  C.f{1} = ((C.n{1}, C.m{1}, C.q{1}, C.aa{1}, C.bb{1}), C.gg{1}) /\
+  validInputsP (C.f{1}, C.x{1}) /\
+  (forall (i0_0 : int), 0 <= i0_0 < C.n{2} => C.v{2}.[i0_0] = C.x{2}.[i0_0]) /\
+  (forall (i0_0 : int),
+     C.n{2} <= i0_0 < C.n{2} + C.q{2} =>
+     C.v{2}.[i0_0] =
+    oget C.gg{2}.[(i0_0, C.v{2}.[C.aa{2}.[i0_0]], C.v{2}.[C.bb{2}.[i0_0]])]) /\
+  (forall k, 0 <= k < i{1} => k = l => R.t{2}.[k] = !DKCp.lsb{2})).
+
+      inline DKC.get_lsb.
+      if. progress.
+        auto; progress; first 2 by idtac=>/#. 
+        by rewrite size_set.
+        cut ? : 0 <= l < SomeGarble.bound by rewrite l_pos. rewrite get_set => /#. 
+        auto; progress; first 2 by idtac=>/#.
+
+          by rewrite size_set. 
+          by rewrite get_set => /#.
+
+      wp.
+      while (={glob A, real, p, i, DKCp.kpub, DKCp.lsb, DKCp.b, b, query_ind} /\
+      DKCSecurity.bound = C.n{1} + C.q{1} /\ DKCSecurity.l = Top.l /\
+  Top.l = Top.l /\ 
+   0 <= i{1} <= C.n{1} + C.q{1} /\
+  !DKCp.b{2} /\ 
+  !b{2} /\
+  DKCp.b{2} = b{2} /\
+  boundl = SomeGarble.bound /\
+  GSch.EncSecurity.queryValid_IND query_ind{1} /\
+  ={glob C} /\
+  size C.v{1} = C.n{1} + C.q{1} /\
+  C.f{1} = ((C.n{1}, C.m{1}, C.q{1}, C.aa{1}, C.bb{1}), C.gg{1}) /\
+  validInputsP (C.f{1}, C.x{1}) /\
+  (forall (i0_0 : int), 0 <= i0_0 < C.n{2} => C.v{2}.[i0_0] = C.x{2}.[i0_0]) /\
+  (forall (i0_0 : int),
+     C.n{2} <= i0_0 < C.n{2} + C.q{2} =>
+     C.v{2}.[i0_0] =
+     oget C.gg{2}.[(i0_0, C.v{2}.[C.aa{2}.[i0_0]], C.v{2}.[C.bb{2}.[i0_0]])])).
+
+      auto; progress; first 4 by idtac=>/#.
+    auto; progress; first 4 by idtac=>/#. 
+      by rewrite size_offun max_ler => /#.
+      by idtac=>/#.
+      cut ? : 0 <= l < SomeGarble.bound by rewrite l_pos. by idtac=>/#. 
+      
+
+
 
       rewrite ?getP //=. case (k = i{2}) => hc //=. rewrite H ?hc //=. cut ->: C.v{2}.[i{2}] = ! C.v{2}.[i{2}] <=> false by idtac=>/#. simplify. simplify. cut ->: (!R.t{1}.[i{2} <- if i{2} < C.n{2} + C.q{2} - C.m{2} then trndL else C.v{2}.[i{2}]].[i{2}]) = true <=> true by smt. by simplify. smt.   
 
