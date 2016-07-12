@@ -13,7 +13,7 @@ require import DInterval.
 require import Option.
 
 require (*--*) DKC.
-require (*--*) DKCSec.
+require (*--*) DKCSec2.
 require (*--*) Sch.
 require (*--*) SchSec. 
 
@@ -39,7 +39,7 @@ theory SomeGarble.
   op maxGates : int = 2^62 - 1.
 
   (** DKC security definitions, instantiated with the words defined in W *)
-  clone import DKCSec.DKCSecurity with theory WD <- W.
+  clone import DKCSec2.DKCSecurity with theory WD <- W.
 
   (** Tweak theory, instantiated with the words defined in W *)
   clone import Tweak with theory WT <- W.
@@ -607,25 +607,31 @@ theory SomeGarble.
   (* Lemmas concerning the initialisation of the circuit *)
   (*******************************************************)
 
+  pred validBound (bound:int) (plain:fun_t*input_t) =
+    let (n,m,q,aa,bb) = fst (fst plain) in
+    bound = n + q.
+  
   lemma CircuitInitH (plain:fun_t*input_t):
     validInputsP plain =>
+    validBound DKCSecurity.bound plain =>
     hoare[CircuitInit.init: p = plain ==>
                    C.f = fst plain /\
                    C.x = snd plain /\
                    (C.n, C.m, C.q, C.aa, C.bb) = fst (fst plain) /\
                    C.gg = snd (fst plain) /\
                    size C.v = (C.n + C.q) /\
-                   validInputsP (C.f, C.x)].
+                   validInputsP (C.f, C.x) /\
+                   DKCSecurity.bound = C.n + C.q].
   proof.
-    move=> vIn; proc => //.
+    move=> vIn vIn'; proc => //.
     while (size C.v = C.n + C.q).
       by auto; progress; rewrite size_set. 
-    auto=> //= &m p_plain; subst. 
-    move: vIn; rewrite /validInputsP /valid_circuitP /fst /fst /fst /snd /snd.
-    elim plain=> [fn] ii /=.
-    elim (fn.`1); progress.
-    by rewrite size_offun; rewrite max_ler; first by idtac=>/#.
-    qed.
+    auto=> //= &m p_plain; subst.
+    move: vIn vIn'; rewrite /validInputsP /validBound /valid_circuitP /fst /fst /fst /snd /snd.
+    elim plain=> [fn] ii /=. 
+    elim (fn.`1); progress. 
+    by rewrite size_offun; rewrite max_ler => /#. 
+  qed.
 
   (**
     Equivalence between the initialisations when the selected
@@ -633,11 +639,13 @@ theory SomeGarble.
   *)  
   equiv CircuitInitEquiv: CircuitInit.init ~ CircuitInit.init:
       ={p} /\
-      (validInputsP p){1} ==>
+      (validInputsP p){1} /\
+      validBound DKCSecurity.bound p{1} ==>
       ={glob C} /\
       size C.v{1} = (C.n + C.q){1} /\
       C.f{1} = ((C.n, C.m, C.q, C.aa, C.bb), C.gg){1} /\
       validInputsP (C.f, C.x){1} /\
+      DKCSecurity.bound = C.n{1} + C.q{1} /\
       (forall i, 0 <= i < C.n{2} => C.v{2}.[i] = C.x{2}.[i]) /\
       (forall i, C.n <= i < C.n + C.q => C.v{2}.[i] = oget C.gg.[(i, C.v{2}.[C.aa{2}.[i]], C.v{2}.[C.bb.[i]])]){2}.
   proof. 
@@ -688,8 +696,8 @@ theory SomeGarble.
             rewrite get_set /=; first by idtac=>/#.
             rewrite vWires; first by idtac=>/#.
             by cut ->: j = i{2} <=> false by idtac=>/#. 
-    auto; move=> &1 &2 [eqP vIn] //=; subst.
-    move: vIn; rewrite /validInputsP /validCircuitP /fst /fst /fst /snd /snd //=.
+    auto; move=> &1 &2 [eqP [vIn] vIn'] //=; subst.
+    move: vIn vIn'; rewrite /validInputsP /validBound /validCircuitP /fst /fst /fst /snd /snd //=.
     elim (p{2})=> fn ii /=; subst.
     elim (fn)=> tt gg. 
     elim (tt) => n m q aa bb /=; subst.
@@ -703,7 +711,7 @@ theory SomeGarble.
       by idtac=>/#.
       by idtac=>/#.
       by idtac=>/#.
-      by (rewrite H8; first by idtac=>/#); simplify evali fst evalComplete; (rewrite appendInit_get1; first by idtac=>/#) => /#.  
+      by (rewrite H9; first by idtac=>/#); simplify evali fst evalComplete; (rewrite appendInit_get1; first by idtac=>/#) => /#.  
       by idtac=>/#.
   qed.
 
