@@ -48,7 +48,7 @@ theory DKCSecurity.
   module DKCp = {
     var b : bool
     var ksec : word
-    var rr : ((int * bool), word) fmap
+    var rr : (int, word) fmap
     var kpub : ((int * bool), word) fmap
     var used : word fset
     var lsb : bool
@@ -94,31 +94,42 @@ theory DKCSecurity.
     proc get_challenge() : bool = {
       return DKCp.b;
     }
+
+    proc get_r(x:int) : word = {
+      var r : word;
+
+      r = $Dword.dword;
+      if (!mem (dom DKCp.rr) x) DKCp.rr.[x] = r;
+
+      return oget DKCp.rr.[x];
+      
+    }
     
     proc encrypt(q:query_DKC) : answer_DKC = {
       var aa,bb,xx : word;
       var ib,jb,lb : int * bool;
       var i,j,l' : int;
       var bi,bj,bl' : bool;
-      var t, ki, kj, rj : word;
+      var t, ki, kj, rj, rl : word;
       var ans : answer_DKC;
       var b : bool;
-      
+
       ans = bad;
       (ib,jb,lb,t) = q;
       (i,bi) = ib;
       (j,bj) = jb;
       (l',bl') = lb;
       
-      if (!(mem DKCp.used t || j < i || l' < i || l' < j || (l' = l /\ bl' = DKCp.lsb))) {
+      if (!(j < i || l' < i || l' < j || (l' = l /\ bl' = DKCp.lsb))) {
         DKCp.used = DKCp.used `|` fset1 t;
         
         ki = oget DKCp.kpub.[(i, bi)];
         kj = oget DKCp.kpub.[(j, bj)];
-        rj = oget DKCp.rr.[(j, bj)];
-
-        (aa,bb) = if (i = l) then (DKCp.ksec, ki) else (if (j = l) then (ki, DKCp.ksec) else (ki,kj));
-        xx = if DKCp.b then oget DKCp.kpub.[(l',bl')] else oget DKCp.rr.[(l',bl')];
+        rj = get_r(j);
+        rl = get_r(l');
+        
+        (aa,bb) = if (i = l) then (DKCp.ksec, kj) else (if (j = l) then (ki, DKCp.ksec) else (ki,kj));
+        xx = if DKCp.b then oget DKCp.kpub.[(l',bl')] else rl;
         
         ans = (ki, kj, E t aa bb xx);
       }
@@ -159,8 +170,9 @@ theory DKCSecurity.
   proof.
     proc => //.
     seq 5 : true => //; first by auto.
+    inline*.
     if; last by trivial.
-      by wp. 
+      by auto; smt. 
   qed.
 
   lemma init_ll : islossless DKC.initialize.

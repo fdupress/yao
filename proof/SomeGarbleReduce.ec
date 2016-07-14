@@ -52,7 +52,7 @@ module AdvRandomInit (D : DKC_t) = {
     if (G.a = l) {
       R.xx.[(G.b, C.v.[G.b] ^^ betha)] = oget DKCp.kpub.[(G.b, C.v.[G.b] ^^ betha)];
     }
-    else {
+    if (G.b = l) {
       R.xx.[(G.a, C.v.[G.a] ^^ alpha)] = oget DKCp.kpub.[(G.a, C.v.[G.a] ^^ alpha)];
     }
 
@@ -95,8 +95,8 @@ module AdvInit (D : DKC_t) = {
     var twe, aa, bb : word;
         
     twe = tweak G.g (R.t.[G.a] ^^ alpha) (R.t.[G.b] ^^ bet);
-    aa = oget R.xx.[(G.a, C.v.[G.a] ^^ alpha)];
-    bb = oget R.xx.[(G.b, C.v.[G.b] ^^ bet)];
+    aa = oget DKCp.kpub.[(G.a, R.t.[G.a] ^^ alpha)];
+    bb = oget DKCp.kpub.[(G.b, R.t.[G.b] ^^ bet)];
     G.pp.[(G.g, R.t.[G.a] ^^ alpha, R.t.[G.b] ^^ bet)] = E twe aa bb yy;
   }
 
@@ -104,7 +104,7 @@ module AdvInit (D : DKC_t) = {
     var yy : word;
       
     yy = $Dword.dword;
-    yy = if rn then yy else oget R.xx.[(G.g, oget C.gg.[(G.g, C.v.[G.a] ^^ alpha, C.v.[G.b] ^^ bet)])];
+    yy = if rn then yy else oget DKCp.kpub.[(G.g, R.t.[G.g] ^^ C.v.[G.g] ^^ oget C.gg.[(G.g, C.v.[G.a] ^^ alpha, C.v.[G.b] ^^ bet)])];
     garb(yy, alpha, bet);
     return yy;
   }
@@ -118,7 +118,7 @@ module AdvInit (D : DKC_t) = {
     twe = tweak G.g (R.t.[G.a] ^^ alpha) (R.t.[G.b] ^^ betha);
     gamma = C.v.[G.g] ^^ oget C.gg.[(G.g, C.v.[G.a] ^^ alpha, C.v.[G.b] ^^ betha)];
 
-    (ki,kj,zz) = D.encrypt((G.a,alpha),(G.b,betha),(G.g, gamma),twe);
+    (ki,kj,zz) = D.encrypt((G.a,R.t.[G.a] ^^ alpha),(G.b,R.t.[G.b] ^^ betha),(G.g, R.t.[G.g] ^^ gamma),twe);
 
     G.pp.[(G.g, R.t.[G.a] ^^ alpha, R.t.[G.b] ^^ betha)] = zz;
 
@@ -139,7 +139,7 @@ module AdvInit (D : DKC_t) = {
       G.a = C.aa.[G.g];
       G.b = C.bb.[G.g];
 
-      garb(oget R.xx.[(G.g, C.v.[G.g])], false, false);
+      garb(oget DKCp.kpub.[(G.g, R.t.[G.g])], false, false);
         
       if (G.a <> l /\ G.b <> l) {
         garb'(G.a <= l, true, false);
@@ -153,11 +153,15 @@ module AdvInit (D : DKC_t) = {
  
       else {
         if (G.a = l) {
+          query_garble(false,true,false);
           garb'(false,false,true);
+          query_garble(false,true,true);
         }
 
         else {
           garb'(true,true,false);
+          query_garble(false,false,true);
+          G.yy.[G.g] = query_garble(true,true,true);
 
           if (C.gg.[(G.g, !C.v.[G.a], false)] = C.gg.[(G.g, !C.v.[G.a], true)]) {
             garb(G.yy.[G.g], true, false);
@@ -169,8 +173,6 @@ module AdvInit (D : DKC_t) = {
     }
   }
 }.
-
-require import SomeGarbleHy.
 
 module DKC_Adv (D : DKC_t, Adv_IND : GSch.EncSecurity.Adv_IND_t) : Adv_DKC_t = {
 
@@ -191,7 +193,7 @@ module DKC_Adv (D : DKC_t, Adv_IND : GSch.EncSecurity.Adv_IND_t) : Adv_DKC_t = {
       AdvRandomInit(D).init(true);
       AdvInit(D).init();
         
-      c = (((C.n, C.m, C.q, C.aa, C.bb), G.pp), encode (inputK C.f R.xx) C.x, tt);
+      c = (((C.n, C.m, C.q, C.aa, C.bb), G.pp), encode (inputK C.f DKCp.kpub) C.x, tt);
           
       adv = Adv_IND.get_challenge(c);
       ret = (real = adv);
@@ -204,79 +206,13 @@ module DKC_Adv (D : DKC_t, Adv_IND : GSch.EncSecurity.Adv_IND_t) : Adv_DKC_t = {
   }
 }.
 
-module M1 = {
-  proc main(useVisible:bool) : unit = {
-    var i,i0 : int;
-    var v, trnd : bool;
-    
-    DKCp.used = FSet.fset0;
-     
-    DKCp.kpub = map0;
-    DKCp.rr = map0;
-      
-    i = 0;
-    while (i < DKCSecurity.bound) {
-      DKCp.kpub.[(i, false)] = $Dword.dwordLsb (false);
-      DKCp.kpub.[(i, true)] = $Dword.dwordLsb (true);
-      DKCp.rr.[(i,false)] = $Dword.dword;
-      DKCp.rr.[(i,true)] = $Dword.dword;
-      i = i + 1;
-    }
+require import SomeGarbleHy.
 
-    R.t = offun (fun (_ : int) => false) (C.n + C.q);
-    R.xx = map0;
-
-    i0 = 0;
-    while (i0 < C.n + C.q) {
-      trnd = ${0,1};
-      v = if useVisible then C.v.[i0] else false;
-      trnd = if i0 < C.n + C.q - C.m then trnd else v;
-      R.t.[i0] = if i0 = Top.l then !DKCp.lsb else trnd;
-
-      i0 = i0 + 1;
-    }
-  }
-}.
-
-module M2 = {
-  proc main(useVisible:bool) : unit = {
-    var i : int;
-    var v, trnd : bool;
-    
-    DKCp.used = FSet.fset0;
-     
-    DKCp.kpub = map0;
-    DKCp.rr = map0;
-      
-    i = 0;
-    while (i < C.n + C.q) {
-      DKCp.kpub.[(i, false)] = $Dword.dwordLsb (false);
-      DKCp.kpub.[(i, true)] = $Dword.dwordLsb (true);
-      DKCp.rr.[(i,false)] = $Dword.dword;
-      DKCp.rr.[(i,true)] = $Dword.dword;
-      i = i + 1;
-    }
-
-    R.t = offun (fun (_ : int) => false) (C.n + C.q);
-    R.xx = map0;
-
-    i = 0;
-    while (i < C.n + C.q) {
-      trnd = ${0,1};
-      v = if useVisible then C.v.[i] else false;
-      trnd = if i < C.n + C.q - C.m then trnd else v;
-      R.t.[i] = if i = Top.l then !DKCp.lsb else trnd;
-
-      i = i + 1;
-    }
-  }
-}.
-
-lemma GameHybrid_l_sim (A <: GSch.EncSecurity.Adv_IND_t{DKC_Adv,DKCp,DKC}):
+lemma GameHybrid_l1_sim (A <: GSch.EncSecurity.Adv_IND_t{DKC_Adv,DKCp,DKC}):
   islossless A.gen_query =>
   islossless A.get_challenge =>
   equiv [ GameHybrid(A).garble ~ DKCSecurity.Game(DKC, DKC_Adv(DKC, A)).game:
-    ={glob A} /\ (forall (plain:fun_t*input_t), let (n,m,q,aa,bb) = fst (fst plain) in DKCSecurity.bound = n + q) /\ DKCSecurity.l = l /\ DKCSecurity.boundl = SomeGarble.bound /\ l{1} = l /\ !DKCp.b{2} /\ !b{2} /\ DKCp.b{2} = b{2} ==> res{1} = !res{2}].
+    ={glob A} /\ (forall (plain:fun_t*input_t), let (n,m,q,aa,bb) = fst (fst plain) in DKCSecurity.bound = n + q) /\ DKCSecurity.l = l /\ DKCSecurity.boundl = SomeGarble.bound /\ l{1} = l-1 /\ DKCp.b{2} /\ b{2} /\ DKCp.b{2} = b{2} ==> res{1} = !res{2}].
 proof.  
   move => Agen_ll Aget_ll.
   proc => //.
@@ -285,7 +221,7 @@ proof.
   seq 1 1 : (={glob A} /\ query{1} = query_ind{2} /\
     (forall (plain:fun_t*input_t), let (n,m,q,aa,bb) = fst (fst plain) in DKCSecurity.bound = n + q) /\
     DKCSecurity.l = Top.l /\ DKCSecurity.boundl = SomeGarble.bound /\
-    l{1} = Top.l /\ !DKCp.b{2} /\ !b{2} /\ DKCp.b{2} = b{2}); first by call (_ : true).
+    l{1} = Top.l-1 /\ DKCp.b{2} /\ b{2} /\ DKCp.b{2} = b{2}); first by call (_ : true).
 
   case (GSch.EncSecurity.queryValid_IND query{1}).
     rcondt{1} 1; first by progress.
@@ -297,7 +233,7 @@ proof.
       query{1} = query_ind{2} /\ 
       DKCSecurity.bound = C.n{1} + C.q{1} /\
       DKCSecurity.l = Top.l /\ DKCSecurity.boundl = SomeGarble.bound /\
-      l{1} = Top.l /\ !DKCp.b{2} /\ !b{2} /\ DKCp.b{2} = b{2}) /\
+      l{1} = Top.l-1 /\ DKCp.b{2} /\ b{2} /\ DKCp.b{2} = b{2}) /\
       GSch.EncSecurity.queryValid_IND query{1} /\ ={glob C} /\
       size C.v{1} = (C.n + C.q){1} /\
       C.f{1} = ((C.n, C.m, C.q, C.aa, C.bb), C.gg){1} /\
@@ -313,7 +249,7 @@ proof.
       query{1} = query_ind{2} /\
       DKCSecurity.bound = C.n{1} + C.q{1} /\
       DKCSecurity.l = Top.l /\ 
-      l{1} = Top.l /\ !DKCp.b{2} /\ !b{2} /\ DKCp.b{2} = b{2} /\
+      l{1} = Top.l-1 /\ DKCp.b{2} /\ b{2} /\ DKCp.b{2} = b{2} /\
       GSch.EncSecurity.queryValid_IND query{1} /\
       ={glob C} /\ DKCSecurity.boundl = SomeGarble.bound /\
       size C.v{1} = C.n{1} + C.q{1} /\
@@ -329,7 +265,8 @@ proof.
       (forall k, 0 <= k < C.n{1} + C.q{1} => getlsb (oget R.xx{1}.[(k, C.v{1}.[k])]) = R.t{1}.[k]) /\
       (forall k, 0 <= k < C.n{1} + C.q{1} => getlsb (oget R.xx{1}.[(k, !C.v{1}.[k])]) = !R.t{1}.[k]) /\
       (forall k, 0 <= k < C.n{1} + C.q{1} => R.xx{1}.[(k, C.v{1}.[k])] = DKCp.kpub{2}.[(k,R.t{2}.[k])]) /\
-      (forall k, 0 <= k < C.n{1} + C.q{1} => R.xx{1}.[(k, !C.v{1}.[k])] = DKCp.kpub{2}.[(k,!R.t{2}.[k])])).
+      (forall k, 0 <= k < C.n{1} + C.q{1} => k <> l => R.xx{1}.[(k, !C.v{1}.[k])] = DKCp.kpub{2}.[(k,!R.t{2}.[k])]) /\
+      oget R.xx{1}.[(l, !C.v{1}.[l])] = DKCp.ksec{2}).
     
       inline RandomInit.init AdvRandomInit(DKC).init.
 
@@ -367,7 +304,7 @@ proof.
           query{1} = query_ind{2} /\
         DKCSecurity.bound = C.n{1} + C.q{1} /\
         DKCSecurity.l = Top.l /\ 
-          l{1} = Top.l /\ !DKCp.b{2} /\ !b{2} /\ DKCp.b{2} = b{2}) /\
+          l{1} = Top.l-1 /\ DKCp.b{2} /\ b{2} /\ DKCp.b{2} = b{2}) /\
         GSch.EncSecurity.queryValid_IND query{1} /\
         ={glob C} /\ DKCSecurity.boundl = SomeGarble.bound /\
           size C.v{1} = C.n{1} + C.q{1} /\
@@ -385,9 +322,9 @@ proof.
         query{1} = query_ind{2} /\
           DKCSecurity.bound = C.n{1} + C.q{1} /\
           DKCSecurity.l = Top.l /\
-        l{1} = Top.l /\ 
-          !DKCp.b{2} /\
-          !b{2} /\
+        l{1} = Top.l-1 /\ 
+          DKCp.b{2} /\
+          b{2} /\
           DKCp.b{2} = b{2} /\
         GSch.EncSecurity.queryValid_IND query{1} /\
         ={glob C} /\ DKCSecurity.boundl = SomeGarble.bound /\
@@ -411,15 +348,16 @@ proof.
           0 <= k < C.n{1} + C.q{1} =>
           R.xx{1}.[(k, C.v{1}.[k])] = DKCp.kpub{2}.[(k, R.t{2}.[k])]) /\
         (forall (k : int),
-          0 <= k < C.n{1} + C.q{1} =>
-          R.xx{1}.[(k, ! C.v{1}.[k])] = DKCp.kpub{2}.[(k, ! R.t{2}.[k])])
+          0 <= k < C.n{1} + C.q{1} => k <> l =>
+          R.xx{1}.[(k, ! C.v{1}.[k])] = DKCp.kpub{2}.[(k, ! R.t{2}.[k])]) /\
+        oget R.xx{1}.[(l, !C.v{1}.[l])] = DKCp.ksec{2}
       )
       
       ( (={glob A, real, p, DKCp.b, b, query_ind} /\
           query_ind{1} = query_ind{2} /\
         DKCSecurity.bound = C.n{1} + C.q{1} /\
         DKCSecurity.l = Top.l /\ 
-          l{1} = Top.l /\ !DKCp.b{2} /\ !b{2} /\ DKCp.b{2} = b{2}) /\
+          DKCp.b{2} /\ b{2} /\ DKCp.b{2} = b{2}) /\
         GSch.EncSecurity.queryValid_IND query_ind{1} /\
         ={glob C} /\ DKCSecurity.boundl = SomeGarble.bound /\
           size C.v{1} = C.n{1} + C.q{1} /\
@@ -433,12 +371,12 @@ proof.
 
         ==> 
 
-        ={glob A, real, p, R.t, DKCp.b, DKCp.kpub, b, query_ind} /\
+        ={glob A, real, p, R.t, DKCp.b, DKCp.kpub, b,DKCp.ksec, query_ind} /\
           DKCSecurity.bound = C.n{1} + C.q{1} /\
           DKCSecurity.l = Top.l /\
-        l{1} = Top.l /\ i{1} = i0{2} /\
-          !DKCp.b{2} /\
-          !b{2} /\ i{1} = i0{2} /\ 
+         i{1} = i0{2} /\
+          DKCp.b{2} /\
+          b{2} /\ i{1} = i0{2} /\ 
           DKCp.b{2} = b{2} /\ DKCSecurity.boundl = SomeGarble.bound /\
         GSch.EncSecurity.queryValid_IND query_ind{1} /\
         ={glob C} /\
@@ -450,10 +388,10 @@ proof.
           C.n{2} <= i0_0 < C.n{2} + C.q{2} =>
           C.v{2}.[i0_0] =
           oget C.gg{2}.[(i0_0, C.v{2}.[C.aa{2}.[i0_0]], C.v{2}.[C.bb{2}.[i0_0]])]) /\
-        R.t{2}.[l] = !DKCp.lsb{2} )
+        R.t{2}.[l] = !DKCp.lsb{2})
           .
 
-          progress. exists (glob A){2}. exists (b{2}). exists (((C.n{2}, C.m{2}, C.q{2}, C.aa{2}, C.bb{2}), C.gg{2})). exists (C.x{2}). exists C.n{2}. exists C.m{2}. exists C.q{2}. exists C.aa{2}. exists C.bb{2}. exists (C.gg{2}). exists C.v{2}. exists (b{2}). exists (query_ind{2}). exists (p{2}). exists (real{2}). by progress. by progress.
+          progress. exists (glob A){2}. exists (b{2}). exists (((C.n{2}, C.m{2}, C.q{2}, C.aa{2}, C.bb{2}), C.gg{2})). exists (C.x{2}). exists C.n{2}. exists C.m{2}. exists C.q{2}. exists C.aa{2}. exists C.bb{2}. exists (C.gg{2}). exists C.v{2}. exists (b{2}). exists (query_ind{2}). exists (p{2}). exists (real{2}). by progress. by progress. 
 
       swap{2} 8 -4. swap{2} 9 -5. swap{2} 10 -4. fusion{2} 10!1 @ 2,1.
       
@@ -461,7 +399,7 @@ proof.
     query{1} = query_ind{2} /\ ={useVisible} /\ useVisible{2} /\
       DKCSecurity.bound = C.n{1} + C.q{1} /\
       DKCSecurity.l = Top.l /\ 0 <= i{1} <= C.n{1} + C.q{1} /\
-    l{1} = Top.l /\ !DKCp.b{2} /\ !b{2} /\ DKCp.b{2} = b{2} /\
+    l{1} = Top.l-1 /\ DKCp.b{2} /\ b{2} /\ DKCp.b{2} = b{2} /\
       GSch.EncSecurity.queryValid_IND query{1} /\ size R.t{1} = C.n{1} + C.q{1} /\
     ={glob C} /\ size R.t{1} = size R.t{2} /\ size R.t{1} = C.n{1} + C.q{1} /\
       size C.v{1} = C.n{1} + C.q{1} /\ DKCSecurity.boundl = SomeGarble.bound /\
@@ -477,30 +415,32 @@ proof.
     (forall k, 0 <= k < i{1} => R.t{1}.[k] = R.t{2}.[k]) /\
     (forall k, 0 <= k < i{1} => k = l => R.t{2}.[k] = !DKCp.lsb{2}) /\
     (forall k, 0 <= k < i{1} => R.xx{1}.[(k, C.v{1}.[k])] = DKCp.kpub{2}.[(k,R.t{1}.[k])]) /\
-    (forall k, 0 <= k < i{1} => R.xx{1}.[(k, !C.v{1}.[k])] = DKCp.kpub{2}.[(k,!R.t{1}.[k])])).
+    (forall k, 0 <= k < i{1} => k <> l => R.xx{1}.[(k, !C.v{1}.[k])] = DKCp.kpub{2}.[(k,!R.t{1}.[k])]) /\
+    (forall k, 0 <= k < i{1} => k = l => oget R.xx{1}.[(k,!C.v{1}.[k])] = DKCp.ksec{2})).
 
   case (i{2} = l).
       rcondt{2} 3; first by auto.
-      inline DKC.get_lsb. swap{2} 3 -2. wp. rnd{2}. rnd. rnd. wp. rnd (fun b, !b).
-      auto; progress; first 6 by smt.
-      by rewrite Dword.dwordLsb_lossless.
+      inline DKC.get_lsb. swap{2} 3 -2. wp. rnd. rnd{2}. rnd. wp. rnd (fun b, !b).
+      auto; progress; first 6 by smt. cut ? : 0 <= l < C.n{2} + C.q{2} - C.m{2}. cut ? : 0 <= l < SomeGarble.bound by rewrite l_pos. idtac=>/#. smt.
+      
       idtac=>/#.
       idtac=>/#.
       by rewrite size_set.
       by rewrite ?size_set.
       by rewrite size_set.
 
-      rewrite ?getP get_set //=. idtac=>/#. case (k = l) => hk. simplify. rewrite H ?hk //=. cut ->: C.v{2}.[l] = ! (C.v{2}.[l]) <=> false by idtac=>/#. simplify. rewrite oget_some. rewrite H in H27. simplify H27. rewrite (Dword.lsb_dwordLsb (if l < C.n{2} + C.q{2} - C.m{2} then trndL else C.v{2}.[l]) _). exact H27. done. simplify. idtac=>/#.
+      rewrite ?getP get_set //=. idtac=>/#. case (k = l) => hk. simplify. rewrite H ?hk //=. cut ->: C.v{2}.[l] = ! (C.v{2}.[l]) <=> false by idtac=>/#. simplify. rewrite oget_some. rewrite H in H28. simplify H28. rewrite (Dword.lsb_dwordLsb (if l < C.n{2} + C.q{2} - C.m{2} then trndL else C.v{2}.[l]) _). exact H28. done. simplify. idtac=>/#.
 
-      rewrite ?getP get_set //=. idtac=>/#. case ( k = l) => hk. simplify. rewrite H ?hk //=. rewrite oget_some. rewrite H in H30. simplify H30. rewrite (Dword.lsb_dwordLsb (!(if l < C.n{2} + C.q{2} - C.m{2} then trndL else C.v{2}.[l])) _). exact H30. done. simplify. idtac=>/#.
+      rewrite ?getP get_set //=. idtac=>/#. case ( k = l) => hk. simplify. rewrite H ?hk //=. rewrite oget_some. rewrite H in H33. simplify H33. rewrite (Dword.lsb_dwordLsb (!(if l < C.n{2} + C.q{2} - C.m{2} then trndL else C.v{2}.[l])) _). exact H33. done. simplify. idtac=>/#.
 
       cut ? : 0 <= l < SomeGarble.bound by rewrite l_pos. rewrite ?get_set => /#. 
       rewrite ?get_set => /#. 
   
       cut ? : 0 <= l < SomeGarble.bound by rewrite l_pos. rewrite ?getP //=. case (k = l) => hc //=. rewrite H ?hc //=. cut ->: C.v{2}.[l] = ! C.v{2}.[l] <=> false by idtac=>/#. simplify. cut ->: R.t{1}.[l <- if l < C.n{2} + C.q{2} - C.m{2} then trndL else C.v{2}.[l]].[l] = false <=> true by smt tmo=30. simplify. cut ->: R.t{1}.[l <- if l < C.n{2} + C.q{2} - C.m{2} then trndL else C.v{2}.[l]].[l] = true <=> false by smt tmo=30. by simplify. smt. 
   
-      rewrite ?getP //=. case (k = l) => hc //=. rewrite H ?hc //=. cut ->: (!R.t{1}.[l <- if l < C.n{2} + C.q{2} - C.m{2} then trndL else C.v{2}.[l]].[l]) = false <=> false by smt tmo=30. simplify. cut ->: (!R.t{1}.[l <- if l < C.n{2} + C.q{2} - C.m{2} then trndL else C.v{2}.[l]].[l]) = true <=> true by smt tmo=30. by simplify. smt.   
-
+      rewrite ?getP //=. case (k = l) => hc //=. rewrite H ?hc //=. smt.   
+      rewrite ?getP //=. cut ->: (!C.v{2}.[Top.l]) = ! (useVisible{2} && C.v{2}.[Top.l]) <=> true by idtac=>/#. simplify. by rewrite oget_some. 
+  
       rcondf{2} 3; first by auto.
       swap{2} 3-2. wp. rnd. rnd. wp. rnd. (auto; progress; first 4 by smt); first 2 by idtac=>/#.
 
@@ -508,9 +448,9 @@ proof.
       by rewrite ?size_set.
       by rewrite size_set.
 
-      rewrite ?getP get_set //=. idtac=>/#. case ( k = i{2}) => hk. simplify. rewrite H ?hk //=. cut ->: C.v{2}.[i{2}] = ! (C.v{2}.[i{2}]) <=> false by idtac=>/#. simplify. rewrite oget_some. rewrite H in H27. simplify H27. rewrite (Dword.lsb_dwordLsb (if i{2} < C.n{2} + C.q{2} - C.m{2} then trndL else C.v{2}.[i{2}]) _). exact H27. done. simplify. idtac=>/#.
+      rewrite ?getP get_set //=. idtac=>/#. case ( k = i{2}) => hk. simplify. rewrite H ?hk //=. cut ->: C.v{2}.[i{2}] = ! (C.v{2}.[i{2}]) <=> false by idtac=>/#. simplify. rewrite oget_some. rewrite H in H28. simplify H28. rewrite (Dword.lsb_dwordLsb (if i{2} < C.n{2} + C.q{2} - C.m{2} then trndL else C.v{2}.[i{2}]) _). exact H28. done. simplify. idtac=>/#.
 
-      rewrite ?getP get_set //=. idtac=>/#. case ( k = i{2}) => hk. simplify. rewrite H ?hk //=. rewrite oget_some. rewrite H in H30. simplify H30. rewrite (Dword.lsb_dwordLsb (!(if i{2} < C.n{2} + C.q{2} - C.m{2} then trndL else C.v{2}.[i{2}])) _). exact H30. done. simplify. idtac=>/#.
+      rewrite ?getP get_set //=. idtac=>/#. case ( k = i{2}) => hk. simplify. rewrite H ?hk //=. rewrite oget_some. rewrite H in H31. simplify H31. rewrite (Dword.lsb_dwordLsb (!(if i{2} < C.n{2} + C.q{2} - C.m{2} then trndL else C.v{2}.[i{2}])) _). exact H31. done. simplify. idtac=>/#.
 
       rewrite ?get_set => /#. 
       rewrite ?get_set => /#. 
@@ -518,6 +458,8 @@ proof.
       rewrite ?getP //=. case (k = i{2}) => hc //=. rewrite H ?hc //=. cut ->: C.v{2}.[i{2}] = ! C.v{2}.[i{2}] <=> false by idtac=>/#. simplify. cut ->: R.t{1}.[i{2} <- if i{2} < C.n{2} + C.q{2} - C.m{2} then trndL else C.v{2}.[i{2}]].[i{2}] = false <=> true by smt tmo=30. simplify. cut ->: R.t{1}.[i{2} <- if i{2} < C.n{2} + C.q{2} - C.m{2} then trndL else C.v{2}.[i{2}]].[i{2}] = true <=> false by smt tmo=30. by simplify. smt. 
   
       rewrite ?getP //=. case (k = i{2}) => hc //=. rewrite H ?hc //=. cut ->: (!R.t{1}.[i{2} <- if i{2} < C.n{2} + C.q{2} - C.m{2} then trndL else C.v{2}.[i{2}]].[i{2}]) = false <=> false by smt tmo=30. simplify. cut ->: (!R.t{1}.[i{2} <- if i{2} < C.n{2} + C.q{2} - C.m{2} then trndL else C.v{2}.[i{2}]].[i{2}]) = true <=> true by smt tmo=30. by simplify. smt.   
+
+      rewrite ?getP //=. cut ->: Top.l = i{2} <=> false by idtac=>/#. simplify. idtac=>/#.
 
       wp. skip; progress.
         by idtac=>/#.
@@ -530,17 +472,19 @@ proof.
         by rewrite ?map0P. 
         by idtac=>/#.
         cut ? : 0 <= l < SomeGarble.bound by rewrite l_pos. idtac=>/#.
-        by idtac=>/#.
+        cut ? : 0 <= l < SomeGarble.bound by rewrite l_pos. idtac=>/#.
         by idtac=>/#.
         by idtac=>/#.
         by idtac=>/#. 
+        by idtac=>/#.
+        cut ? : 0 <= l < SomeGarble.bound by rewrite l_pos. idtac=>/#.
 
-      while (={glob A, real, p, R.t, DKCp.b, DKCp.kpub, DKCp.lsb, b, query_ind} /\
+      while (={glob A, real, p, R.t, DKCp.b, DKCp.kpub, DKCp.lsb,DKCp.ksec, b, query_ind} /\
       DKCSecurity.bound = C.n{1} + C.q{1} /\ DKCSecurity.l = Top.l /\
   Top.l = Top.l /\ i{1} = i0{2} /\
   i{1} = i0{2} /\ 0 <= i{1} <= C.n{1} + C.q{1} /\
-  !DKCp.b{2} /\ ={useVisible} /\ useVisible{1} /\
-  !b{2} /\ size R.t{1} = size R.t{2} /\
+  DKCp.b{2} /\ ={useVisible} /\ useVisible{1} /\
+  b{2} /\ size R.t{1} = size R.t{2} /\
   i{1} = i0{2} /\ size R.t{1} = C.n{1} + C.q{1} /\
   DKCp.b{2} = b{2} /\ DKCp.b{1} = b{1} /\
   boundl = SomeGarble.bound /\
@@ -567,12 +511,12 @@ proof.
           by rewrite get_set => /#.
 
       wp.
-      while (={glob A, real, p, i, DKCp.kpub, DKCp.lsb, DKCp.b, b, query_ind} /\
+      while (={glob A, real, p, i, DKCp.kpub, DKCp.lsb, DKCp.b, DKCp.ksec, b, query_ind} /\
       DKCSecurity.bound = C.n{1} + C.q{1} /\ DKCSecurity.l = Top.l /\
   Top.l = Top.l /\ 
    0 <= i{1} <= C.n{1} + C.q{1} /\
-  !DKCp.b{2} /\ 
-  !b{2} /\
+  DKCp.b{2} /\ 
+  b{2} /\
   DKCp.b{2} = b{2} /\
   boundl = SomeGarble.bound /\
   GSch.EncSecurity.queryValid_IND query_ind{1} /\
@@ -590,309 +534,1169 @@ proof.
     auto; progress; first 4 by idtac=>/#. 
       by rewrite size_offun max_ler => /#.
       by idtac=>/#.
-      cut ? : 0 <= l < SomeGarble.bound by rewrite l_pos. by idtac=>/#. 
-      
+      cut ? : 0 <= l < SomeGarble.bound by rewrite l_pos.
+      by idtac=>/#. 
 
+    wp. call (_ : true) => //. wp. inline*.
 
-
-      rewrite ?getP //=. case (k = i{2}) => hc //=. rewrite H ?hc //=. cut ->: C.v{2}.[i{2}] = ! C.v{2}.[i{2}] <=> false by idtac=>/#. simplify. simplify. cut ->: (!R.t{1}.[i{2} <- if i{2} < C.n{2} + C.q{2} - C.m{2} then trndL else C.v{2}.[i{2}]].[i{2}]) = true <=> true by smt. by simplify. smt.   
-
-    while{2} ((={glob A, real, p} /\
-          query{1} = query_ind{2} /\ C.n{2} <= G.g{2} <= C.n{2} + C.q{2} /\
-          DKCSecurity.bound = C.n{1} + C.q{1} /\
-          DKCSecurity.l = Top.l /\
-          l{1} = Top.l /\ !DKCp.b{2} /\ !b{2} /\ DKCp.b{2} = b{2}) /\
-          GSch.EncSecurity.queryValid_IND query{1} /\
-        ={glob C} /\
-          size C.v{1} = C.n{1} + C.q{1} /\
-          C.f{1} = ((C.n{1}, C.m{1}, C.q{1}, C.aa{1}, C.bb{1}), C.gg{1}) /\
-          validInputsP (C.f{1}, C.x{1}) /\
-        (forall (i1 : int), 0 <= i1 < C.n{2} => C.v{2}.[i1] = C.x{2}.[i1]) /\
-        (forall (i1 : int),
-          C.n{2} <= i1 < C.n{2} + C.q{2} =>
-          C.v{2}.[i1] =
-          oget C.gg{2}.[(i1, C.v{2}.[C.aa{2}.[i1]], C.v{2}.[C.bb{2}.[i1]])]) /\ 
-        (forall (k : int),
-          0 <= k < C.n{1} + C.q{1} => k <> Top.l => R.t{1}.[k] = R.t{2}.[k]) /\
-          R.t{2}.[l] = !DKCp.lsb{2} /\
-       (forall (k : int),
-          0 <= k < C.n{1} + C.q{1} =>
-          R.xx{1}.[(k, C.v{1}.[k])] = DKCp.kpub{2}.[(k, C.v{1}.[k])]) /\
-        (forall (k : int),
-          0 <= k < C.n{1} + C.q{1} =>
-          R.xx{1}.[(k, ! C.v{1}.[k])] = DKCp.kpub{2}.[(k, !C.v{1}.[k])]) /\
-
-        (forall k, 0 <= k < C.n{2} + C.q{2} => DKCp.kpub{2}.[(k, C.v{1}.[k])] <> None) /\
-        (forall k, 0 <= k < C.n{2} + C.q{2} => DKCp.kpub{2}.[(k, !C.v{1}.[k])] <> None) /\
-        
-        (forall k, 0 <= k < C.n{2} + C.q{2} => R.xx{1}.[(k,C.v{1}.[k])] = R.xx{2}.[(k,C.v{2}.[k])]) /\
-        (forall k, 0 <= k < C.n{2} + C.q{2} => R.xx{1}.[(k,!C.v{1}.[k])] = R.xx{2}.[(k,!C.v{2}.[k])]))
-      (C.n{2} + C.q{2} - G.g{2}).
-
-        progress. 
-        case (C.aa.[G.g] = l).
-        rcondt 3. by auto. 
-        rcondf 5. call (_:true) => //. call (_:true) => //. auto; progress => /#.
-        wp. inline*. 
-        rcondt 17. by auto.
-        rcondt 32. by auto.
-        cfold 3. cfold 3. cfold 3.
-        cfold 15. cfold 15. cfold 15.
-        auto. progress. 
-          by idtac=>/#.
-          by idtac=>/#.
-
-          rewrite ?getP ?xor_true ?xor_false //=. case (k = G.g{hr}) => hk. rewrite ?hk //=. cut ->: G.g{hr} = C.bb{hr}.[G.g{hr}] <=> false by idtac=>/#. simplify. case (C.v{hr}.[G.g{hr}] = C.v{hr}.[G.g{hr}] ^^ (C.v{hr}.[G.g{hr}] ^^ oget C.gg{hr}.[(G.g{hr}, ! C.v{hr}.[C.aa{hr}.[G.g{hr}]], ! C.v{hr}.[C.bb{hr}.[G.g{hr}]])])) => hv. rewrite -hv. rewrite -some_oget. idtac=>/#. idtac=>/#. case (C.v{hr}.[G.g{hr}] = C.v{hr}.[G.g{hr}] ^^ (C.v{hr}.[G.g{hr}] ^^ oget C.gg{hr}.[(G.g{hr}, ! C.v{hr}.[C.aa{hr}.[G.g{hr}]], C.v{hr}.[C.bb{hr}.[G.g{hr}]])])) => hv'. rewrite -hv'. rewrite -some_oget. idtac=>/#. idtac=>/#. idtac=>/#. simplify. case (k = C.bb{hr}.[G.g{hr}]) => hk'. rewrite ?hk' //=. cut ->: C.v{hr}.[C.bb{hr}.[G.g{hr}]] = ! C.v{hr}.[C.bb{hr}.[G.g{hr}]] <=> false by idtac=>/#. simplify. rewrite -some_oget. idtac=>/#. idtac=>/#. simplify. idtac=>/#.
-
-          rewrite ?getP ?xor_true ?xor_false //=. case (k = G.g{hr}) => hk. rewrite ?hk //=. cut ->: G.g{hr} = C.bb{hr}.[G.g{hr}] <=> false by idtac=>/#. simplify. case ((!C.v{hr}.[G.g{hr}]) = C.v{hr}.[G.g{hr}] ^^ (C.v{hr}.[G.g{hr}] ^^ oget C.gg{hr}.[(G.g{hr}, ! C.v{hr}.[C.aa{hr}.[G.g{hr}]], ! C.v{hr}.[C.bb{hr}.[G.g{hr}]])])) => hv. rewrite -hv. rewrite -some_oget. idtac=>/#. idtac=>/#. case ((!C.v{hr}.[G.g{hr}]) = C.v{hr}.[G.g{hr}] ^^ (C.v{hr}.[G.g{hr}] ^^ oget C.gg{hr}.[(G.g{hr}, ! C.v{hr}.[C.aa{hr}.[G.g{hr}]], C.v{hr}.[C.bb{hr}.[G.g{hr}]])])) => hv'. rewrite -hv'. rewrite -some_oget. idtac=>/#. idtac=>/#. idtac=>/#. simplify. case (k = C.bb{hr}.[G.g{hr}]) => hk'. rewrite ?hk' //=. idtac=>/#. simplify. idtac=>/#. 
-
-         by idtac=>/#.    
-         by idtac=>/#. 
-         by idtac=>/#. 
-         by idtac=>/#.
-         by idtac=>/#.
-         by idtac=>/#.      
-
-       case (C.bb.[G.g] = l).
-         rcondf 3. by auto.
-         rcondt 3. by auto.
-         wp. inline*.
-         rcondf 16. by auto.
-         rcondf 31. by auto.
-         cfold 3. cfold 3. cfold 3.
-         cfold 15. cfold 15. cfold 15.
-         auto. progress. 
-           by idtac=>/#.
-           by idtac=>/#.
-           
-           rewrite ?getP ?xor_true ?xor_false //=. case (k = G.g{hr}) => hk. rewrite ?hk //=. cut ->: G.g{hr} = C.aa{hr}.[G.g{hr}] <=> false by idtac=>/#. simplify. case (C.v{hr}.[G.g{hr}] = C.v{hr}.[G.g{hr}] ^^ (C.v{hr}.[G.g{hr}] ^^ oget C.gg{hr}.[(G.g{hr}, C.v{hr}.[C.aa{hr}.[G.g{hr}]], ! C.v{hr}.[C.bb{hr}.[G.g{hr}]])])) => hv. rewrite -hv. rewrite -some_oget. idtac=>/#. idtac=>/#. idtac=>/#. case (k = C.aa{hr}.[G.g{hr}]) => hk'. rewrite ?hk' //=. cut ->: C.v{hr}.[C.aa{hr}.[G.g{hr}]] = ! C.v{hr}.[C.aa{hr}.[G.g{hr}]] <=> false by idtac=>/#. simplify. rewrite -some_oget. idtac=>/#. idtac=>/#. simplify. idtac=>/#.
-
-          rewrite ?getP ?xor_true ?xor_false //=. case (k = C.aa{hr}.[G.g{hr}]) => hk. rewrite ?hk //=. idtac=>/#. simplify. case (k = G.g{hr}) => hk'. rewrite ?hk' //=. case ((!C.v{hr}.[G.g{hr}]) = C.v{hr}.[G.g{hr}] ^^ (C.v{hr}.[G.g{hr}] ^^ oget C.gg{hr}.[(G.g{hr}, C.v{hr}.[C.aa{hr}.[G.g{hr}]], ! C.v{hr}.[C.bb{hr}.[G.g{hr}]])])) => hv. idtac=>/#. idtac=>/#. simplify. idtac=>/#.
-
-          by idtac=>/#.    
-
-        rcondf 3. by auto.
-        rcondf 3. by auto.
-
-        auto. progress.
-
-          by idtac=>/#.
-          by idtac=>/#.
-          by idtac=>/#.
-      
-    wp.
-
-      
-
-      ((={glob A, real, p} /\
-          query{1} = query_ind{2} /\
-        DKCSecurity.bound = C.n{1} + C.q{1} /\
-        DKCSecurity.l = Top.l /\
-          l{1} = Top.l /\ !DKCp.b{2} /\ !b{2} /\ DKCp.b{2} = b{2}) /\
-        (GSch.EncSecurity.queryValid_IND query{1}) /\
-        ={glob C} /\
-          size C.v{1} = C.n{1} + C.q{1} /\
-          C.f{1} = ((C.n{1}, C.m{1}, C.q{1}, C.aa{1}, C.bb{1}), C.gg{1}) /\
-          validInputsP (C.f{1}, C.x{1}) /\
-        (forall (i1 : int), 0 <= i1 < C.n{2} => C.v{2}.[i1] = C.x{2}.[i1]) /\
-        (forall (i1 : int),
-          C.n{2} <= i1 < C.n{2} + C.q{2} =>
-          C.v{2}.[i1] =
-          oget C.gg{2}.[(i1, C.v{2}.[C.aa{2}.[i1]], C.v{2}.[C.bb{2}.[i1]])])
-        
-        ==>
-
-        ((={glob A, real, p} /\
+    while (={glob A, real, p, G.g} /\
     query{1} = query_ind{2} /\
-    C.n{2} <= C.n{2} <= C.n{2} + C.q{2} /\
     DKCSecurity.bound = C.n{1} + C.q{1} /\
     DKCSecurity.l = Top.l /\
-    l{1} = Top.l /\ !DKCp.b{2} /\ !b{2} /\ DKCp.b{2} = b{2}) /\
-   (GSch.EncSecurity.queryValid_IND query{1}) /\
-   (C.v{1}, C.gg{1}, C.bb{1}, C.aa{1}, C.q{1}, C.m{1}, C.n{1}, C.x{1}, C.f{1}) =
-   (C.v{2}, C.gg{2}, C.bb{2}, C.aa{2}, C.q{2}, C.m{2}, C.n{2}, C.x{2}, C.f{2}) /\
-   size C.v{1} = C.n{1} + C.q{1} /\
-   C.f{1} = ((C.n{1}, C.m{1}, C.q{1}, C.aa{1}, C.bb{1}), C.gg{1}) /\
-   validInputsP (C.f{1}, C.x{1}) /\
-   (forall (i1 : int), 0 <= i1 < C.n{2} => C.v{2}.[i1] = C.x{2}.[i1]) /\
-   (forall (i1 : int),
-      C.n{2} <= i1 < C.n{2} + C.q{2} =>
-      C.v{2}.[i1] =
-      oget C.gg{2}.[(i1, C.v{2}.[C.aa{2}.[i1]], C.v{2}.[C.bb{2}.[i1]])]) /\
-   (forall (k : int),
-      0 <= k < C.n{1} + C.q{1} => k <> Top.l => R.t{1}.[k] = R.t{2}.[k]) /\
-   R.t{2}.[Top.l] = !DKCp.lsb{2} /\
-   (forall (k : int),
-      0 <= k < C.n{1} + C.q{1} =>
-      R.xx{1}.[(k, C.v{1}.[k])] = DKCp.kpub{2}.[(k, C.v{1}.[k])]) /\
-   (forall (k : int),
-      0 <= k < C.n{1} + C.q{1} =>
-      R.xx{1}.[(k, ! C.v{1}.[k])] = DKCp.kpub{2}.[(k, ! C.v{1}.[k])]) /\
-   (forall (k : int),
-      0 <= k < C.n{2} + C.q{2} => DKCp.kpub{2}.[(k, C.v{1}.[k])] <> None) /\
-   (forall (k : int),
-      0 <= k < C.n{2} + C.q{2} => DKCp.kpub{2}.[(k, ! C.v{1}.[k])] <> None) /\
-   (forall (k : int),
-      0 <= k < C.n{2} + C.q{2} =>
-      R.xx{1}.[(k, C.v{1}.[k])] = R.xx{2}.[(k, C.v{2}.[k])]) /\
-   forall (k : int),
-     0 <= k < C.n{2} + C.q{2} =>
-     R.xx{1}.[(k, ! C.v{1}.[k])] = R.xx{2}.[(k, ! C.v{2}.[k])]) /\
-  forall (xx_R : tokens_t) (g_R : int),
-    ((={glob A, real, p} /\
-      query{1} = query_ind{2} /\
-      C.n{2} <= g_R <= C.n{2} + C.q{2} /\
-      DKCSecurity.bound = C.n{1} + C.q{1} /\
-      DKCSecurity.l = Top.l /\
-      l{1} = Top.l /\ !DKCp.b{2} /\ !b{2} /\ DKCp.b{2} = b{2}) /\
-     (GSch.EncSecurity.queryValid_IND query{1}) /\
-     (C.v{1}, C.gg{1}, C.bb{1}, C.aa{1}, C.q{1}, C.m{1}, C.n{1}, C.x{1},
-      C.f{1}) =
-     (C.v{2}, C.gg{2}, C.bb{2}, C.aa{2}, C.q{2}, C.m{2}, C.n{2}, C.x{2},
-      C.f{2}) /\
-     size C.v{1} = C.n{1} + C.q{1} /\
-     C.f{1} = ((C.n{1}, C.m{1}, C.q{1}, C.aa{1}, C.bb{1}), C.gg{1}) /\
-     validInputsP (C.f{1}, C.x{1}) /\
-     (forall (i1 : int), 0 <= i1 < C.n{2} => C.v{2}.[i1] = C.x{2}.[i1]) /\
-     (forall (i1 : int),
-        C.n{2} <= i1 < C.n{2} + C.q{2} =>
-        C.v{2}.[i1] =
-        oget C.gg{2}.[(i1, C.v{2}.[C.aa{2}.[i1]], C.v{2}.[C.bb{2}.[i1]])]) /\
-     (forall (k : int),
-        0 <= k < C.n{1} + C.q{1} => k <> Top.l => R.t{1}.[k] = R.t{2}.[k]) /\
-     R.t{2}.[Top.l] = !DKCp.lsb{2} /\
-     (forall (k : int),
-        0 <= k < C.n{1} + C.q{1} =>
-        R.xx{1}.[(k, C.v{1}.[k])] = DKCp.kpub{2}.[(k, C.v{1}.[k])]) /\
-     (forall (k : int),
-        0 <= k < C.n{1} + C.q{1} =>
-        R.xx{1}.[(k, ! C.v{1}.[k])] = DKCp.kpub{2}.[(k, ! C.v{1}.[k])]) /\
-     (forall (k : int),
-        0 <= k < C.n{2} + C.q{2} => DKCp.kpub{2}.[(k, C.v{1}.[k])] <> None) /\
-     (forall (k : int),
-        0 <= k < C.n{2} + C.q{2} => DKCp.kpub{2}.[(k, ! C.v{1}.[k])] <> None) /\
-     (forall (k : int),
-        0 <= k < C.n{2} + C.q{2} =>
-        R.xx{1}.[(k, C.v{1}.[k])] = xx_R.[(k, C.v{2}.[k])]) /\
-     forall (k : int),
-       0 <= k < C.n{2} + C.q{2} =>
-       R.xx{1}.[(k, ! C.v{1}.[k])] = xx_R.[(k, ! C.v{2}.[k])] =>
-     C.n{2} + C.q{2} - g_R <= 0 => ! g_R < C.n{2} + C.q{2}) /\
-    (! g_R < C.n{2} + C.q{2} =>
-     (={glob A, real, p} /\
-      query{1} = query_ind{2} /\
-      C.n{2} <= g_R <= C.n{2} + C.q{2} /\
-      DKCSecurity.bound = C.n{1} + C.q{1} /\
-      DKCSecurity.l = Top.l /\
-      l{1} = Top.l /\ !DKCp.b{2} /\ !b{2} /\ DKCp.b{2} = b{2}) /\
-     (GSch.EncSecurity.queryValid_IND query{1}) /\
-     (C.v{1}, C.gg{1}, C.bb{1}, C.aa{1}, C.q{1}, C.m{1}, C.n{1}, C.x{1},
-      C.f{1}) =
-     (C.v{2}, C.gg{2}, C.bb{2}, C.aa{2}, C.q{2}, C.m{2}, C.n{2}, C.x{2},
-      C.f{2}) /\
-     size C.v{1} = C.n{1} + C.q{1} /\
-     C.f{1} = ((C.n{1}, C.m{1}, C.q{1}, C.aa{1}, C.bb{1}), C.gg{1}) /\
-     validInputsP (C.f{1}, C.x{1}) /\
-     (forall (i1 : int), 0 <= i1 < C.n{2} => C.v{2}.[i1] = C.x{2}.[i1]) /\
-     (forall (i1 : int),
-        C.n{2} <= i1 < C.n{2} + C.q{2} =>
-        C.v{2}.[i1] =
-        oget C.gg{2}.[(i1, C.v{2}.[C.aa{2}.[i1]], C.v{2}.[C.bb{2}.[i1]])]) /\
-     (forall (k : int),
-        0 <= k < C.n{1} + C.q{1} => k <> Top.l => R.t{1}.[k] = R.t{2}.[k]) /\
-     R.t{2}.[Top.l] = !DKCp.lsb{2} /\
-     (forall (k : int),
-        0 <= k < C.n{1} + C.q{1} =>
-        R.xx{1}.[(k, C.v{1}.[k])] = DKCp.kpub{2}.[(k, C.v{1}.[k])]) /\
-     (forall (k : int),
-        0 <= k < C.n{1} + C.q{1} =>
-        R.xx{1}.[(k, ! C.v{1}.[k])] = DKCp.kpub{2}.[(k, ! C.v{1}.[k])]) /\
-     (forall (k : int),
-        0 <= k < C.n{2} + C.q{2} => DKCp.kpub{2}.[(k, C.v{1}.[k])] <> None) /\
-     (forall (k : int),
-        0 <= k < C.n{2} + C.q{2} => DKCp.kpub{2}.[(k, ! C.v{1}.[k])] <> None) /\
-     (forall (k : int),
-        0 <= k < C.n{2} + C.q{2} =>
-        R.xx{1}.[(k, C.v{1}.[k])] = xx_R.[(k, C.v{2}.[k])]) /\
-     forall (k : int),
-       0 <= k < C.n{2} + C.q{2} =>
-       R.xx{1}.[(k, ! C.v{1}.[k])] = xx_R.[(k, ! C.v{2}.[k])] =>
-     ={glob A, real, p} /\
-     query{1} = query_ind{2} /\
-     DKCSecurity.bound = C.n{1} + C.q{1} /\
-     DKCSecurity.l = Top.l /\
-     l{1} = Top.l /\
-     !DKCp.b{2} /\
-     !b{2} /\
-     DKCp.b{2} = b{2} /\
-     (GSch.EncSecurity.queryValid_IND query{1}) /\
-     (C.v{1}, C.gg{1}, C.bb{1}, C.aa{1}, C.q{1}, C.m{1}, C.n{1}, C.x{1},
-      C.f{1}) =
-     (C.v{2}, C.gg{2}, C.bb{2}, C.aa{2}, C.q{2}, C.m{2}, C.n{2}, C.x{2},
-      C.f{2}) /\
-     size C.v{1} = C.n{1} + C.q{1} /\
-     C.f{1} = ((C.n{1}, C.m{1}, C.q{1}, C.aa{1}, C.bb{1}), C.gg{1}) /\
-     validInputsP (C.f{1}, C.x{1}) /\
-     (forall (i0_0 : int),
-        0 <= i0_0 < C.n{2} => C.v{2}.[i0_0] = C.x{2}.[i0_0]) /\
-     (forall (i0_0 : int),
-        C.n{2} <= i0_0 < C.n{2} + C.q{2} =>
-        C.v{2}.[i0_0] =
-        oget
-          C.gg{2}.[(i0_0, C.v{2}.[C.aa{2}.[i0_0]], C.v{2}.[C.bb{2}.[i0_0]])]) /\
-     (forall (k : int), 0 <= k < C.n{1} + C.q{1} => R.t{1}.[k] = R.t{2}.[k]) /\
-     (forall (k : int),
-        0 <= k < C.n{1} + C.q{1} =>
-        R.xx{1}.[(k, C.v{1}.[k])] = xx_R.[(k, C.v{2}.[k])]) /\
-     forall (k : int),
-       0 <= k < C.n{1} + C.q{1} =>
-       R.xx{1}.[(k, ! C.v{1}.[k])] = xx_R.[(k, ! C.v{2}.[k])])
-      )
-      (
-        true ==> true
-        ). 
+  l{1} = Top.l-1 /\ C.n{1} <= G.g{1} <= C.n{1} + C.q{1} /\
+    DKCp.b{2} /\
+    b{2} /\ l0{1} = l{1} /\
+    DKCp.b{2} = b{2} /\
+    GSch.EncSecurity.queryValid_IND query{1} /\
+  ={glob C} /\ size G.yy{1} = size G.yy{2} /\ size G.yy{1} = C.n{1} + C.q{1} /\
+  boundl = SomeGarble.bound /\
+    size C.v{1} = C.n{1} + C.q{1} /\
+    C.f{1} = ((C.n{1}, C.m{1}, C.q{1}, C.aa{1}, C.bb{1}), C.gg{1}) /\
+    validInputsP (C.f{1}, C.x{1}) /\
+  (forall (i0_0 : int), 0 <= i0_0 < C.n{2} => C.v{2}.[i0_0] = C.x{2}.[i0_0]) /\
+  (forall (i0_0 : int),
+    C.n{2} <= i0_0 < C.n{2} + C.q{2} =>
+    C.v{2}.[i0_0] =
+    oget C.gg{2}.[(i0_0, C.v{2}.[C.aa{2}.[i0_0]], C.v{2}.[C.bb{2}.[i0_0]])]) /\
+  (forall (k : int), 0 <= k < C.n{1} + C.q{1} => R.t{1}.[k] = R.t{2}.[k]) /\
+    R.t{2}.[Top.l] = !DKCp.lsb{2} /\
+  (forall (k : int),
+    0 <= k < C.n{1} + C.q{1} =>
+    getlsb (oget R.xx{1}.[(k, C.v{1}.[k])]) = R.t{1}.[k]) /\
+  (forall (k : int),
+    0 <= k < C.n{1} + C.q{1} =>
+    getlsb (oget R.xx{1}.[(k, ! C.v{1}.[k])]) = ! R.t{1}.[k]) /\
+  (forall (k : int),
+    0 <= k < C.n{1} + C.q{1} =>
+    R.xx{1}.[(k, C.v{1}.[k])] = DKCp.kpub{2}.[(k, R.t{2}.[k])]) /\
+  (forall (k : int),
+    0 <= k < C.n{1} + C.q{1} => k <> l =>
+    R.xx{1}.[(k, ! C.v{1}.[k])] = DKCp.kpub{2}.[(k, ! R.t{2}.[k])]) /\
+  oget R.xx{1}.[(l, ! C.v{1}.[l])] = DKCp.ksec{2} /\
+  (forall k a b, 0 <= k < G.g{2} => G.pp{1}.[(k, a, b)] = G.pp{2}.[(k,a,b)])). 
 
-        admit. admit.
+      case (C.aa{2}.[G.g{2}] <> Top.l /\ C.bb{2}.[G.g{2}] <> Top.l).      
+      rcondt{2} 10; first by auto.
+      auto. progress.
 
-      swap{2} 10 -4. swap{2} 11 -5. 
+        idtac=>/#.
+        idtac=>/#.
+        by rewrite ?size_set. by rewrite ?size_set. 
+
+        cut ->: C.aa{2}.[G.g{2}] <= Top.l - 1 <=> true by idtac=>/#.
+        cut ->: C.bb{2}.[G.g{2}] <= Top.l - 1 <=> false by idtac=>/#.
+        cut ->: C.aa{2}.[G.g{2}] <= Top.l <=> true by idtac=>/#.
+        cut ->: C.bb{2}.[G.g{2}] <= Top.l <=> false by idtac=>/#.
+        rewrite ?xor_true ?xor_false //=.
+        rewrite ?getP //=.
+        rewrite ?H13; first 2 by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+        case (k = G.g{2} && a = ! R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = R.t{2}.[C.bb{2}.[G.g{2}]]) => hc. 
+        congr. congr. congr. rewrite H18; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. congr. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. rewrite ?get_set; first 2 by idtac=>/#. done.
+
+        case (k = G.g{2} && a = ! R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = ! R.t{2}.[C.bb{2}.[G.g{2}]]) => hc'.
+        congr. congr. congr. rewrite H18; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. congr. rewrite H18; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. done.
+
+        case (k = G.g{2} && a = R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = ! R.t{2}.[C.bb{2}.[G.g{2}]]) => hc''.
+        congr. congr. congr. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. congr. rewrite H18; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. done. congr. case (oget C.gg{2}.[(G.g{2}, C.v{2}.[C.aa{2}.[G.g{2}]], ! C.v{2}.[C.bb{2}.[G.g{2}]])] = C.v{2}.[G.g{2}]) => hv. rewrite hv. idtac=>/#. cut ->: oget C.gg{2}.[(G.g{2}, C.v{2}.[C.aa{2}.[G.g{2}]], ! C.v{2}.[C.bb{2}.[G.g{2}]])] = !C.v{2}.[G.g{2}] by idtac=>/#. cut ->: R.t{2}.[G.g{2}] ^^ C.v{2}.[G.g{2}] ^^ ! C.v{2}.[G.g{2}] <=> !R.t{2}.[G.g{2}] by idtac=>/#. rewrite H18. idtac=>/#. idtac=>/#. done. 
+
+        case (k = G.g{2} && a = R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = R.t{2}.[C.bb{2}.[G.g{2}]]) => hc'''.
+        congr. congr. congr. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. congr. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. idtac=>/#.
+
+        idtac=>/#.
+
+        idtac=>/#.     
+        idtac=>/#.
+
+        by rewrite ?size_set.
+        by rewrite ?size_set. 
+        by cut : false by idtac=>/#.
+        by idtac=>/#.
+        by idtac=>/#.
+        by rewrite ?size_set.
+        by rewrite ?size_set.
+        by cut : false by idtac=>/#.
+        by idtac=>/#.       
+        by idtac=>/#.      
+        by rewrite ?size_set.
+        by rewrite ?size_set.
+   
+        case (C.aa{2}.[G.g{2}] <= Top.l) => ha.
+        case (C.bb{2}.[G.g{2}] <= Top.l) => hb.
+        cut ->: C.aa{2}.[G.g{2}] <= Top.l - 1 <=> true by idtac=>/#.
+        cut ->: C.bb{2}.[G.g{2}] <= Top.l - 1 <=> true by idtac=>/#.
+
+        rewrite ?xor_true ?xor_false //=.
+        rewrite ?getP //=.
+        rewrite ?H13; first 2 by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+        case (k = G.g{2} && a = ! R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = !R.t{2}.[C.bb{2}.[G.g{2}]]) => hc. 
+        simplify. congr. congr. rewrite H18; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. congr. rewrite H18; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. done.
+
+        case (k = G.g{2} && a = R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = ! R.t{2}.[C.bb{2}.[G.g{2}]]) => hc'.
+        simplify. congr. congr. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. congr. rewrite H18; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. done.
+
+        case (k = G.g{2} && a = !R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = R.t{2}.[C.bb{2}.[G.g{2}]]) => hc''. 
+        congr. congr. congr. rewrite H18; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. congr. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. 
+
+        case (k = G.g{2} && a = R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = R.t{2}.[C.bb{2}.[G.g{2}]]) => hc'''.
+        congr. congr. congr. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. congr. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. idtac=>/#.        
+         idtac=>/#.
+ 
+         cut ->: C.aa{2}.[G.g{2}] <= Top.l - 1 <=> true by idtac=>/#.
+         cut ->: C.bb{2}.[G.g{2}] <= Top.l - 1 <=> false by idtac=>/#.
+
+         rewrite ?xor_true ?xor_false //=.
+         rewrite ?getP //=.
+         rewrite ?H13; first 2 by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+         case (k = G.g{2} && a = ! R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = !R.t{2}.[C.bb{2}.[G.g{2}]]) => hc. 
+         simplify. congr. congr. rewrite H18; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. congr. rewrite H18; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. done.
+
+         case (k = G.g{2} && a = R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = ! R.t{2}.[C.bb{2}.[G.g{2}]]) => hc'.
+         simplify. congr. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. congr. rewrite H18; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. done. case (oget C.gg{2}.[(G.g{2}, C.v{2}.[C.aa{2}.[G.g{2}]], ! C.v{2}.[C.bb{2}.[G.g{2}]])] = C.v{2}.[G.g{2}]) => hv. rewrite hv. idtac=>/#. cut ->: oget C.gg{2}.[(G.g{2}, C.v{2}.[C.aa{2}.[G.g{2}]], ! C.v{2}.[C.bb{2}.[G.g{2}]])] = !C.v{2}.[G.g{2}] by idtac=>/#. cut ->: R.t{2}.[G.g{2}] ^^ C.v{2}.[G.g{2}] ^^ ! C.v{2}.[G.g{2}] <=> !R.t{2}.[G.g{2}] by idtac=>/#. rewrite H18. idtac=>/#. idtac=>/#. done. 
+
+         case (k = G.g{2} && a = !R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = R.t{2}.[C.bb{2}.[G.g{2}]]) => hc''. 
+         congr. congr. congr. rewrite H18; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. done. congr. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. 
+
+         case (k = G.g{2} && a = R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = R.t{2}.[C.bb{2}.[G.g{2}]]) => hc'''.
+         congr. congr. congr. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. congr. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. idtac=>/#.        
+         idtac=>/#.
+
+         cut ->: C.aa{2}.[G.g{2}] <= Top.l - 1 <=> false by idtac=>/#.
+         cut ?: C.aa{2}.[G.g{2}] <= Top.l - 1 <=> false by idtac=>/#.
+         cut ?: C.aa{2}.[G.g{2}] <= Top.l <=> false by idtac=>/#.
+         cut ->: C.bb{2}.[G.g{2}] <= Top.l - 1 <=> false by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+         cut ?: C.bb{2}.[G.g{2}] <= Top.l - 1 <=> false by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+         cut ->: C.bb{2}.[G.g{2}] <= Top.l <=> false by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+         cut ?: C.bb{2}.[G.g{2}] <= Top.l <=> false by move : H10; simplify validInputsP valid_circuitP fst snd => /#. 
+
+         rewrite ?xor_true ?xor_false //=.
+         rewrite ?getP //=.
+         rewrite ?H13; first 2 by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+         case (k = G.g{2} && a = ! R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = !R.t{2}.[C.bb{2}.[G.g{2}]]) => hc. 
+         simplify. congr. congr. rewrite H18; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. done. congr. rewrite H18; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. done. case (oget C.gg{2}.[(G.g{2}, ! C.v{2}.[C.aa{2}.[G.g{2}]], ! C.v{2}.[C.bb{2}.[G.g{2}]])] = C.v{2}.[G.g{2}]) => hv. rewrite hv. idtac=>/#. cut ->: oget C.gg{2}.[(G.g{2}, !C.v{2}.[C.aa{2}.[G.g{2}]], ! C.v{2}.[C.bb{2}.[G.g{2}]])] = !C.v{2}.[G.g{2}] by idtac=>/#. cut ->: R.t{2}.[G.g{2}] ^^ C.v{2}.[G.g{2}] ^^ ! C.v{2}.[G.g{2}] <=> !R.t{2}.[G.g{2}] by idtac=>/#. rewrite H18. idtac=>/#. idtac=>/#. done. 
+
+         case (k = G.g{2} && a = R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = ! R.t{2}.[C.bb{2}.[G.g{2}]]) => hc'.
+         simplify. congr. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. congr. rewrite H18; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. done. case (oget C.gg{2}.[(G.g{2}, C.v{2}.[C.aa{2}.[G.g{2}]], ! C.v{2}.[C.bb{2}.[G.g{2}]])] = C.v{2}.[G.g{2}]) => hv. rewrite hv. idtac=>/#. cut ->: oget C.gg{2}.[(G.g{2}, C.v{2}.[C.aa{2}.[G.g{2}]], ! C.v{2}.[C.bb{2}.[G.g{2}]])] = !C.v{2}.[G.g{2}] by idtac=>/#. cut ->: R.t{2}.[G.g{2}] ^^ C.v{2}.[G.g{2}] ^^ ! C.v{2}.[G.g{2}] <=> !R.t{2}.[G.g{2}] by idtac=>/#. rewrite H18. idtac=>/#. idtac=>/#. done. 
+
+         case (k = G.g{2} && a = !R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = R.t{2}.[C.bb{2}.[G.g{2}]]) => hc''. 
+         congr. congr. congr. rewrite H18; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. done. congr. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. case (oget C.gg{2}.[(G.g{2}, !C.v{2}.[C.aa{2}.[G.g{2}]], C.v{2}.[C.bb{2}.[G.g{2}]])] = C.v{2}.[G.g{2}]) => hv. rewrite hv. idtac=>/#. cut ->: oget C.gg{2}.[(G.g{2}, ! C.v{2}.[C.aa{2}.[G.g{2}]], C.v{2}.[C.bb{2}.[G.g{2}]])] = !C.v{2}.[G.g{2}] by idtac=>/#. cut ->: R.t{2}.[G.g{2}] ^^ C.v{2}.[G.g{2}] ^^ ! C.v{2}.[G.g{2}] <=> !R.t{2}.[G.g{2}] by idtac=>/#. rewrite H18. idtac=>/#. idtac=>/#. done. 
+
+         case (k = G.g{2} && a = R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = R.t{2}.[C.bb{2}.[G.g{2}]]) => hc'''.
+         congr. congr. congr. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. congr. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. idtac=>/#.        
+         idtac=>/#.
+
+    case (C.aa{2}.[G.g{2}] = l).
+      rcondf{2} 10. by auto.
+      rcondt{2} 10. by auto.
+      rcondt{2} 21. progress. auto. progress. cut ->: C.bb{hr}.[G.g{hr}] < C.aa{hr}.[G.g{hr}] <=> false by move : H10; simplify validInputsP valid_circuitP fst snd => /#. cut ->: G.g{hr} < C.aa{hr}.[G.g{hr}] <=> false by by move : H10; simplify validInputsP valid_circuitP fst snd => /#. cut ->: G.g{hr} < C.bb{hr}.[G.g{hr}] <=> false by move : H10; simplify validInputsP valid_circuitP fst snd => /#. cut ->: G.g{hr} = DKCSecurity.l <=> false by by move : H10; simplify validInputsP valid_circuitP fst snd => /#. idtac=>/#. 
+      rcondt{2} 60. progress. auto. progress. cut ->: C.bb{hr}.[G.g{hr}] < C.aa{hr}.[G.g{hr}] <=> false by move : H10; simplify validInputsP valid_circuitP fst snd => /#. cut ->: G.g{hr} < C.aa{hr}.[G.g{hr}] <=> false by by move : H10; simplify validInputsP valid_circuitP fst snd => /#. cut ->: G.g{hr} < C.bb{hr}.[G.g{hr}] <=> false by move : H10; simplify validInputsP valid_circuitP fst snd => /#. cut ->: G.g{hr} = DKCSecurity.l <=> false by by move : H10; simplify validInputsP valid_circuitP fst snd => /#. idtac=>/#. 
+      rcondf{1} 49. progress. auto. progress. idtac=>/#.
+
+      cfold{1} 4. cfold{2} 4.
+      cfold{1} 4. cfold{2} 4.
+      cfold{2} 8. 
+      cfold{1} 9. cfold{2} 8.  
+      cfold{1} 9. cfold{2} 8.  
+
+      auto. progress. 
+        by rewrite Dword.lossless.
+        by idtac=>/#.
+        by idtac=>/#.
+        by rewrite ?size_set.
+        by rewrite ?size_set.
         
-      while ((={glob A, real, p, i, useVisible} /\ useVisible{1} /\
-            query{1} = query_ind{2} /\ 0 <= i{1} <= C.n{1} + C.q{1} /\
-            DKCSecurity.bound = C.n{1} + C.q{1} /\
-            DKCSecurity.l = Top.l /\
-            l{1} = Top.l /\ !DKCp.b{2} /\ !b{2} /\ DKCp.b{2} = b{2}) /\
-          (GSch.EncSecurity.queryValid_IND query{1}) /\
-          ={glob C} /\
-            size C.v{1} = C.n{1} + C.q{1} /\
-            C.f{1} = ((C.n{1}, C.m{1}, C.q{1}, C.aa{1}, C.bb{1}), C.gg{1}) /\
-            validInputsP (C.f{1}, C.x{1}) /\
-          (forall (i1 : int), 0 <= i1 < C.n{2} => C.v{2}.[i1] = C.x{2}.[i1]) /\
-          (forall (i1 : int),
-            C.n{2} <= i1 < C.n{2} + C.q{2} =>
-            C.v{2}.[i1] =
-            oget C.gg{2}.[(i1, C.v{2}.[C.aa{2}.[i1]], C.v{2}.[C.bb{2}.[i1]])]) /\
-          (forall k, 0 <= k < i{1} => R.xx{1}.[(k,C.v{1}.[k])] = DKCp.kpub{2}.[(k,C.v{2}.[k])]) /\
-          (forall k, 0 <= k < i{1} => R.xx{1}.[(k,!C.v{1}.[k])] = DKCp.kpub{2}.[(k,!C.v{2}.[k])])).
+        rewrite ?getP ?xor_false ?xor_true //=.
+        cut ->: C.aa{2}.[G.g{2}] <= Top.l - 1 <=> false by idtac=>/#.
+        cut ?: C.aa{2}.[G.g{2}] <= Top.l - 1 <=> false by idtac=>/#.
+        cut ->: C.bb{2}.[G.g{2}] <= Top.l - 1 <=> false by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+        cut ?: C.bb{2}.[G.g{2}] <= Top.l - 1 <=> false by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+        cut ->: C.aa{2}.[G.g{2}] = DKCSecurity.l <=> true by idtac=>/#.
+        cut ?: C.aa{2}.[G.g{2}] = DKCSecurity.l <=> true by idtac=>/#.
+        cut ->: C.bb{2}.[G.g{2}] = DKCSecurity.l <=> false by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+        cut ?: C.bb{2}.[G.g{2}] = DKCSecurity.l <=> false by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+ 
+        rewrite ?H3.
+        rewrite ?H13; first 2 by move : H10; simplify validInputsP valid_circuitP fst snd => /#. 
+        simplify.
 
-      wp. swap{2} 5 -4. rnd{2}. rnd{2}. rnd. rnd. wp. rnd. skip. progress.
-        smt. smt. smt. smt. smt. idtac=>/#. idtac=>/#. 
-        rewrite ?getP H //=. case (k = i{2}) => hk. rewrite ?hk //=. case (C.v{2}.[i{2}] = false) => hv. cut ->: C.v{2}.[i{2}] = ! C.v{2}.[i{2}] <=> false by idtac=>/#. rewrite hv //=. cut ->: C.v{2}.[i{2}] = ! C.v{2}.[i{2}] <=> false by idtac=>/#. simplify. cut ->: C.v{2}.[i{2}] = true <=> true by idtac=>/#. simplify. idtac=>/#. cut ->: 
+        case (k = G.g{2} && a = ! R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = ! R.t{2}.[C.bb{2}.[G.g{2}]]) => hc.
+        congr. congr. idtac=>/#. congr. rewrite H18; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. idtac=>/#. done. congr. case (oget C.gg{2}.[(G.g{2}, !C.v{2}.[C.aa{2}.[G.g{2}]], !C.v{2}.[C.bb{2}.[G.g{2}]])] = C.v{2}.[G.g{2}]) => hv. rewrite hv. idtac=>/#. cut ->: oget C.gg{2}.[(G.g{2}, ! C.v{2}.[C.aa{2}.[G.g{2}]], !C.v{2}.[C.bb{2}.[G.g{2}]])] = !C.v{2}.[G.g{2}] by idtac=>/#. idtac=>/#.
 
-        
-        progress. auto; progress.
-          
+        case (k = G.g{2} && a = ! R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = R.t{2}.[C.bb{2}.[G.g{2}]]) => hc'.
+        congr. congr. congr. congr. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. congr. rewrite H18; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. idtac=>/#. done. case (oget C.gg{2}.[(G.g{2}, C.v{2}.[C.aa{2}.[G.g{2}]], !C.v{2}.[C.bb{2}.[G.g{2}]])] = C.v{2}.[G.g{2}]) => hv. rewrite hv. idtac=>/#. cut ->: oget C.gg{2}.[(G.g{2}, C.v{2}.[C.aa{2}.[G.g{2}]], !C.v{2}.[C.bb{2}.[G.g{2}]])] = !C.v{2}.[G.g{2}] by idtac=>/#. idtac=>/#.
 
+        congr. congr. idtac=>/#. congr. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. congr. case (oget C.gg{2}.[(G.g{2}, !C.v{2}.[C.aa{2}.[G.g{2}]], C.v{2}.[C.bb{2}.[G.g{2}]])] = C.v{2}.[G.g{2}]) => hv. rewrite hv. idtac=>/#. cut ->: oget C.gg{2}.[(G.g{2}, !C.v{2}.[C.aa{2}.[G.g{2}]], C.v{2}.[C.bb{2}.[G.g{2}]])] = !C.v{2}.[G.g{2}] by idtac=>/#. idtac=>/#.
 
-        case (R.xx.[(i0, ! C.v.[i0])] = None /\ i0 <> Top.l).
-          rcondt 1; first by auto.
-          case (R.xx.[(i0, C.v.[i0])] = None).
-            rcondt 2; first by auto; smt.
-          wp; skip. progress. 
+        case (k = G.g{2} && a = R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = ! R.t{2}.[C.bb{2}.[G.g{2}]]) => hc''.
+        congr. congr. congr. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. congr. rewrite H18; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. idtac=>/#. done. case (oget C.gg{2}.[(G.g{2}, C.v{2}.[C.aa{2}.[G.g{2}]], !C.v{2}.[C.bb{2}.[G.g{2}]])] = C.v{2}.[G.g{2}]) => hv. rewrite hv. idtac=>/#. cut ->: oget C.gg{2}.[(G.g{2}, C.v{2}.[C.aa{2}.[G.g{2}]], !C.v{2}.[C.bb{2}.[G.g{2}]])] = !C.v{2}.[G.g{2}] by idtac=>/#. idtac=>/#.
+
+        case (k = G.g{2} && a = R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = R.t{2}.[C.bb{2}.[G.g{2}]]) => hc'''.
+        congr. congr. congr. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. congr. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. idtac=>/#.
+
+        idtac=>/#.        
+
+        idtac=>/#.
+        idtac=>/#.
+
+        by rewrite ?size_set.
+        by rewrite ?size_set.
+       
+        rewrite ?getP ?xor_false ?xor_true //=.
+        cut ->: C.aa{2}.[G.g{2}] <= Top.l - 1 <=> false by idtac=>/#.
+        cut ?: C.aa{2}.[G.g{2}] <= Top.l - 1 <=> false by idtac=>/#.
+        cut ->: C.bb{2}.[G.g{2}] <= Top.l - 1 <=> false by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+        cut ?: C.bb{2}.[G.g{2}] <= Top.l - 1 <=> false by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+        cut ->: C.aa{2}.[G.g{2}] = DKCSecurity.l <=> true by idtac=>/#.
+        cut ?: C.aa{2}.[G.g{2}] = DKCSecurity.l <=> true by idtac=>/#.
+        cut ->: C.bb{2}.[G.g{2}] = DKCSecurity.l <=> false by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+        cut ?: C.bb{2}.[G.g{2}] = DKCSecurity.l <=> false by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+ 
+        rewrite ?H3.
+        rewrite ?H13; first 2 by move : H10; simplify validInputsP valid_circuitP fst snd => /#. 
+        simplify.
+
+        case (k = G.g{2} && a = ! R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = ! R.t{2}.[C.bb{2}.[G.g{2}]]) => hc.
+        congr. congr. idtac=>/#. congr. rewrite H18; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. idtac=>/#. done. congr. case (oget C.gg{2}.[(G.g{2}, !C.v{2}.[C.aa{2}.[G.g{2}]], !C.v{2}.[C.bb{2}.[G.g{2}]])] = C.v{2}.[G.g{2}]) => hv. rewrite hv. idtac=>/#. cut ->: oget C.gg{2}.[(G.g{2}, ! C.v{2}.[C.aa{2}.[G.g{2}]], !C.v{2}.[C.bb{2}.[G.g{2}]])] = !C.v{2}.[G.g{2}] by idtac=>/#. idtac=>/#.
+
+        case (k = G.g{2} && a = ! R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = R.t{2}.[C.bb{2}.[G.g{2}]]) => hc'.
+        congr. congr. congr. congr. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. congr. rewrite H18; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. idtac=>/#. done. case (oget C.gg{2}.[(G.g{2}, C.v{2}.[C.aa{2}.[G.g{2}]], !C.v{2}.[C.bb{2}.[G.g{2}]])] = C.v{2}.[G.g{2}]) => hv. rewrite hv. idtac=>/#. cut ->: oget C.gg{2}.[(G.g{2}, C.v{2}.[C.aa{2}.[G.g{2}]], !C.v{2}.[C.bb{2}.[G.g{2}]])] = !C.v{2}.[G.g{2}] by idtac=>/#. idtac=>/#.
+
+        congr. congr. idtac=>/#. congr. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. congr. case (oget C.gg{2}.[(G.g{2}, !C.v{2}.[C.aa{2}.[G.g{2}]], C.v{2}.[C.bb{2}.[G.g{2}]])] = C.v{2}.[G.g{2}]) => hv. rewrite hv. idtac=>/#. cut ->: oget C.gg{2}.[(G.g{2}, !C.v{2}.[C.aa{2}.[G.g{2}]], C.v{2}.[C.bb{2}.[G.g{2}]])] = !C.v{2}.[G.g{2}] by idtac=>/#. idtac=>/#.
+
+        case (k = G.g{2} && a = R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = ! R.t{2}.[C.bb{2}.[G.g{2}]]) => hc''.
+        congr. congr. congr. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. congr. rewrite H18; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. idtac=>/#. done. case (oget C.gg{2}.[(G.g{2}, C.v{2}.[C.aa{2}.[G.g{2}]], !C.v{2}.[C.bb{2}.[G.g{2}]])] = C.v{2}.[G.g{2}]) => hv. rewrite hv. idtac=>/#. cut ->: oget C.gg{2}.[(G.g{2}, C.v{2}.[C.aa{2}.[G.g{2}]], !C.v{2}.[C.bb{2}.[G.g{2}]])] = !C.v{2}.[G.g{2}] by idtac=>/#. idtac=>/#.
+
+        case (k = G.g{2} && a = R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = R.t{2}.[C.bb{2}.[G.g{2}]]) => hc'''.
+        congr. congr. congr. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. congr. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. idtac=>/#.
+
+        idtac=>/#.
+
+        idtac=>/#.
+        idtac=>/#.
+
+        by rewrite ?size_set.
+        by rewrite ?size_set.
+     
+        rewrite ?getP ?xor_false ?xor_true //=.
+        cut ->: C.aa{2}.[G.g{2}] <= Top.l - 1 <=> false by idtac=>/#.
+        cut ?: C.aa{2}.[G.g{2}] <= Top.l - 1 <=> false by idtac=>/#.
+        cut ->: C.bb{2}.[G.g{2}] <= Top.l - 1 <=> false by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+        cut ?: C.bb{2}.[G.g{2}] <= Top.l - 1 <=> false by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+        cut ->: C.aa{2}.[G.g{2}] = DKCSecurity.l <=> true by idtac=>/#.
+        cut ?: C.aa{2}.[G.g{2}] = DKCSecurity.l <=> true by idtac=>/#.
+        cut ->: C.bb{2}.[G.g{2}] = DKCSecurity.l <=> false by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+        cut ?: C.bb{2}.[G.g{2}] = DKCSecurity.l <=> false by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+ 
+        rewrite ?H3.
+        rewrite ?H13; first 2 by move : H10; simplify validInputsP valid_circuitP fst snd => /#. 
+        simplify.
+
+        case (k = G.g{2} && a = ! R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = ! R.t{2}.[C.bb{2}.[G.g{2}]]) => hc.
+        congr. congr. idtac=>/#. congr. rewrite H18; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. idtac=>/#. done. congr. case (oget C.gg{2}.[(G.g{2}, !C.v{2}.[C.aa{2}.[G.g{2}]], !C.v{2}.[C.bb{2}.[G.g{2}]])] = C.v{2}.[G.g{2}]) => hv. rewrite hv. idtac=>/#. cut ->: oget C.gg{2}.[(G.g{2}, ! C.v{2}.[C.aa{2}.[G.g{2}]], !C.v{2}.[C.bb{2}.[G.g{2}]])] = !C.v{2}.[G.g{2}] by idtac=>/#. idtac=>/#.
+
+        case (k = G.g{2} && a = R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = ! R.t{2}.[C.bb{2}.[G.g{2}]]) => hc''.
+        congr. congr. congr. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. congr. rewrite H18; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. idtac=>/#. done. case (oget C.gg{2}.[(G.g{2}, C.v{2}.[C.aa{2}.[G.g{2}]], !C.v{2}.[C.bb{2}.[G.g{2}]])] = C.v{2}.[G.g{2}]) => hv. rewrite hv. idtac=>/#. cut ->: oget C.gg{2}.[(G.g{2}, C.v{2}.[C.aa{2}.[G.g{2}]], !C.v{2}.[C.bb{2}.[G.g{2}]])] = !C.v{2}.[G.g{2}] by idtac=>/#. idtac=>/#.  
+
+        case (k = G.g{2} && a = ! R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = R.t{2}.[C.bb{2}.[G.g{2}]]) => hc'.
+        congr. congr. congr. congr. idtac=>/#. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. congr. case (oget C.gg{2}.[(G.g{2}, !C.v{2}.[C.aa{2}.[G.g{2}]], C.v{2}.[C.bb{2}.[G.g{2}]])] = C.v{2}.[G.g{2}]) => hv. rewrite hv. idtac=>/#. cut ->: oget C.gg{2}.[(G.g{2}, !C.v{2}.[C.aa{2}.[G.g{2}]], C.v{2}.[C.bb{2}.[G.g{2}]])] = !C.v{2}.[G.g{2}] by idtac=>/#. idtac=>/#.
+
+        case (k = G.g{2} && a = R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = R.t{2}.[C.bb{2}.[G.g{2}]]) => hc'''.
+        congr. congr. congr. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. congr. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. idtac=>/#.
+
+        idtac=>/#.
+
+        idtac=>/#.
+        idtac=>/#.
+
+        by rewrite ?size_set.
+        by rewrite ?size_set.
+   
+        rewrite ?getP ?xor_false ?xor_true //=.
+        cut ->: C.aa{2}.[G.g{2}] <= Top.l - 1 <=> false by idtac=>/#.
+        cut ?: C.aa{2}.[G.g{2}] <= Top.l - 1 <=> false by idtac=>/#.
+        cut ->: C.bb{2}.[G.g{2}] <= Top.l - 1 <=> false by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+        cut ?: C.bb{2}.[G.g{2}] <= Top.l - 1 <=> false by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+        cut ->: C.aa{2}.[G.g{2}] = DKCSecurity.l <=> true by idtac=>/#.
+        cut ?: C.aa{2}.[G.g{2}] = DKCSecurity.l <=> true by idtac=>/#.
+        cut ->: C.bb{2}.[G.g{2}] = DKCSecurity.l <=> false by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+        cut ?: C.bb{2}.[G.g{2}] = DKCSecurity.l <=> false by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+ 
+        rewrite ?H3.
+        rewrite ?H13; first 2 by move : H10; simplify validInputsP valid_circuitP fst snd => /#. 
+        simplify.
+
+        case (k = G.g{2} && a = ! R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = ! R.t{2}.[C.bb{2}.[G.g{2}]]) => hc.
+        congr. congr. idtac=>/#. congr. rewrite H18; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. idtac=>/#. done. congr. case (oget C.gg{2}.[(G.g{2}, !C.v{2}.[C.aa{2}.[G.g{2}]], !C.v{2}.[C.bb{2}.[G.g{2}]])] = C.v{2}.[G.g{2}]) => hv. rewrite hv. idtac=>/#. cut ->: oget C.gg{2}.[(G.g{2}, ! C.v{2}.[C.aa{2}.[G.g{2}]], !C.v{2}.[C.bb{2}.[G.g{2}]])] = !C.v{2}.[G.g{2}] by idtac=>/#. idtac=>/#.
+
+        case (k = G.g{2} && a = R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = ! R.t{2}.[C.bb{2}.[G.g{2}]]) => hc''.
+        congr. congr. congr. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. congr. rewrite H18; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. idtac=>/#. done. case (oget C.gg{2}.[(G.g{2}, C.v{2}.[C.aa{2}.[G.g{2}]], !C.v{2}.[C.bb{2}.[G.g{2}]])] = C.v{2}.[G.g{2}]) => hv. rewrite hv. idtac=>/#. cut ->: oget C.gg{2}.[(G.g{2}, C.v{2}.[C.aa{2}.[G.g{2}]], !C.v{2}.[C.bb{2}.[G.g{2}]])] = !C.v{2}.[G.g{2}] by idtac=>/#. idtac=>/#.  
+
+        case (k = G.g{2} && a = ! R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = R.t{2}.[C.bb{2}.[G.g{2}]]) => hc'.
+        congr. congr. congr. congr. idtac=>/#. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. congr. case (oget C.gg{2}.[(G.g{2}, !C.v{2}.[C.aa{2}.[G.g{2}]], C.v{2}.[C.bb{2}.[G.g{2}]])] = C.v{2}.[G.g{2}]) => hv. rewrite hv. idtac=>/#. cut ->: oget C.gg{2}.[(G.g{2}, !C.v{2}.[C.aa{2}.[G.g{2}]], C.v{2}.[C.bb{2}.[G.g{2}]])] = !C.v{2}.[G.g{2}] by idtac=>/#. idtac=>/#.
+
+        case (k = G.g{2} && a = R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = R.t{2}.[C.bb{2}.[G.g{2}]]) => hc'''.
+        congr. congr. congr. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. congr. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. idtac=>/#.
+
+        idtac=>/#.
+
+        idtac=>/#.
+        idtac=>/#.
+
+        by rewrite ?size_set.
+        by rewrite ?size_set.
+  
+        rewrite ?getP ?xor_false ?xor_true //=.
+        cut ->: C.aa{2}.[G.g{2}] <= Top.l - 1 <=> false by idtac=>/#.
+        cut ?: C.aa{2}.[G.g{2}] <= Top.l - 1 <=> false by idtac=>/#.
+        cut ->: C.bb{2}.[G.g{2}] <= Top.l - 1 <=> false by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+        cut ?: C.bb{2}.[G.g{2}] <= Top.l - 1 <=> false by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+        cut ->: C.aa{2}.[G.g{2}] = DKCSecurity.l <=> true by idtac=>/#.
+        cut ?: C.aa{2}.[G.g{2}] = DKCSecurity.l <=> true by idtac=>/#.
+        cut ->: C.bb{2}.[G.g{2}] = DKCSecurity.l <=> false by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+        cut ?: C.bb{2}.[G.g{2}] = DKCSecurity.l <=> false by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+ 
+        rewrite ?H3.
+        rewrite ?H13; first 2 by move : H10; simplify validInputsP valid_circuitP fst snd => /#. 
+        simplify.
+
+        case (k = G.g{2} && a = ! R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = ! R.t{2}.[C.bb{2}.[G.g{2}]]) => hc.
+        congr. congr. idtac=>/#. congr. rewrite H18; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. idtac=>/#. done. congr. case (oget C.gg{2}.[(G.g{2}, !C.v{2}.[C.aa{2}.[G.g{2}]], !C.v{2}.[C.bb{2}.[G.g{2}]])] = C.v{2}.[G.g{2}]) => hv. rewrite hv. idtac=>/#. cut ->: oget C.gg{2}.[(G.g{2}, ! C.v{2}.[C.aa{2}.[G.g{2}]], !C.v{2}.[C.bb{2}.[G.g{2}]])] = !C.v{2}.[G.g{2}] by idtac=>/#. idtac=>/#.
+
+        case (k = G.g{2} && a = R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = ! R.t{2}.[C.bb{2}.[G.g{2}]]) => hc''.
+        congr. congr. congr. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. congr. rewrite H18; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. idtac=>/#. done. case (oget C.gg{2}.[(G.g{2}, C.v{2}.[C.aa{2}.[G.g{2}]], !C.v{2}.[C.bb{2}.[G.g{2}]])] = C.v{2}.[G.g{2}]) => hv. rewrite hv. idtac=>/#. cut ->: oget C.gg{2}.[(G.g{2}, C.v{2}.[C.aa{2}.[G.g{2}]], !C.v{2}.[C.bb{2}.[G.g{2}]])] = !C.v{2}.[G.g{2}] by idtac=>/#. idtac=>/#.  
+
+        case (k = G.g{2} && a = ! R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = R.t{2}.[C.bb{2}.[G.g{2}]]) => hc'.
+        congr. congr. congr. congr. idtac=>/#. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. congr. case (oget C.gg{2}.[(G.g{2}, !C.v{2}.[C.aa{2}.[G.g{2}]], C.v{2}.[C.bb{2}.[G.g{2}]])] = C.v{2}.[G.g{2}]) => hv. rewrite hv. idtac=>/#. cut ->: oget C.gg{2}.[(G.g{2}, !C.v{2}.[C.aa{2}.[G.g{2}]], C.v{2}.[C.bb{2}.[G.g{2}]])] = !C.v{2}.[G.g{2}] by idtac=>/#. idtac=>/#.
+
+        case (k = G.g{2} && a = R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = R.t{2}.[C.bb{2}.[G.g{2}]]) => hc'''.
+        congr. congr. congr. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. congr. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. idtac=>/#.
+
+        idtac=>/#.
+
+        idtac=>/#.
+        idtac=>/#.
+
+        by rewrite ?size_set.
+        by rewrite ?size_set.
+     
+        rewrite ?getP ?xor_false ?xor_true //=.
+        cut ->: C.aa{2}.[G.g{2}] <= Top.l - 1 <=> false by idtac=>/#.
+        cut ?: C.aa{2}.[G.g{2}] <= Top.l - 1 <=> false by idtac=>/#.
+        cut ->: C.bb{2}.[G.g{2}] <= Top.l - 1 <=> false by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+        cut ?: C.bb{2}.[G.g{2}] <= Top.l - 1 <=> false by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+        cut ->: C.aa{2}.[G.g{2}] = DKCSecurity.l <=> true by idtac=>/#.
+        cut ?: C.aa{2}.[G.g{2}] = DKCSecurity.l <=> true by idtac=>/#.
+        cut ->: C.bb{2}.[G.g{2}] = DKCSecurity.l <=> false by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+        cut ?: C.bb{2}.[G.g{2}] = DKCSecurity.l <=> false by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+ 
+        rewrite ?H3.
+        rewrite ?H13; first 2 by move : H10; simplify validInputsP valid_circuitP fst snd => /#. 
+        simplify.
+
+        case (k = G.g{2} && a = ! R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = ! R.t{2}.[C.bb{2}.[G.g{2}]]) => hc.
+        congr. congr. idtac=>/#. congr. rewrite H18; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. idtac=>/#. done. congr. case (oget C.gg{2}.[(G.g{2}, !C.v{2}.[C.aa{2}.[G.g{2}]], !C.v{2}.[C.bb{2}.[G.g{2}]])] = C.v{2}.[G.g{2}]) => hv. rewrite hv. idtac=>/#. cut ->: oget C.gg{2}.[(G.g{2}, ! C.v{2}.[C.aa{2}.[G.g{2}]], !C.v{2}.[C.bb{2}.[G.g{2}]])] = !C.v{2}.[G.g{2}] by idtac=>/#. idtac=>/#.
+
+        case (k = G.g{2} && a = R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = ! R.t{2}.[C.bb{2}.[G.g{2}]]) => hc''.
+        congr. congr. congr. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. congr. rewrite H18; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. idtac=>/#. done. case (oget C.gg{2}.[(G.g{2}, C.v{2}.[C.aa{2}.[G.g{2}]], !C.v{2}.[C.bb{2}.[G.g{2}]])] = C.v{2}.[G.g{2}]) => hv. rewrite hv. idtac=>/#. cut ->: oget C.gg{2}.[(G.g{2}, C.v{2}.[C.aa{2}.[G.g{2}]], !C.v{2}.[C.bb{2}.[G.g{2}]])] = !C.v{2}.[G.g{2}] by idtac=>/#. idtac=>/#.  
+
+        case (k = G.g{2} && a = ! R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = R.t{2}.[C.bb{2}.[G.g{2}]]) => hc'.
+        congr. congr. congr. congr. idtac=>/#. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. congr. case (oget C.gg{2}.[(G.g{2}, !C.v{2}.[C.aa{2}.[G.g{2}]], C.v{2}.[C.bb{2}.[G.g{2}]])] = C.v{2}.[G.g{2}]) => hv. rewrite hv. idtac=>/#. cut ->: oget C.gg{2}.[(G.g{2}, !C.v{2}.[C.aa{2}.[G.g{2}]], C.v{2}.[C.bb{2}.[G.g{2}]])] = !C.v{2}.[G.g{2}] by idtac=>/#. idtac=>/#.
+
+        case (k = G.g{2} && a = R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = R.t{2}.[C.bb{2}.[G.g{2}]]) => hc'''.
+        congr. congr. congr. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. congr. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. idtac=>/#.
+
+        idtac=>/#.
+
+        idtac=>/#.
+        idtac=>/#.
+
+        by rewrite ?size_set.
+        by rewrite ?size_set.
+    
+        rewrite ?getP ?xor_false ?xor_true //=.
+        cut ->: C.aa{2}.[G.g{2}] <= Top.l - 1 <=> false by idtac=>/#.
+        cut ?: C.aa{2}.[G.g{2}] <= Top.l - 1 <=> false by idtac=>/#.
+        cut ->: C.bb{2}.[G.g{2}] <= Top.l - 1 <=> false by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+        cut ?: C.bb{2}.[G.g{2}] <= Top.l - 1 <=> false by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+        cut ->: C.aa{2}.[G.g{2}] = DKCSecurity.l <=> true by idtac=>/#.
+        cut ?: C.aa{2}.[G.g{2}] = DKCSecurity.l <=> true by idtac=>/#.
+        cut ->: C.bb{2}.[G.g{2}] = DKCSecurity.l <=> false by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+        cut ?: C.bb{2}.[G.g{2}] = DKCSecurity.l <=> false by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+ 
+        rewrite ?H3.
+        rewrite ?H13; first 2 by move : H10; simplify validInputsP valid_circuitP fst snd => /#. 
+        simplify.
+
+        case (k = G.g{2} && a = ! R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = ! R.t{2}.[C.bb{2}.[G.g{2}]]) => hc.
+        congr. congr. idtac=>/#. congr. rewrite H18; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. idtac=>/#. done. congr. case (oget C.gg{2}.[(G.g{2}, !C.v{2}.[C.aa{2}.[G.g{2}]], !C.v{2}.[C.bb{2}.[G.g{2}]])] = C.v{2}.[G.g{2}]) => hv. rewrite hv. idtac=>/#. cut ->: oget C.gg{2}.[(G.g{2}, ! C.v{2}.[C.aa{2}.[G.g{2}]], !C.v{2}.[C.bb{2}.[G.g{2}]])] = !C.v{2}.[G.g{2}] by idtac=>/#. idtac=>/#.
+
+        case (k = G.g{2} && a = R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = ! R.t{2}.[C.bb{2}.[G.g{2}]]) => hc''.
+        congr. congr. congr. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. congr. rewrite H18; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. idtac=>/#. done. case (oget C.gg{2}.[(G.g{2}, C.v{2}.[C.aa{2}.[G.g{2}]], !C.v{2}.[C.bb{2}.[G.g{2}]])] = C.v{2}.[G.g{2}]) => hv. rewrite hv. idtac=>/#. cut ->: oget C.gg{2}.[(G.g{2}, C.v{2}.[C.aa{2}.[G.g{2}]], !C.v{2}.[C.bb{2}.[G.g{2}]])] = !C.v{2}.[G.g{2}] by idtac=>/#. idtac=>/#.  
+
+        case (k = G.g{2} && a = ! R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = R.t{2}.[C.bb{2}.[G.g{2}]]) => hc'.
+        congr. congr. congr. congr. idtac=>/#. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. congr. case (oget C.gg{2}.[(G.g{2}, !C.v{2}.[C.aa{2}.[G.g{2}]], C.v{2}.[C.bb{2}.[G.g{2}]])] = C.v{2}.[G.g{2}]) => hv. rewrite hv. idtac=>/#. cut ->: oget C.gg{2}.[(G.g{2}, !C.v{2}.[C.aa{2}.[G.g{2}]], C.v{2}.[C.bb{2}.[G.g{2}]])] = !C.v{2}.[G.g{2}] by idtac=>/#. idtac=>/#.
+
+        case (k = G.g{2} && a = R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = R.t{2}.[C.bb{2}.[G.g{2}]]) => hc'''.
+        congr. congr. congr. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. congr. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. idtac=>/#.
+
+        idtac=>/#.
+
+        idtac=>/#.
+        idtac=>/#.
+
+        by rewrite ?size_set.
+        by rewrite ?size_set.
+     
+        rewrite ?getP ?xor_false ?xor_true //=.
+        cut ->: C.aa{2}.[G.g{2}] <= Top.l - 1 <=> false by idtac=>/#.
+        cut ?: C.aa{2}.[G.g{2}] <= Top.l - 1 <=> false by idtac=>/#.
+        cut ->: C.bb{2}.[G.g{2}] <= Top.l - 1 <=> false by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+        cut ?: C.bb{2}.[G.g{2}] <= Top.l - 1 <=> false by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+        cut ->: C.aa{2}.[G.g{2}] = DKCSecurity.l <=> true by idtac=>/#.
+        cut ?: C.aa{2}.[G.g{2}] = DKCSecurity.l <=> true by idtac=>/#.
+        cut ->: C.bb{2}.[G.g{2}] = DKCSecurity.l <=> false by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+        cut ?: C.bb{2}.[G.g{2}] = DKCSecurity.l <=> false by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+ 
+        rewrite ?H3.
+        rewrite ?H13; first 2 by move : H10; simplify validInputsP valid_circuitP fst snd => /#. 
+        simplify.
+
+        case (k = G.g{2} && a = ! R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = ! R.t{2}.[C.bb{2}.[G.g{2}]]) => hc.
+        congr. congr. idtac=>/#. congr. rewrite H18; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. idtac=>/#. done. congr. case (oget C.gg{2}.[(G.g{2}, !C.v{2}.[C.aa{2}.[G.g{2}]], !C.v{2}.[C.bb{2}.[G.g{2}]])] = C.v{2}.[G.g{2}]) => hv. rewrite hv. idtac=>/#. cut ->: oget C.gg{2}.[(G.g{2}, ! C.v{2}.[C.aa{2}.[G.g{2}]], !C.v{2}.[C.bb{2}.[G.g{2}]])] = !C.v{2}.[G.g{2}] by idtac=>/#. idtac=>/#.
+
+        case (k = G.g{2} && a = R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = ! R.t{2}.[C.bb{2}.[G.g{2}]]) => hc''.
+        congr. congr. congr. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. congr. rewrite H18; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. idtac=>/#. done. case (oget C.gg{2}.[(G.g{2}, C.v{2}.[C.aa{2}.[G.g{2}]], !C.v{2}.[C.bb{2}.[G.g{2}]])] = C.v{2}.[G.g{2}]) => hv. rewrite hv. idtac=>/#. cut ->: oget C.gg{2}.[(G.g{2}, C.v{2}.[C.aa{2}.[G.g{2}]], !C.v{2}.[C.bb{2}.[G.g{2}]])] = !C.v{2}.[G.g{2}] by idtac=>/#. idtac=>/#.  
+
+        case (k = G.g{2} && a = ! R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = R.t{2}.[C.bb{2}.[G.g{2}]]) => hc'.
+        congr. congr. congr. congr. idtac=>/#. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. congr. case (oget C.gg{2}.[(G.g{2}, !C.v{2}.[C.aa{2}.[G.g{2}]], C.v{2}.[C.bb{2}.[G.g{2}]])] = C.v{2}.[G.g{2}]) => hv. rewrite hv. idtac=>/#. cut ->: oget C.gg{2}.[(G.g{2}, !C.v{2}.[C.aa{2}.[G.g{2}]], C.v{2}.[C.bb{2}.[G.g{2}]])] = !C.v{2}.[G.g{2}] by idtac=>/#. idtac=>/#.
+
+        case (k = G.g{2} && a = R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = R.t{2}.[C.bb{2}.[G.g{2}]]) => hc'''.
+        congr. congr. congr. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. congr. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. idtac=>/#.
+
+        idtac=>/#.
+
+        idtac=>/#.
+        idtac=>/#.
+
+        by rewrite ?size_set.
+        by rewrite ?size_set.
+     
+        rewrite ?getP ?xor_false ?xor_true //=.
+        cut ->: C.aa{2}.[G.g{2}] <= Top.l - 1 <=> false by idtac=>/#.
+        cut ?: C.aa{2}.[G.g{2}] <= Top.l - 1 <=> false by idtac=>/#.
+        cut ->: C.bb{2}.[G.g{2}] <= Top.l - 1 <=> false by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+        cut ?: C.bb{2}.[G.g{2}] <= Top.l - 1 <=> false by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+        cut ->: C.aa{2}.[G.g{2}] = DKCSecurity.l <=> true by idtac=>/#.
+        cut ?: C.aa{2}.[G.g{2}] = DKCSecurity.l <=> true by idtac=>/#.
+        cut ->: C.bb{2}.[G.g{2}] = DKCSecurity.l <=> false by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+        cut ?: C.bb{2}.[G.g{2}] = DKCSecurity.l <=> false by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+ 
+        rewrite ?H3.
+        rewrite ?H13; first 2 by move : H10; simplify validInputsP valid_circuitP fst snd => /#. 
+        simplify.
+
+        case (k = G.g{2} && a = ! R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = ! R.t{2}.[C.bb{2}.[G.g{2}]]) => hc.
+        congr. congr. idtac=>/#. congr. rewrite H18; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. idtac=>/#. done. congr. case (oget C.gg{2}.[(G.g{2}, !C.v{2}.[C.aa{2}.[G.g{2}]], !C.v{2}.[C.bb{2}.[G.g{2}]])] = C.v{2}.[G.g{2}]) => hv. rewrite hv. idtac=>/#. cut ->: oget C.gg{2}.[(G.g{2}, ! C.v{2}.[C.aa{2}.[G.g{2}]], !C.v{2}.[C.bb{2}.[G.g{2}]])] = !C.v{2}.[G.g{2}] by idtac=>/#. idtac=>/#.
+
+        case (k = G.g{2} && a = R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = ! R.t{2}.[C.bb{2}.[G.g{2}]]) => hc''.
+        congr. congr. congr. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. congr. rewrite H18; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. idtac=>/#. done. case (oget C.gg{2}.[(G.g{2}, C.v{2}.[C.aa{2}.[G.g{2}]], !C.v{2}.[C.bb{2}.[G.g{2}]])] = C.v{2}.[G.g{2}]) => hv. rewrite hv. idtac=>/#. cut ->: oget C.gg{2}.[(G.g{2}, C.v{2}.[C.aa{2}.[G.g{2}]], !C.v{2}.[C.bb{2}.[G.g{2}]])] = !C.v{2}.[G.g{2}] by idtac=>/#. idtac=>/#.  
+
+        case (k = G.g{2} && a = ! R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = R.t{2}.[C.bb{2}.[G.g{2}]]) => hc'.
+        congr. congr. congr. congr. idtac=>/#. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. congr. case (oget C.gg{2}.[(G.g{2}, !C.v{2}.[C.aa{2}.[G.g{2}]], C.v{2}.[C.bb{2}.[G.g{2}]])] = C.v{2}.[G.g{2}]) => hv. rewrite hv. idtac=>/#. cut ->: oget C.gg{2}.[(G.g{2}, !C.v{2}.[C.aa{2}.[G.g{2}]], C.v{2}.[C.bb{2}.[G.g{2}]])] = !C.v{2}.[G.g{2}] by idtac=>/#. idtac=>/#.
+
+        case (k = G.g{2} && a = R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = R.t{2}.[C.bb{2}.[G.g{2}]]) => hc'''.
+        congr. congr. congr. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. congr. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. idtac=>/#.
+
+        idtac=>/#.
+
+        idtac=>/#.
+        idtac=>/#.
+
+        by rewrite ?size_set.
+        by rewrite ?size_set.
+     
+        rewrite ?getP ?xor_false ?xor_true //=.
+        cut ->: C.aa{2}.[G.g{2}] <= Top.l - 1 <=> false by idtac=>/#.
+        cut ?: C.aa{2}.[G.g{2}] <= Top.l - 1 <=> false by idtac=>/#.
+        cut ->: C.bb{2}.[G.g{2}] <= Top.l - 1 <=> false by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+        cut ?: C.bb{2}.[G.g{2}] <= Top.l - 1 <=> false by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+        cut ->: C.aa{2}.[G.g{2}] = DKCSecurity.l <=> true by idtac=>/#.
+        cut ?: C.aa{2}.[G.g{2}] = DKCSecurity.l <=> true by idtac=>/#.
+        cut ->: C.bb{2}.[G.g{2}] = DKCSecurity.l <=> false by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+        cut ?: C.bb{2}.[G.g{2}] = DKCSecurity.l <=> false by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+ 
+        rewrite ?H3.
+        rewrite ?H13; first 2 by move : H10; simplify validInputsP valid_circuitP fst snd => /#. 
+        simplify.
+
+        case (k = G.g{2} && a = ! R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = ! R.t{2}.[C.bb{2}.[G.g{2}]]) => hc.
+        congr. congr. idtac=>/#. congr. rewrite H18; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. idtac=>/#. done. congr. case (oget C.gg{2}.[(G.g{2}, !C.v{2}.[C.aa{2}.[G.g{2}]], !C.v{2}.[C.bb{2}.[G.g{2}]])] = C.v{2}.[G.g{2}]) => hv. rewrite hv. idtac=>/#. cut ->: oget C.gg{2}.[(G.g{2}, ! C.v{2}.[C.aa{2}.[G.g{2}]], !C.v{2}.[C.bb{2}.[G.g{2}]])] = !C.v{2}.[G.g{2}] by idtac=>/#. idtac=>/#.
+
+        case (k = G.g{2} && a = R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = ! R.t{2}.[C.bb{2}.[G.g{2}]]) => hc''.
+        congr. congr. congr. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. congr. rewrite H18; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. idtac=>/#. done. case (oget C.gg{2}.[(G.g{2}, C.v{2}.[C.aa{2}.[G.g{2}]], !C.v{2}.[C.bb{2}.[G.g{2}]])] = C.v{2}.[G.g{2}]) => hv. rewrite hv. idtac=>/#. cut ->: oget C.gg{2}.[(G.g{2}, C.v{2}.[C.aa{2}.[G.g{2}]], !C.v{2}.[C.bb{2}.[G.g{2}]])] = !C.v{2}.[G.g{2}] by idtac=>/#. idtac=>/#.  
+
+        case (k = G.g{2} && a = ! R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = R.t{2}.[C.bb{2}.[G.g{2}]]) => hc'.
+        congr. congr. congr. congr. idtac=>/#. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. congr. case (oget C.gg{2}.[(G.g{2}, !C.v{2}.[C.aa{2}.[G.g{2}]], C.v{2}.[C.bb{2}.[G.g{2}]])] = C.v{2}.[G.g{2}]) => hv. rewrite hv. idtac=>/#. cut ->: oget C.gg{2}.[(G.g{2}, !C.v{2}.[C.aa{2}.[G.g{2}]], C.v{2}.[C.bb{2}.[G.g{2}]])] = !C.v{2}.[G.g{2}] by idtac=>/#. idtac=>/#.
+
+        case (k = G.g{2} && a = R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = R.t{2}.[C.bb{2}.[G.g{2}]]) => hc'''.
+        congr. congr. congr. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. congr. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. idtac=>/#.
+
+        idtac=>/#.
+
+        idtac=>/#.
+        idtac=>/#.
+
+        by rewrite ?size_set.
+        by rewrite ?size_set.
+  
+        rewrite ?getP ?xor_false ?xor_true //=.
+        cut ->: C.aa{2}.[G.g{2}] <= Top.l - 1 <=> false by idtac=>/#.
+        cut ?: C.aa{2}.[G.g{2}] <= Top.l - 1 <=> false by idtac=>/#.
+        cut ->: C.bb{2}.[G.g{2}] <= Top.l - 1 <=> false by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+        cut ?: C.bb{2}.[G.g{2}] <= Top.l - 1 <=> false by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+        cut ->: C.aa{2}.[G.g{2}] = DKCSecurity.l <=> true by idtac=>/#.
+        cut ?: C.aa{2}.[G.g{2}] = DKCSecurity.l <=> true by idtac=>/#.
+        cut ->: C.bb{2}.[G.g{2}] = DKCSecurity.l <=> false by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+        cut ?: C.bb{2}.[G.g{2}] = DKCSecurity.l <=> false by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+ 
+        rewrite ?H3.
+        rewrite ?H13; first 2 by move : H10; simplify validInputsP valid_circuitP fst snd => /#. 
+        simplify.
+
+        case (k = G.g{2} && a = ! R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = ! R.t{2}.[C.bb{2}.[G.g{2}]]) => hc.
+        congr. congr. idtac=>/#. congr. rewrite H18; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. idtac=>/#. done. congr. case (oget C.gg{2}.[(G.g{2}, !C.v{2}.[C.aa{2}.[G.g{2}]], !C.v{2}.[C.bb{2}.[G.g{2}]])] = C.v{2}.[G.g{2}]) => hv. rewrite hv. idtac=>/#. cut ->: oget C.gg{2}.[(G.g{2}, ! C.v{2}.[C.aa{2}.[G.g{2}]], !C.v{2}.[C.bb{2}.[G.g{2}]])] = !C.v{2}.[G.g{2}] by idtac=>/#. idtac=>/#.
+
+        case (k = G.g{2} && a = R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = ! R.t{2}.[C.bb{2}.[G.g{2}]]) => hc''.
+        congr. congr. congr. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. congr. rewrite H18; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. idtac=>/#. done. case (oget C.gg{2}.[(G.g{2}, C.v{2}.[C.aa{2}.[G.g{2}]], !C.v{2}.[C.bb{2}.[G.g{2}]])] = C.v{2}.[G.g{2}]) => hv. rewrite hv. idtac=>/#. cut ->: oget C.gg{2}.[(G.g{2}, C.v{2}.[C.aa{2}.[G.g{2}]], !C.v{2}.[C.bb{2}.[G.g{2}]])] = !C.v{2}.[G.g{2}] by idtac=>/#. idtac=>/#.  
+
+        case (k = G.g{2} && a = ! R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = R.t{2}.[C.bb{2}.[G.g{2}]]) => hc'.
+        congr. congr. congr. congr. idtac=>/#. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. congr. case (oget C.gg{2}.[(G.g{2}, !C.v{2}.[C.aa{2}.[G.g{2}]], C.v{2}.[C.bb{2}.[G.g{2}]])] = C.v{2}.[G.g{2}]) => hv. rewrite hv. idtac=>/#. cut ->: oget C.gg{2}.[(G.g{2}, !C.v{2}.[C.aa{2}.[G.g{2}]], C.v{2}.[C.bb{2}.[G.g{2}]])] = !C.v{2}.[G.g{2}] by idtac=>/#. idtac=>/#.
+
+        case (k = G.g{2} && a = R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = R.t{2}.[C.bb{2}.[G.g{2}]]) => hc'''.
+        congr. congr. congr. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. congr. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. idtac=>/#.
+
+        idtac=>/#.
+
+        idtac=>/#.
+        idtac=>/#.
+
+        by rewrite ?size_set.
+        by rewrite ?size_set.
+ 
+        rewrite ?getP ?xor_false ?xor_true //=.
+        cut ->: C.aa{2}.[G.g{2}] <= Top.l - 1 <=> false by idtac=>/#.
+        cut ?: C.aa{2}.[G.g{2}] <= Top.l - 1 <=> false by idtac=>/#.
+        cut ->: C.bb{2}.[G.g{2}] <= Top.l - 1 <=> false by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+        cut ?: C.bb{2}.[G.g{2}] <= Top.l - 1 <=> false by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+        cut ->: C.aa{2}.[G.g{2}] = DKCSecurity.l <=> true by idtac=>/#.
+        cut ?: C.aa{2}.[G.g{2}] = DKCSecurity.l <=> true by idtac=>/#.
+        cut ->: C.bb{2}.[G.g{2}] = DKCSecurity.l <=> false by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+        cut ?: C.bb{2}.[G.g{2}] = DKCSecurity.l <=> false by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+ 
+        rewrite ?H3.
+        rewrite ?H13; first 2 by move : H10; simplify validInputsP valid_circuitP fst snd => /#. 
+        simplify.
+
+        case (k = G.g{2} && a = ! R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = ! R.t{2}.[C.bb{2}.[G.g{2}]]) => hc.
+        congr. congr. idtac=>/#. congr. rewrite H18; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. idtac=>/#. done. congr. case (oget C.gg{2}.[(G.g{2}, !C.v{2}.[C.aa{2}.[G.g{2}]], !C.v{2}.[C.bb{2}.[G.g{2}]])] = C.v{2}.[G.g{2}]) => hv. rewrite hv. idtac=>/#. cut ->: oget C.gg{2}.[(G.g{2}, ! C.v{2}.[C.aa{2}.[G.g{2}]], !C.v{2}.[C.bb{2}.[G.g{2}]])] = !C.v{2}.[G.g{2}] by idtac=>/#. idtac=>/#.
+
+        case (k = G.g{2} && a = R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = ! R.t{2}.[C.bb{2}.[G.g{2}]]) => hc''.
+        congr. congr. congr. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. congr. rewrite H18; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. idtac=>/#. done. case (oget C.gg{2}.[(G.g{2}, C.v{2}.[C.aa{2}.[G.g{2}]], !C.v{2}.[C.bb{2}.[G.g{2}]])] = C.v{2}.[G.g{2}]) => hv. rewrite hv. idtac=>/#. cut ->: oget C.gg{2}.[(G.g{2}, C.v{2}.[C.aa{2}.[G.g{2}]], !C.v{2}.[C.bb{2}.[G.g{2}]])] = !C.v{2}.[G.g{2}] by idtac=>/#. idtac=>/#.  
+
+        case (k = G.g{2} && a = ! R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = R.t{2}.[C.bb{2}.[G.g{2}]]) => hc'.
+        congr. congr. congr. congr. idtac=>/#. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. congr. case (oget C.gg{2}.[(G.g{2}, !C.v{2}.[C.aa{2}.[G.g{2}]], C.v{2}.[C.bb{2}.[G.g{2}]])] = C.v{2}.[G.g{2}]) => hv. rewrite hv. idtac=>/#. cut ->: oget C.gg{2}.[(G.g{2}, !C.v{2}.[C.aa{2}.[G.g{2}]], C.v{2}.[C.bb{2}.[G.g{2}]])] = !C.v{2}.[G.g{2}] by idtac=>/#. idtac=>/#.
+
+        case (k = G.g{2} && a = R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = R.t{2}.[C.bb{2}.[G.g{2}]]) => hc'''.
+        congr. congr. congr. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. congr. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. idtac=>/#.
+
+        idtac=>/#.
+
+      rcondf{2} 10. by auto.
+      rcondf{2} 10. by auto.
+
+      rcondt{2} 33. progress. auto. progress. cut ->: C.bb{hr}.[G.g{hr}] < C.aa{hr}.[G.g{hr}] <=> false by move : H10; simplify validInputsP valid_circuitP fst snd => /#. cut ->: G.g{hr} < C.aa{hr}.[G.g{hr}] <=> false by by move : H10; simplify validInputsP valid_circuitP fst snd => /#. cut ->: G.g{hr} < C.bb{hr}.[G.g{hr}] <=> false by move : H10; simplify validInputsP valid_circuitP fst snd => /#. cut ->: G.g{hr} = DKCSecurity.l <=> false by by move : H10; simplify validInputsP valid_circuitP fst snd => /#. idtac=>/#. 
+      rcondt{2} 60. progress. auto. progress. cut ->: C.bb{hr}.[G.g{hr}] < C.aa{hr}.[G.g{hr}] <=> false by move : H10; simplify validInputsP valid_circuitP fst snd => /#. cut ->: G.g{hr} < C.aa{hr}.[G.g{hr}] <=> false by by move : H10; simplify validInputsP valid_circuitP fst snd => /#. cut ->: G.g{hr} < C.bb{hr}.[G.g{hr}] <=> false by move : H10; simplify validInputsP valid_circuitP fst snd => /#. cut ->: G.g{hr} = DKCSecurity.l <=> false by by move : H10; simplify validInputsP valid_circuitP fst snd => /#. idtac=>/#. 
+      auto. progress.
+
+      by rewrite Dword.lossless.
+
+      idtac=>/#.
+      idtac=>/#.
+
+      by rewrite ?size_set.   
+      by rewrite ?size_set. 
+      by cut : false by smt tmo=10. 
       
-        auto. progress. smt.
+      idtac=>/#.
+      idtac=>/#.
 
+      by rewrite ?size_set.   
+      by rewrite ?size_set. 
+
+      by cut : false by idtac=>/#.
+
+      idtac=>/#.
+      idtac=>/#.
+
+      by rewrite ?size_set.   
+      by rewrite ?size_set. 
+
+      by cut : false by smt tmo=30.    
+
+      idtac=>/#.
+      idtac=>/#.
+
+      by rewrite ?size_set.   
+      by rewrite ?size_set. 
+
+      by cut : false by smt tmo=30.  
+
+      idtac=>/#.
+      idtac=>/#.
+
+      by rewrite ?size_set.   
+      by rewrite ?size_set. 
+
+      by cut : false by idtac=>/#.  
+
+      idtac=>/#.
+      idtac=>/#.
+
+      by rewrite ?size_set.   
+      by rewrite ?size_set. 
+
+      by cut : false by smt tmo=30. 
+
+      idtac=>/#.
+      idtac=>/#.
+
+      by rewrite ?size_set.   
+      by rewrite ?size_set. 
+
+      by cut : false by smt tmo=30. 
+
+      idtac=>/#.
+      idtac=>/#.
+
+      by rewrite ?size_set.   
+      by rewrite ?size_set. 
+
+      by cut : false by idtac=>/#. 
+
+      idtac=>/#.
+      idtac=>/#.
+
+      by rewrite ?size_set.   
+      by rewrite ?size_set. 
+
+      by cut : false by smt tmo=30. 
+
+      idtac=>/#.
+      idtac=>/#.
+
+      by rewrite ?size_set.   
+      by rewrite ?size_set. 
+
+      rewrite ?getP ?xor_false ?xor_true //=.
+      cut ->: C.aa{2}.[G.g{2}] <= Top.l - 1 <=> true by idtac=>/#.
+      cut ?: C.aa{2}.[G.g{2}] <= Top.l - 1 <=> true by idtac=>/#.
+      cut ->: C.bb{2}.[G.g{2}] <= Top.l - 1 <=> false by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+      cut ?: C.bb{2}.[G.g{2}] <= Top.l - 1 <=> false by move : H10; simplify validInputsP valid_circuitP fst snd => /#. rewrite ?H0.
+      cut ->: C.aa{2}.[G.g{2}] = Top.l <=> false by idtac=>/#.
+      cut ?: C.aa{2}.[G.g{2}] = Top.l <=> false by idtac=>/#.
+      cut ->: C.bb{2}.[G.g{2}] = Top.l <=> true by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+      cut ?: C.bb{2}.[G.g{2}] = Top.l <=> true by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+ 
+      rewrite ?H3.
+      rewrite ?H13; first 2 by move : H10; simplify validInputsP valid_circuitP fst snd => /#. 
+      simplify.
+
+      case (k = G.g{2} && a = ! R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = R.t{2}.[C.bb{2}.[G.g{2}]]) => hc.
+      congr. congr. rewrite H18; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. idtac=>/#. done. congr. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. rewrite ?get_set; first 2 by idtac=>/#. simplify. admit.
+
+      case (k = G.g{2} && a = ! R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = ! R.t{2}.[C.bb{2}.[G.g{2}]]) => hc''.
+      congr. congr. congr. rewrite H18; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. idtac=>/#. done. idtac=>/#. admit. 
+
+      case (k = G.g{2} && a = R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = ! R.t{2}.[C.bb{2}.[G.g{2}]]) => hc'.
+      congr. congr. congr. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. congr. idtac=>/#. case (oget C.gg{2}.[(G.g{2}, C.v{2}.[C.aa{2}.[G.g{2}]], !C.v{2}.[C.bb{2}.[G.g{2}]])] = C.v{2}.[G.g{2}]) => hv. rewrite hv. idtac=>/#. cut ->: oget C.gg{2}.[(G.g{2}, C.v{2}.[C.aa{2}.[G.g{2}]], !C.v{2}.[C.bb{2}.[G.g{2}]])] = !C.v{2}.[G.g{2}] by idtac=>/#. cut ->: R.t{2}.[G.g{2}] ^^ (C.v{2}.[G.g{2}] ^^ ! C.v{2}.[G.g{2}]) <=> !R.t{2}.[G.g{2}] by idtac=>/#. rewrite H18; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. idtac=>/#. done. 
+
+      case (k = G.g{2} && a = R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = R.t{2}.[C.bb{2}.[G.g{2}]]) => hc'''.
+      congr. congr. congr. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. congr. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. idtac=>/#.
+
+      idtac=>/#.
+
+      idtac=>/#.
+      idtac=>/#.
+
+      by rewrite ?size_set.   
+      by rewrite ?size_set. 
+      by cut : false by idtac=>/#.
+
+      idtac=>/#.
+      idtac=>/#.
+
+      by rewrite ?size_set.   
+      by rewrite ?size_set. 
+         
+      rewrite ?getP ?xor_false ?xor_true //=.
+      cut ->: C.aa{2}.[G.g{2}] <= Top.l - 1 <=> true by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+      cut ?: C.aa{2}.[G.g{2}] <= Top.l - 1 <=> true by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+      cut ->: C.bb{2}.[G.g{2}] <= Top.l - 1 <=> false by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+      cut ?: C.bb{2}.[G.g{2}] <= Top.l - 1 <=> false by move : H10; simplify validInputsP valid_circuitP fst snd => /#. rewrite ?H0.
+      cut ->: C.aa{2}.[G.g{2}] = Top.l <=> false by idtac=>/#.
+      cut ?: C.aa{2}.[G.g{2}] = Top.l <=> false by idtac=>/#.
+      cut ->: C.bb{2}.[G.g{2}] = Top.l <=> true by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+      cut ?: C.bb{2}.[G.g{2}] = Top.l <=> true by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+
+      rewrite ?H3.
+      rewrite ?H13; first 2 by move : H10; simplify validInputsP valid_circuitP fst snd => /#. 
+      simplify.
+
+      case (k = G.g{2} && a = ! R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = !R.t{2}.[C.bb{2}.[G.g{2}]]) => hc.
+      congr. congr. rewrite H18; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. idtac=>/#. done. congr. idtac=>/#. admit.
+
+      case (k = G.g{2} && a = R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = ! R.t{2}.[C.bb{2}.[G.g{2}]]) => hc''.
+      congr. congr. congr. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. idtac=>/#. case (oget C.gg{2}.[(G.g{2}, C.v{2}.[C.aa{2}.[G.g{2}]], !C.v{2}.[C.bb{2}.[G.g{2}]])] = C.v{2}.[G.g{2}]) => hv. rewrite hv. idtac=>/#. cut ->: oget C.gg{2}.[(G.g{2}, C.v{2}.[C.aa{2}.[G.g{2}]], !C.v{2}.[C.bb{2}.[G.g{2}]])] = !C.v{2}.[G.g{2}] by idtac=>/#. cut ->: R.t{2}.[G.g{2}] ^^ (C.v{2}.[G.g{2}] ^^ ! C.v{2}.[G.g{2}]) <=> !R.t{2}.[G.g{2}] by idtac=>/#. rewrite H18; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. idtac=>/#. done. 
+
+      case (k = G.g{2} && a = !R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = R.t{2}.[C.bb{2}.[G.g{2}]]) => hc'.
+      congr. congr. congr. rewrite H18; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. done. congr. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. admit.
+
+      case (k = G.g{2} && a = R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = R.t{2}.[C.bb{2}.[G.g{2}]]) => hc'''.
+      congr. congr. congr. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. congr. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. idtac=>/#.
+
+      idtac=>/#.
+
+      idtac=>/#.
+      idtac=>/#.
+
+      by rewrite ?size_set.   
+      by rewrite ?size_set. 
+      by cut : false by smt tmo=30. 
+
+      idtac=>/#.
+      idtac=>/#.
+
+      by rewrite ?size_set.   
+      by rewrite ?size_set. 
+      by cut : false by idtac=>/#. 
+
+      idtac=>/#.
+      idtac=>/#.
+
+      by rewrite ?size_set.   
+      by rewrite ?size_set. 
+      by cut : false by smt tmo=30. 
+
+      idtac=>/#.
+      idtac=>/#.
+
+      by rewrite ?size_set.   
+      by rewrite ?size_set. 
+      by cut : false by smt tmo=30. 
+
+      idtac=>/#.
+      idtac=>/#.
+
+      by rewrite ?size_set.   
+      by rewrite ?size_set. 
+      by cut : false by smt tmo=30. 
+
+      idtac=>/#.
+      idtac=>/#.
+
+      by rewrite ?size_set.   
+      by rewrite ?size_set. 
+      by cut : false by smt tmo=30. 
+
+      idtac=>/#.
+      idtac=>/#.
+
+      by rewrite ?size_set.   
+      by rewrite ?size_set. 
       
+      rewrite ?getP ?xor_false ?xor_true //=.
+      cut ->: C.aa{2}.[G.g{2}] <= Top.l - 1 <=> true by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+      cut ?: C.aa{2}.[G.g{2}] <= Top.l - 1 <=> true by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+      cut ->: C.bb{2}.[G.g{2}] <= Top.l - 1 <=> false by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+      cut ?: C.bb{2}.[G.g{2}] <= Top.l - 1 <=> false by move : H10; simplify validInputsP valid_circuitP fst snd => /#. rewrite ?H0.
+      cut ->: C.aa{2}.[G.g{2}] = Top.l <=> false by idtac=>/#.
+      cut ?: C.aa{2}.[G.g{2}] = Top.l <=> false by idtac=>/#.
+      cut ->: C.bb{2}.[G.g{2}] = Top.l <=> true by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+      cut ?: C.bb{2}.[G.g{2}] = Top.l <=> true by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+
+      rewrite ?H3.
+      rewrite ?H13; first 2 by move : H10; simplify validInputsP valid_circuitP fst snd => /#. 
+      simplify.
+
+      case (k = G.g{2} && a = ! R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = R.t{2}.[C.bb{2}.[G.g{2}]]) => hc.
+      congr. congr. rewrite H18; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. idtac=>/#. done. congr. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. idtac=>/#. admit. 
+
+      case (k = G.g{2} && a = ! R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = ! R.t{2}.[C.bb{2}.[G.g{2}]]) => hc''.
+      congr. congr. congr. rewrite H18; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. done. idtac=>/#. admit. 
+
+      case (k = G.g{2} && a = R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = !R.t{2}.[C.bb{2}.[G.g{2}]]) => hc'.
+      congr. congr. congr. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. idtac=>/#. case (oget C.gg{2}.[(G.g{2}, C.v{2}.[C.aa{2}.[G.g{2}]], !C.v{2}.[C.bb{2}.[G.g{2}]])] = C.v{2}.[G.g{2}]) => hv. rewrite hv. idtac=>/#. cut ->: oget C.gg{2}.[(G.g{2}, C.v{2}.[C.aa{2}.[G.g{2}]], !C.v{2}.[C.bb{2}.[G.g{2}]])] = !C.v{2}.[G.g{2}] by idtac=>/#. cut ->: R.t{2}.[G.g{2}] ^^ (C.v{2}.[G.g{2}] ^^ ! C.v{2}.[G.g{2}]) <=> !R.t{2}.[G.g{2}] by idtac=>/#. rewrite H18; first 2 by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. 
+
+      case (k = G.g{2} && a = R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = R.t{2}.[C.bb{2}.[G.g{2}]]) => hc'''.
+      congr. congr. congr. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. congr. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. idtac=>/#.
+
+      idtac=>/#.
+
+      idtac=>/#.
+      idtac=>/#.
+
+      by rewrite ?size_set.   
+      by rewrite ?size_set. 
       
+      rewrite ?getP ?xor_false ?xor_true //=.
+      cut ->: C.aa{2}.[G.g{2}] <= Top.l - 1 <=> true by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+      cut ?: C.aa{2}.[G.g{2}] <= Top.l - 1 <=> true by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+      cut ->: C.bb{2}.[G.g{2}] <= Top.l - 1 <=> false by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+      cut ?: C.bb{2}.[G.g{2}] <= Top.l - 1 <=> false by move : H10; simplify validInputsP valid_circuitP fst snd => /#. rewrite ?H0.
+      cut ->: C.aa{2}.[G.g{2}] = Top.l <=> false by idtac=>/#.
+      cut ?: C.aa{2}.[G.g{2}] = Top.l <=> false by idtac=>/#.
+      cut ->: C.bb{2}.[G.g{2}] = Top.l <=> true by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+      cut ?: C.bb{2}.[G.g{2}] = Top.l <=> true by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+
+      rewrite ?H3.
+      rewrite ?H13; first 2 by move : H10; simplify validInputsP valid_circuitP fst snd => /#. 
+      simplify.
+
+      case (k = G.g{2} && a = ! R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = ! R.t{2}.[C.bb{2}.[G.g{2}]]) => hc.
+      cut ->: k = G.g{2} && a = ! R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = R.t{2}.[C.bb{2}.[G.g{2}]] <=> false by idtac=>/#. simplify. congr. congr. rewrite H18; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. idtac=>/#. done. idtac=>/#. admit. 
+
+      case (k = G.g{2} && a = R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = ! R.t{2}.[C.bb{2}.[G.g{2}]]) => hc''.
+      cut ->: k = G.g{2} && a = ! R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = R.t{2}.[C.bb{2}.[G.g{2}]] <=> false by idtac=>/#. simplify. congr. congr. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. idtac=>/#. case (oget C.gg{2}.[(G.g{2}, C.v{2}.[C.aa{2}.[G.g{2}]], !C.v{2}.[C.bb{2}.[G.g{2}]])] = C.v{2}.[G.g{2}]) => hv. rewrite hv. idtac=>/#. cut ->: oget C.gg{2}.[(G.g{2}, C.v{2}.[C.aa{2}.[G.g{2}]], !C.v{2}.[C.bb{2}.[G.g{2}]])] = !C.v{2}.[G.g{2}] by idtac=>/#. cut ->: R.t{2}.[G.g{2}] ^^ (C.v{2}.[G.g{2}] ^^ ! C.v{2}.[G.g{2}]) <=> !R.t{2}.[G.g{2}] by idtac=>/#. rewrite H18; first 2 by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done.  
+     
+      case (k = G.g{2} && a = !R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = R.t{2}.[C.bb{2}.[G.g{2}]]) => hc'.
+      congr. congr. congr. rewrite H18; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. done. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. admit. 
+
+      case (k = G.g{2} && a = R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = R.t{2}.[C.bb{2}.[G.g{2}]]) => hc'''.
+      congr. congr. congr. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. congr. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. idtac=>/#.
+
+      idtac=>/#.
+
+      idtac=>/#.
+      idtac=>/#.
+
+      by rewrite ?size_set.   
+      by rewrite ?size_set. 
+      
+      rewrite ?getP ?xor_false ?xor_true //=.
+      cut ->: C.aa{2}.[G.g{2}] <= Top.l - 1 <=> true by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+      cut ?: C.aa{2}.[G.g{2}] <= Top.l - 1 <=> true by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+      cut ->: C.bb{2}.[G.g{2}] <= Top.l - 1 <=> false by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+      cut ?: C.bb{2}.[G.g{2}] <= Top.l - 1 <=> false by move : H10; simplify validInputsP valid_circuitP fst snd => /#. rewrite ?H0.
+      cut ->: C.aa{2}.[G.g{2}] = Top.l <=> false by idtac=>/#.
+      cut ?: C.aa{2}.[G.g{2}] = Top.l <=> false by idtac=>/#.
+      cut ->: C.bb{2}.[G.g{2}] = Top.l <=> true by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+      cut ?: C.bb{2}.[G.g{2}] = Top.l <=> true by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+
+      rewrite ?H3.
+      rewrite ?H13; first 2 by move : H10; simplify validInputsP valid_circuitP fst snd => /#. 
+      simplify.
+
+      case (k = G.g{2} && a = ! R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = ! R.t{2}.[C.bb{2}.[G.g{2}]]) => hc.
+      congr. congr. rewrite H18; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. idtac=>/#. done. idtac=>/#. admit. 
+
+      case (k = G.g{2} && a = R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = ! R.t{2}.[C.bb{2}.[G.g{2}]]) => hc''.
+      congr. congr. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. idtac=>/#. case (oget C.gg{2}.[(G.g{2}, C.v{2}.[C.aa{2}.[G.g{2}]], !C.v{2}.[C.bb{2}.[G.g{2}]])] = C.v{2}.[G.g{2}]) => hv. rewrite hv. idtac=>/#. cut ->: oget C.gg{2}.[(G.g{2}, C.v{2}.[C.aa{2}.[G.g{2}]], !C.v{2}.[C.bb{2}.[G.g{2}]])] = !C.v{2}.[G.g{2}] by idtac=>/#. cut ->: R.t{2}.[G.g{2}] ^^ (C.v{2}.[G.g{2}] ^^ ! C.v{2}.[G.g{2}]) <=> !R.t{2}.[G.g{2}] by idtac=>/#. rewrite H18; first 2 by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done.  
+     
+      case (k = G.g{2} && a = !R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = R.t{2}.[C.bb{2}.[G.g{2}]]) => hc'.
+      congr. congr. congr. rewrite H18; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. done. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. admit. 
+
+      case (k = G.g{2} && a = R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = R.t{2}.[C.bb{2}.[G.g{2}]]) => hc'''.
+      congr. congr. congr. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. congr. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. idtac=>/#.
+
+      idtac=>/#.
+
+      idtac=>/#.
+      idtac=>/#.
+
+      by rewrite ?size_set.   
+      by rewrite ?size_set. 
+      by cut : false by smt tmo=30. 
+
+      idtac=>/#.
+      idtac=>/#.
+
+      by rewrite ?size_set.   
+      by rewrite ?size_set. 
+      by cut : false by smt tmo=30. 
+
+      idtac=>/#.
+      idtac=>/#.
+
+      by rewrite ?size_set.   
+      by rewrite ?size_set. 
+      by cut : false by smt tmo=30. 
+
+      idtac=>/#.
+      idtac=>/#.
+
+      by rewrite ?size_set.   
+      by rewrite ?size_set. 
+      by cut : false by smt tmo=30. 
+
+      idtac=>/#.
+      idtac=>/#.
+
+      by rewrite ?size_set.   
+      by rewrite ?size_set. 
+      by cut : false by smt tmo=30. 
+
+      idtac=>/#.
+      idtac=>/#.
+
+      by rewrite ?size_set.   
+      by rewrite ?size_set. 
+      by cut : false by smt tmo=30. 
+
+      idtac=>/#.
+      idtac=>/#.
+
+      by rewrite ?size_set.   
+      by rewrite ?size_set. 
+      by cut : false by smt tmo=30. 
+
+      idtac=>/#.
+      idtac=>/#.
+
+      by rewrite ?size_set.   
+      by rewrite ?size_set. 
+      by cut : false by smt tmo=30. 
+
+      idtac=>/#.
+      idtac=>/#.
+
+      by rewrite ?size_set.   
+      by rewrite ?size_set. 
+      by cut : false by smt tmo=30.     
+
+      idtac=>/#.
+      idtac=>/#.
+
+      by rewrite ?size_set.   
+      by rewrite ?size_set. 
+      
+      rewrite ?getP ?xor_false ?xor_true //=.
+      cut ->: C.aa{2}.[G.g{2}] <= Top.l - 1 <=> true by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+      cut ?: C.aa{2}.[G.g{2}] <= Top.l - 1 <=> true by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+      cut ->: C.bb{2}.[G.g{2}] <= Top.l - 1 <=> false by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+      cut ?: C.bb{2}.[G.g{2}] <= Top.l - 1 <=> false by move : H10; simplify validInputsP valid_circuitP fst snd => /#. rewrite ?H0.
+      cut ->: C.aa{2}.[G.g{2}] = Top.l <=> false by idtac=>/#.
+      cut ?: C.aa{2}.[G.g{2}] = Top.l <=> false by idtac=>/#.
+      cut ->: C.bb{2}.[G.g{2}] = Top.l <=> true by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+      cut ?: C.bb{2}.[G.g{2}] = Top.l <=> true by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+
+      rewrite ?H3.
+      rewrite ?H13; first 2 by move : H10; simplify validInputsP valid_circuitP fst snd => /#. 
+      simplify.
+
+      case (k = G.g{2} && a = ! R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = R.t{2}.[C.bb{2}.[G.g{2}]]) => hc.
+      congr. congr. rewrite H18; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. idtac=>/#. done. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. admit. 
+
+      case (k = G.g{2} && a = !R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = ! R.t{2}.[C.bb{2}.[G.g{2}]]) => hc''.
+      congr. congr. rewrite H18; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. done. idtac=>/#. admit. 
+     
+      case (k = G.g{2} && a = R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = !R.t{2}.[C.bb{2}.[G.g{2}]]) => hc'.
+      congr. congr. congr. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. idtac=>/#. case (oget C.gg{2}.[(G.g{2}, C.v{2}.[C.aa{2}.[G.g{2}]], !C.v{2}.[C.bb{2}.[G.g{2}]])] = C.v{2}.[G.g{2}]) => hv. rewrite hv. idtac=>/#. cut ->: oget C.gg{2}.[(G.g{2}, C.v{2}.[C.aa{2}.[G.g{2}]], !C.v{2}.[C.bb{2}.[G.g{2}]])] = !C.v{2}.[G.g{2}] by idtac=>/#. cut ->: R.t{2}.[G.g{2}] ^^ (C.v{2}.[G.g{2}] ^^ ! C.v{2}.[G.g{2}]) <=> !R.t{2}.[G.g{2}] by idtac=>/#. rewrite H18; first 2 by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. 
+
+      case (k = G.g{2} && a = R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = R.t{2}.[C.bb{2}.[G.g{2}]]) => hc'''.
+      congr. congr. congr. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. congr. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. idtac=>/#.
+
+      idtac=>/#.
+
+      idtac=>/#.
+      idtac=>/#.
+
+      by rewrite ?size_set.   
+      by rewrite ?size_set. 
+     
+      rewrite ?getP ?xor_false ?xor_true //=.
+      cut ->: C.aa{2}.[G.g{2}] <= Top.l - 1 <=> true by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+      cut ?: C.aa{2}.[G.g{2}] <= Top.l - 1 <=> true by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+      cut ->: C.bb{2}.[G.g{2}] <= Top.l - 1 <=> false by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+      cut ?: C.bb{2}.[G.g{2}] <= Top.l - 1 <=> false by move : H10; simplify validInputsP valid_circuitP fst snd => /#. rewrite ?H0.
+      cut ->: C.aa{2}.[G.g{2}] = Top.l <=> false by idtac=>/#.
+      cut ?: C.aa{2}.[G.g{2}] = Top.l <=> false by idtac=>/#.
+      cut ->: C.bb{2}.[G.g{2}] = Top.l <=> true by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+      cut ?: C.bb{2}.[G.g{2}] = Top.l <=> true by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+
+      rewrite ?H3.
+      rewrite ?H13; first 2 by move : H10; simplify validInputsP valid_circuitP fst snd => /#. 
+      simplify.
+
+      case (k = G.g{2} && a = ! R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = !R.t{2}.[C.bb{2}.[G.g{2}]]) => hc.
+      cut ->: k = G.g{2} && a = ! R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = R.t{2}.[C.bb{2}.[G.g{2}]] <=> false by idtac=>/#. simplify. congr. congr. rewrite H18; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. idtac=>/#. done. idtac=>/#. admit. 
+
+      case (k = G.g{2} && a = R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = ! R.t{2}.[C.bb{2}.[G.g{2}]]) => hc''.
+      cut ->: k = G.g{2} && a = ! R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = R.t{2}.[C.bb{2}.[G.g{2}]] <=> false by idtac=>/#. simplify. congr. congr. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. idtac=>/#. case (oget C.gg{2}.[(G.g{2}, C.v{2}.[C.aa{2}.[G.g{2}]], !C.v{2}.[C.bb{2}.[G.g{2}]])] = C.v{2}.[G.g{2}]) => hv. rewrite hv. idtac=>/#. cut ->: oget C.gg{2}.[(G.g{2}, C.v{2}.[C.aa{2}.[G.g{2}]], !C.v{2}.[C.bb{2}.[G.g{2}]])] = !C.v{2}.[G.g{2}] by idtac=>/#. cut ->: R.t{2}.[G.g{2}] ^^ (C.v{2}.[G.g{2}] ^^ ! C.v{2}.[G.g{2}]) <=> !R.t{2}.[G.g{2}] by idtac=>/#. rewrite H18; first 2 by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. 
+     
+      case (k = G.g{2} && a = !R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = R.t{2}.[C.bb{2}.[G.g{2}]]) => hc'.
+      congr. congr. congr. rewrite H18; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. done. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. admit. 
+
+      case (k = G.g{2} && a = R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = R.t{2}.[C.bb{2}.[G.g{2}]]) => hc'''.
+      congr. congr. congr. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. congr. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. idtac=>/#.
+
+      idtac=>/#.
+
+      idtac=>/#.
+      idtac=>/#.
+
+      by rewrite ?size_set.   
+      by rewrite ?size_set. 
+      
+      rewrite ?getP ?xor_false ?xor_true //=.
+      cut ->: C.aa{2}.[G.g{2}] <= Top.l - 1 <=> true by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+      cut ?: C.aa{2}.[G.g{2}] <= Top.l - 1 <=> true by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+      cut ->: C.bb{2}.[G.g{2}] <= Top.l - 1 <=> false by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+      cut ?: C.bb{2}.[G.g{2}] <= Top.l - 1 <=> false by move : H10; simplify validInputsP valid_circuitP fst snd => /#. rewrite ?H0.
+      cut ->: C.aa{2}.[G.g{2}] = Top.l <=> false by idtac=>/#.
+      cut ?: C.aa{2}.[G.g{2}] = Top.l <=> false by idtac=>/#.
+      cut ->: C.bb{2}.[G.g{2}] = Top.l <=> true by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+      cut ?: C.bb{2}.[G.g{2}] = Top.l <=> true by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+
+      rewrite ?H3.
+      rewrite ?H13; first 2 by move : H10; simplify validInputsP valid_circuitP fst snd => /#. 
+      simplify.
+
+      case (k = G.g{2} && a = ! R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = !R.t{2}.[C.bb{2}.[G.g{2}]]) => hc.
+      congr. congr. rewrite H18; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. idtac=>/#. done. idtac=>/#. admit. 
+
+      case (k = G.g{2} && a = R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = ! R.t{2}.[C.bb{2}.[G.g{2}]]) => hc''.
+      congr. congr. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. idtac=>/#. case (oget C.gg{2}.[(G.g{2}, C.v{2}.[C.aa{2}.[G.g{2}]], !C.v{2}.[C.bb{2}.[G.g{2}]])] = C.v{2}.[G.g{2}]) => hv. rewrite hv. idtac=>/#. cut ->: oget C.gg{2}.[(G.g{2}, C.v{2}.[C.aa{2}.[G.g{2}]], !C.v{2}.[C.bb{2}.[G.g{2}]])] = !C.v{2}.[G.g{2}] by idtac=>/#. cut ->: R.t{2}.[G.g{2}] ^^ (C.v{2}.[G.g{2}] ^^ ! C.v{2}.[G.g{2}]) <=> !R.t{2}.[G.g{2}] by idtac=>/#. rewrite H18; first 2 by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. 
+     
+      case (k = G.g{2} && a = !R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = R.t{2}.[C.bb{2}.[G.g{2}]]) => hc'.
+      congr. congr. congr. rewrite H18; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. done. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. admit. 
+
+      case (k = G.g{2} && a = R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = R.t{2}.[C.bb{2}.[G.g{2}]]) => hc'''.
+      congr. congr. congr. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. congr. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. idtac=>/#.
+
+      idtac=>/#.
+
+      idtac=>/#.
+      idtac=>/#.
+
+      by rewrite ?size_set.   
+      by rewrite ?size_set. 
+              
+      rewrite ?getP ?xor_false ?xor_true //=.
+      cut ->: C.aa{2}.[G.g{2}] <= Top.l - 1 <=> true by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+      cut ?: C.aa{2}.[G.g{2}] <= Top.l - 1 <=> true by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+      cut ->: C.bb{2}.[G.g{2}] <= Top.l - 1 <=> false by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+      cut ?: C.bb{2}.[G.g{2}] <= Top.l - 1 <=> false by move : H10; simplify validInputsP valid_circuitP fst snd => /#. rewrite ?H0.
+      cut ->: C.aa{2}.[G.g{2}] = Top.l <=> false by idtac=>/#.
+      cut ?: C.aa{2}.[G.g{2}] = Top.l <=> false by idtac=>/#.
+      cut ->: C.bb{2}.[G.g{2}] = Top.l <=> true by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+      cut ?: C.bb{2}.[G.g{2}] = Top.l <=> true by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+
+      rewrite ?H3.
+      rewrite ?H13; first 2 by move : H10; simplify validInputsP valid_circuitP fst snd => /#. 
+      simplify.
+
+      case (k = G.g{2} && a = ! R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = R.t{2}.[C.bb{2}.[G.g{2}]]) => hc.
+      congr. congr. rewrite H18; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. idtac=>/#. done. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. admit. 
+
+      case (k = G.g{2} && a = !R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = ! R.t{2}.[C.bb{2}.[G.g{2}]]) => hc''.
+      congr. congr. rewrite H18; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. done. idtac=>/#. admit. 
+     
+      case (k = G.g{2} && a = R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = !R.t{2}.[C.bb{2}.[G.g{2}]]) => hc'.
+      congr. congr. congr. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. idtac=>/#. case (oget C.gg{2}.[(G.g{2}, C.v{2}.[C.aa{2}.[G.g{2}]], !C.v{2}.[C.bb{2}.[G.g{2}]])] = C.v{2}.[G.g{2}]) => hv. rewrite hv. idtac=>/#. cut ->: oget C.gg{2}.[(G.g{2}, C.v{2}.[C.aa{2}.[G.g{2}]], !C.v{2}.[C.bb{2}.[G.g{2}]])] = !C.v{2}.[G.g{2}] by idtac=>/#. cut ->: R.t{2}.[G.g{2}] ^^ (C.v{2}.[G.g{2}] ^^ ! C.v{2}.[G.g{2}]) <=> !R.t{2}.[G.g{2}] by idtac=>/#. rewrite H18; first 2 by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done.
+
+      case (k = G.g{2} && a = R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = R.t{2}.[C.bb{2}.[G.g{2}]]) => hc'''.
+      congr. congr. congr. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. congr. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. idtac=>/#.
+
+      idtac=>/#.
+
+      idtac=>/#.
+      idtac=>/#.
+
+      by rewrite ?size_set.   
+      by rewrite ?size_set. 
+     
+      rewrite ?getP ?xor_false ?xor_true //=.
+      cut ->: C.aa{2}.[G.g{2}] <= Top.l - 1 <=> true by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+      cut ?: C.aa{2}.[G.g{2}] <= Top.l - 1 <=> true by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+      cut ->: C.bb{2}.[G.g{2}] <= Top.l - 1 <=> false by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+      cut ?: C.bb{2}.[G.g{2}] <= Top.l - 1 <=> false by move : H10; simplify validInputsP valid_circuitP fst snd => /#. rewrite ?H0.
+      cut ->: C.aa{2}.[G.g{2}] = Top.l <=> false by idtac=>/#.
+      cut ?: C.aa{2}.[G.g{2}] = Top.l <=> false by idtac=>/#.
+      cut ->: C.bb{2}.[G.g{2}] = Top.l <=> true by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+      cut ?: C.bb{2}.[G.g{2}] = Top.l <=> true by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+
+      rewrite ?H3.
+      rewrite ?H13; first 2 by move : H10; simplify validInputsP valid_circuitP fst snd => /#. 
+      simplify.
+
+      case (k = G.g{2} && a = ! R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = !R.t{2}.[C.bb{2}.[G.g{2}]]) => hc.
+      cut ->: k = G.g{2} && a = ! R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = R.t{2}.[C.bb{2}.[G.g{2}]] <=> false by idtac=>/#. simplify. congr. congr. rewrite H18; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. idtac=>/#. done. idtac=>/#. admit. 
+
+      case (k = G.g{2} && a = R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = ! R.t{2}.[C.bb{2}.[G.g{2}]]) => hc''.
+      cut ->: k = G.g{2} && a = ! R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = R.t{2}.[C.bb{2}.[G.g{2}]] <=> false by idtac=>/#. simplify. congr. congr. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. idtac=>/#. case (oget C.gg{2}.[(G.g{2}, C.v{2}.[C.aa{2}.[G.g{2}]], !C.v{2}.[C.bb{2}.[G.g{2}]])] = C.v{2}.[G.g{2}]) => hv. rewrite hv. idtac=>/#. cut ->: oget C.gg{2}.[(G.g{2}, C.v{2}.[C.aa{2}.[G.g{2}]], !C.v{2}.[C.bb{2}.[G.g{2}]])] = !C.v{2}.[G.g{2}] by idtac=>/#. cut ->: R.t{2}.[G.g{2}] ^^ (C.v{2}.[G.g{2}] ^^ ! C.v{2}.[G.g{2}]) <=> !R.t{2}.[G.g{2}] by idtac=>/#. rewrite H18; first 2 by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. 
+     
+      case (k = G.g{2} && a = !R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = R.t{2}.[C.bb{2}.[G.g{2}]]) => hc'.
+      congr. congr. congr. rewrite H18; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. done. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. admit. 
+
+      case (k = G.g{2} && a = R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = R.t{2}.[C.bb{2}.[G.g{2}]]) => hc'''.
+      congr. congr. congr. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. congr. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. idtac=>/#.
+
+      idtac=>/#.
+
+idtac=>/#.
+      idtac=>/#.
+
+      by rewrite ?size_set.   
+      by rewrite ?size_set. 
+      by cut : false by smt tmo=30.      
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      rewrite ?getP ?xor_false ?xor_true //=.
+      cut ->: C.aa{2}.[G.g{2}] <= Top.l - 1 <=> true by idtac=>/#.
+      cut ?: C.aa{2}.[G.g{2}] <= Top.l - 1 <=> true by idtac=>/#.
+      cut ->: C.bb{2}.[G.g{2}] <= Top.l - 1 <=> false by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+      cut ?: C.bb{2}.[G.g{2}] <= Top.l - 1 <=> false by move : H10; simplify validInputsP valid_circuitP fst snd => /#. rewrite ?H0.
+      cut ->: C.aa{2}.[G.g{2}] = Top.l <=> false by idtac=>/#.
+      cut ?: C.aa{2}.[G.g{2}] = Top.l <=> false by idtac=>/#.
+      cut ->: C.bb{2}.[G.g{2}] = Top.l <=> true by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+      cut ?: C.bb{2}.[G.g{2}] = Top.l <=> true by move : H10; simplify validInputsP valid_circuitP fst snd => /#.
+ 
+      rewrite ?H3.
+      rewrite ?H13; first 2 by move : H10; simplify validInputsP valid_circuitP fst snd => /#. 
+      simplify.
+cut : false by idtac=>/#.
+      case (k = G.g{2} && a = ! R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = !R.t{2}.[C.bb{2}.[G.g{2}]]) => hc.
+      cut ->: k = G.g{2} && a = !R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = R.t{2}.[C.bb{2}.[G.g{2}]] <=> false by idtac=>/#. simplify. congr. congr. rewrite H18; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. idtac=>/#. done. idtac=>/#. idtac=>/#. admit. 
+
+      case (k = G.g{2} && a = R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = ! R.t{2}.[C.bb{2}.[G.g{2}]]) => hc''.
+      cut ->: k = G.g{2} && a = !R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = R.t{2}.[C.bb{2}.[G.g{2}]] <=> false by idtac=>/#. simplify. congr. congr. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. idtac=>/#. idtac=>/#. case (oget C.gg{2}.[(G.g{2}, C.v{2}.[C.aa{2}.[G.g{2}]], !C.v{2}.[C.bb{2}.[G.g{2}]])] = C.v{2}.[G.g{2}]) => hv. rewrite hv. idtac=>/#. cut ->: oget C.gg{2}.[(G.g{2}, C.v{2}.[C.aa{2}.[G.g{2}]], !C.v{2}.[C.bb{2}.[G.g{2}]])] = !C.v{2}.[G.g{2}] by idtac=>/#. cut ->: R.t{2}.[G.g{2}] ^^ (C.v{2}.[G.g{2}] ^^ ! C.v{2}.[G.g{2}]) <=> !R.t{2}.[G.g{2}] by idtac=>/#. rewrite H18; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. idtac=>/#. done. 
+
+      case (k = G.g{2} && a = !R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = R.t{2}.[C.bb{2}.[G.g{2}]]) => hc'.
+      congr. congr. congr. rewrite H18; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. idtac=>/#. done. congr. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. idtac=>/#. case (oget C.gg{2}.[(G.g{2}, C.v{2}.[C.aa{2}.[G.g{2}]], !C.v{2}.[C.bb{2}.[G.g{2}]])] = C.v{2}.[G.g{2}]) => hv. rewrite hv. idtac=>/#. cut ->: oget C.gg{2}.[(G.g{2}, C.v{2}.[C.aa{2}.[G.g{2}]], !C.v{2}.[C.bb{2}.[G.g{2}]])] = !C.v{2}.[G.g{2}] by idtac=>/#. cut ->: R.t{2}.[G.g{2}] ^^ (C.v{2}.[G.g{2}] ^^ ! C.v{2}.[G.g{2}]) <=> !R.t{2}.[G.g{2}] by idtac=>/#. rewrite H18; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. idtac=>/#. done. 
+
+      case (k = G.g{2} && a = R.t{2}.[C.aa{2}.[G.g{2}]] && b4 = R.t{2}.[C.bb{2}.[G.g{2}]]) => hc'''.
+      congr. congr. congr. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. congr. rewrite H17; first by move : H10; simplify validInputsP valid_circuitP fst snd => /#. done. idtac=>/#.
+
+      idtac=>/#.
+
+
+
+
 qed.
 
 
