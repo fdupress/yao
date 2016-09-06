@@ -105,7 +105,7 @@ theory DKCSecurity.
       (rn,ib,jb,lb,t) = q;
       
       if (ib.`1 < jb.`1 && jb.`1 < lb.`1 && lb <> (l,DKCp.lsb)) {
-        DKCp.used = DKCp.used `|` fset1 t; (* verificar unicidade *)
+        DKCp.used = DKCp.used `|` fset1 t; (* to do: check unicity *)
         
         ki = oget DKCp.kpub.[ib];
         kj = oget DKCp.kpub.[jb];
