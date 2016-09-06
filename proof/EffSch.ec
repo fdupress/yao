@@ -3,7 +3,6 @@ require import Int.
 require import IntExtra.
 require import Pair.
 require import Bool.
-require import FMap.
 require import FSet.
 require import NewFMap.
 require import Real.
@@ -20,9 +19,9 @@ require import ArrayExt.
 import ForLoop.
 
 theory EfficientScheme.  
-  clone import ExtWord as W.
+  clone import ExtWord as WE.
 
-  clone SomeGarble.SomeGarble with theory W <- W.
+  clone SomeGarble.SomeGarble with theory W <- WE.
 
   theory Local.
     (* some types reused for garbling scheme definition  *)
@@ -108,7 +107,7 @@ theory EfficientScheme.
       rewrite /init_dep.
       pose {2}n := l.
       cut: 0 <= n by smt.
-      by elim/intind n;[ |progress;rewrite ForLoop.range_ind_lazy]; smt.
+      elim/intind n;[ |progress;rewrite ForLoop.range_ind_lazy]. smt tmo=30. smt. smt.
     qed.
     
     (* Will extend whatever input array is there with size = gate count *)
@@ -164,7 +163,7 @@ theory EfficientScheme.
        where size is always of the correct size. *)
     op randFormat(nwires : int, nouts : int, r : tokens_t) : tokens_t =
       if size r < nwires
-      then offun (fun k, (setlsb W.zeros false, setlsb W.zeros true))  nwires
+      then offun (fun k, (setlsb WE.zeros false, setlsb WE.zeros true))  nwires
       else mapi (fun i (x: word * word),
                    if i < (nwires - nouts)
                    then (setlsb (x.`1) (getlsb (x.`1)), (* to make sure fresh copy *)
@@ -227,8 +226,8 @@ theory EfficientScheme.
     op Sch.Scheme.pi_sampler = Mtopo.  
 
   (*section Tools.*)
-  lemma get_rangeMap (x:(word * word) array) (y:int * bool):
-    ((ForLoop.range 0 (size x) FMap.empty
+ (* lemma get_rangeMap (x:(word * word) array) (y:int * bool):
+    ((ForLoop.range 0 (size x) map0
       (fun i (gg:(int*bool, word) map),
          gg.[(i, false) <- x.[i].`1].[(i, true) <- snd x.[i]])).[y]) =
            if (0 <= y.`1 < size x)
@@ -316,129 +315,6 @@ theory EfficientScheme.
         rewrite interval_pos;first smt.
         rewrite in_fsetU. simplify. smt. smt. 
   qed.
-
-  (** rm *)
-  (*op rm ['a] (s : 'a fset) (x : 'a) = oflist (rem x (elems s)).*)
-
-  (*lemma mem_rm_eq: forall (x:'a) (X:'a fset),
-      !(mem (rm X x) x).
-      proof.
-      move => x X.
-      rewrite /rm.
-      rewrite mem_oflist.
-      smt.
-    qed.*)
-
-  (*lemma mem_rm_neq: forall (x x':'a) (X:'a fset),
-    x <> x' => mem (rm X x') x = mem X x. 
-      proof.
-      move => x x' X.
-      elim /fset_ind X.
-        smt.
-      move => x0 s Hmemsx0 Hind Hdiff.
-        rewrite /rm.
-        rewrite mem_oflist.
-        rewrite in_fsetU. rewrite -Hind. exact Hdiff.
-        rewrite /rm. rewrite mem_oflist. 
-        cut Heqor: forall a b c, a => a = (b \/ c) <=> (a = b \/ a = c) by smt.
-        apply Heqor.
-        cut ->: mem (rem x' (elems (s `|` fset1 x0))) x = mem (rm (s `|` fset1 x0) x') x by smt.
-        rewrite mem_rm_eq.
-        admit. smt.
-        smt.
-        cut -> : mem (rem x' (elems (s `|` fset1 x0))) x = (mem (rem x' (elems s)) x \/ mem (fset1 x0) x) <=> mem (rem x' (elems (s `|` fset1 x0))) x = (mem (rem x' (elems s)) x) \/ mem (rem x' (elems (s `|` fset1 x0))) x = (mem (fset1 x0) x) by smt.
-        rewrite (perm_eq_mem (rem x' (elems (s `|` fset1 x0))) (elems (s `|` fset1 x0))).
-        rewrite perm_eq_refl_eq.
-        cut ->: elems (s `|` fset1 x0) = elems (oflist (elems s ++ [x0])) by smt.
-        smt.
-        admit. trivial. reflexivity.
-    qed.
-
-        move : Hdiff. move : Hind. move : x'.
-      cut ->: forall (x' : 'a), mem (rem x' (elems (s `|` fset1 x0))) x = mem (elems (s `|` fset1 x0)) x by smt.
-    qed.
-*)
-      
-  (*  lemma mem_rm: forall (x x':'a) (X:'a fset),
-    mem (rm X x') x = (mem X x /\ x' <> x).
-    proof.
-      intros ? ? ?.
-    case (x'=x)=> ?.
-    rewrite H.
-    cut -> : mem (rm X x) x = false;first apply neqF;apply mem_rm_eq.
-    by trivial.
-    simplify.
-    apply mem_rm_neq. cut ->: ! (x = x') <=> ! (x' = x) by smt. exact H.
-  qed.*)
-
-(*lemma mem_rm1: forall (x x':'a) (X:'a fset),
-    mem (rm X x') x => mem X x by [].
-  lemma mem_rm2: forall (x x':'a) (X:'a fset),
-      mem (rm X x') x => x <> x' by [].
-    lemma rm_nin_id: forall (x:'a) (X:'a fset),
-        !(mem X x) => X = rm X x
-        by (intros=> x X x_nin_X; apply fsetP; smt).
-      lemma rm_rmE : forall x y (xs:'a fset), rm (rm xs y) x = rm (rm xs x) y.
-          proof strict.
-          intros=> x y xs.
-          apply fsetP=> a.
-            rewrite ! mem_rm ! andA (andC (! y = a)) //.
-       qed.
-
-        
-     lemma elems_rm: forall (x:'a) (X:'a fset),
-         elems (rm X x) = rem x (elems X). proof. admit. qed.
-         
-lemma rm_leq: forall (x:'a) (X:'a fset), rm X x <= X by [].*)
-(*lemma rm_add_eq: forall (x:'a) X,
-  rm x (add x X) = rm x X.
-proof strict.
-intros=> x X; apply fset_ext=> x';
-rewrite 2!mem_rm mem_add orDand (rw_eq_sym x' x);
-cut ->: (x = x' /\ !x = x') = false; first by case (x = x')=> h /= //.
-by trivial.
-qed.
-lemma rm_add_neq: forall (x x':'a) X,
-  x <> x' => rm x (add x' X) = add x' (rm x X).
-proof strict.
-intros=> x x' X x_x'; apply fset_ext;
-delta (==); beta=> x0;
-case (x = x0)=> x_x0.
-  by subst x0; smt.
-  by rewrite mem_rm_neq; smt.
-qed.
-lemma add_rm_in: forall (x:'a) (X:'a fset),
-  mem x X => add x (rm x X) = X.
-proof strict.
-intros=> x X x_in_X; apply fset_ext; apply perm_eq;
-apply (perm_trans (x::(elems (rm x X)))); first apply elems_add_nin; apply mem_rm_eq.
-apply (perm_trans (x::(rm x (elems X)))); first apply perm_cons; apply elems_rm.
-smt.
-qed.
-lemma add_destruct: forall (x:'a) (X:'a fset),
-  (exists (X':'a fset), !mem x X' /\ X = add x X') <=> mem x X
-by [].*)
-  
-  (*lemma dec_interval : forall (x y:int),
-	    x <= y =>
-	    (image (fun (x : int), x-1) (rm (interval x y) x) =
-	    (rm (interval x y) y)
-	  ).
-          proof.
-	  intros x y h.
-	  apply fsetP=> a.
-	  rewrite imageP.
-	  rewrite ! mem_rm ! mem_interval.
-	  split.
-	  intros=> /= [x0] [h1].
-	  subst.
-	  smt.
-	  intros=> hh.
-	  exists (a+1).
-	  simplify.
-	  rewrite ! mem_rm ! mem_interval.
-smt.
-          qed.*)
           
   lemma card_interval_max : forall x y, card (interval x y) = max (y - x + 1) 0.
   proof.
@@ -1750,5 +1626,5 @@ if; first smt.
   rewrite -(encode_ED) 1://.
   by rewrite inputG_DEED inputK_DEED.
 qed.*)
-(* End security lemma *)
+(* End security lemma *)*)
 end EfficientScheme.

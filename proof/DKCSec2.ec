@@ -36,7 +36,7 @@ theory DKCSecurity.
   axiom l_pos : 0 <= l < boundl.
   
   (* i * j * pos * tweak *)
-  type query_DKC = (int * bool) * (int * bool) * (int * bool) * word.
+  type query_DKC = bool * (int * bool) * (int * bool) * (int * bool) * word.
   type answer_DKC = word * word * word.
 
   op bad : answer_DKC.
@@ -63,8 +63,11 @@ theory DKCSecurity.
   module DKC : DKC_t = {    
     
     proc initialize(b : bool): bool = {
-      var i;
+      var i, tok1, tok2;
 
+      DKCp.lsb = witness;
+      DKCp.ksec = witness;
+      
       DKCp.b = b;
 
       DKCp.used = FSet.fset0;
@@ -77,11 +80,13 @@ theory DKCSecurity.
           DKCp.lsb = ${0,1};
           DKCp.ksec = $Dword.dwordLsb (DKCp.lsb);
           DKCp.kpub.[(i,DKCp.lsb)] = witness; (* can never return or encrypt this key *)
-          DKCp.kpub.[(i,!DKCp.lsb)] =  $Dword.dwordLsb (!DKCp.lsb);;
+          DKCp.kpub.[(i,!DKCp.lsb)] = $Dword.dwordLsb (!DKCp.lsb);  
         }
         else {
-            DKCp.kpub.[(i, false)] = $Dword.dwordLsb (false);
-            DKCp.kpub.[(i, true)] = $Dword.dwordLsb (true);
+          tok1 = $Dword.dwordLsb (false);
+          tok2 = $Dword.dwordLsb (true);
+            DKCp.kpub.[(i, false)] = tok1;
+            DKCp.kpub.[(i, true)] = tok2;
         }
         i = i + 1;
       }
@@ -92,29 +97,29 @@ theory DKCSecurity.
     proc encrypt(q:query_DKC) : answer_DKC = {
       var aa,bb,xx : word;
       var ib,jb,lb : int * bool;
-      var bi,bj,bl' : bool;
-      var t, ki, kj,r : word;
+      var bi,bj,bl', rn: bool;
+      var t, ki, kj : word;
       var ans : answer_DKC;
 
       ans = bad;
-      (ib,jb,lb,t) = q;
+      (rn,ib,jb,lb,t) = q;
       
-      if (ib.`1 < jb.`1 && ib.`1 < lb.`1 && jb.`1 < lb.`1 && lb <> (l,DKCp.lsb)) {
+      if (ib.`1 < jb.`1 && jb.`1 < lb.`1 && lb <> (l,DKCp.lsb)) {
         DKCp.used = DKCp.used `|` fset1 t; (* verificar unicidade *)
         
         ki = oget DKCp.kpub.[ib];
         kj = oget DKCp.kpub.[jb];
         
-        (aa,bb) = if (ib = lb) 
+        (aa,bb) = if (ib = (l,DKCp.lsb)) 
                   then (DKCp.ksec, kj) 
-                  else (if (jb = lb) 
+                  else (if (jb = (l,DKCp.lsb)) 
                         then (ki, DKCp.ksec) 
                         else (ki,kj));
 
         xx = oget DKCp.kpub.[lb];
-        if ((lb = ib) || (lb = jb)) {
-          r = $Dword.dword; 
-          xx = if DKCp.b = false then xx else r;
+        
+        if (((((l,DKCp.lsb) = ib) || ((l,DKCp.lsb) = jb)) /\ !DKCp.b) || rn) {
+          xx = $Dword.dword;
         }
         ans = (ki, kj, E t aa bb xx);
       }
@@ -153,21 +158,18 @@ theory DKCSecurity.
   proof.
     proc => //.
     seq 2 : true => //; first by auto.
-    inline*.
-    if.
-    seq 5 : true => //; first by auto.
-    if.
-    auto; by smt.
-    auto.
-    auto.
+    if; first by auto; smt.
+    trivial.
   qed.
 
   lemma init_ll : islossless DKC.initialize.
   proof.
     proc => //.
     while (0 <= i <= bound) (bound - i).
-      (auto; progress; first 3 by smt); last 2 by idtac=>/#.
-    auto; progress; first 4 by smt.
+      auto; progress; if.
+      (auto; progress; first 4 by smt); last 2 by idtac=>/#. 
+      (auto; progress; first 2 by smt); last 3 by idtac=>/#.
+    auto; progress; expect 2 by smt.
   qed.
 
   lemma game_ll (A <: Adv_DKC_t) :

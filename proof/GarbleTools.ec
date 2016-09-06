@@ -301,12 +301,54 @@ theory Tweak.
     by simplify.   
   qed.
 
+  axiom mul_div_frac a b c d : (a * b) %/ (c * d) = (a %/ c) * (b %/ d). 
+  
+  lemma mult_div_frac x y z : x %/ (y * z) = (x %/ y) * (1 %/ z) by [].
+  
+  lemma power_div x a b : 0 <= a => 0 <= b => x ^ (a - b) = x ^ a %/ x ^ b.
+  proof.
+    move => Ha.
+    elim/intind b.
+    simplify.
+    rewrite pow0; first by smt. 
+    move => i ige0 Hind.
+    rewrite powS; first by exact ige0.
+    rewrite mulzC mult_div_frac -Hind.
+    by smt timeout=30.
+  qed.
+  
   (** Bounds of the tweak *)
   lemma nosmt tweak_bounds g a b:
     0 <= g < 2^(WT.length - 2) =>
     0 <= 4 * g + 2 * bti a + bti b <= 2^WT.length - 1.
-   proof. admit. qed.
-
+   proof. 
+     case a.
+     case b => _ _.
+     rewrite /bti /=; progress; first by smt.
+     cut ->: 4 * g + 2 + 1 <= 2 ^ WT.length - 1 <=> 4 * g <= 2^WT.length - 4 by smt.
+     cut ->: 4 * g <= 2 ^ WT.length - 4 <=> (4 * g) %/ 4 <= (2 ^ WT.length - 4) %/ 4 by smt. 
+     rewrite mulzC mulzK; first by trivial. 
+     move : H0. rewrite power_div. smt. smt. cut ->: 2 ^ 2 = 4. cut ->: 2^2 = 2^(1+1) by smt. rewrite powS. trivial. by smt. move => Hx. smt full tmo=60.
+     move => H.
+     rewrite /bti /=. 
+     elim H => ge0_g lg.
+     split; first by smt.
+     move => ge0_4g2.
+     cut ->: 4 * g + 2 <= 2 ^ WT.length - 1 <=> 4 * g <= 2 ^ WT.length - 3 by smt.
+     cut ->: 4 * g <= 2 ^ WT.length - 3 <=> (4 * g) %/ 4 <= (2 ^ WT.length - 3) %/ 4 by smt.
+     by smt full tmo=60.
+     progress; rewrite /bti /=; first by smt.
+     case b.
+       move => b1.
+       cut ->: 4 * g + 1 <= 2 ^ WT.length - 1 <=> 4 * g <= 2 ^ WT.length - 2 by smt.
+       cut ->: 4 * g <= 2 ^ WT.length - 2 <=> (4 * g) %/ 4 <= (2 ^ WT.length - 2) %/ 4 by smt.
+       by smt full tmo=60.
+       move => b0.
+       cut ->: 4 * g + 0 <= 2 ^ WT.length - 1 <=> 4 * g <= 2 ^ WT.length - 1 by smt.
+       cut ->: 4 * g <= 2 ^ WT.length - 1 <=> (4 * g) %/ 4 <= (2 ^ WT.length - 1) %/ 4 by smt.
+       by smt full tmo=60.
+   qed.
+   
   (** Injectivity of the elements that define the tweak *)
   lemma nosmt decomp g g' a a' b b':
     0 <= g =>

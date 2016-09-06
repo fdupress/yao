@@ -511,7 +511,7 @@ transitivity {1} {
  ( ={glob ADDHnmax, x} /\ b{1} ==> ={glob ADDHnmax, gyzs, x} /\ b{1})
  ( ={glob ADDHnmax} /\ x{1}=K.x{2} /\ H.Count.c{2}=0 /\ gx{2}=g^K.x{2}
   ==> ={glob ADDHnmax, gyzs} /\ g^x{1}=gx{2} /\ H.Count.c{2} <= nmax).
-   by progress; exists (glob ADDHnmax){2}, K.x{2}; trivial.
+   by progress; exists (glob ADDHnmax){2} K.x{2}; trivial.
   by progress; smt.
  by inline L.M.gen2; wp; do 2!rnd; wp; skip; progress.
 cut Hnmax: 0 <= nmax by smt.
@@ -521,7 +521,7 @@ transitivity {2} {
  ( ={glob ADDHnmax} /\ x{1}=K.x{2} ==> ={glob ADDHnmax, gyzs} /\ x{1}=K.x{2})
  ( ={glob ADDHnmax, K.x} /\ H.Count.c{2}=0 /\ gx{2}=g^K.x{2}
   ==> ={glob ADDHnmax, gyzs} /\ g^K.x{1}=gx{2} /\ H.Count.c{2} <= nmax).
-   by progress; exists (glob ADDHnmax){2}, K.x{2}; trivial.
+   by progress; exists (glob ADDHnmax){2} K.x{2}; trivial.
   by progress.
  symmetry.
  by call L.darray2_loop_equiv.
@@ -563,7 +563,7 @@ transitivity {1} {
  ( ={glob ADDHnmax, x} /\ !b{1} ==> ={glob ADDHnmax, gyzs, x} /\ !b{1})
  ( ={glob ADDHnmax} /\ x{1}=K.x{2} /\ H.Count.c{2}=0 /\ gx{2}=g^K.x{2}
   ==> ={glob ADDHnmax, gyzs} /\ g^x{1}=gx{2} /\ H.Count.c{2} <= nmax).
-   by progress; exists (glob ADDHnmax){2}, K.x{2}; trivial.
+   by progress; exists (glob ADDHnmax){2} K.x{2}; trivial.
   by progress; smt.
  by inline L.M.gen2; wp; do 2!rnd; wp; skip; progress.
 cut Hnmax: 0 <= nmax by smt.
@@ -573,7 +573,7 @@ transitivity {2} {
  ( ={glob ADDHnmax} /\ x{1}=K.x{2} ==> ={glob ADDHnmax, gyzs} /\ x{1}=K.x{2})
  ( ={glob ADDHnmax, K.x} /\ H.Count.c{2}=0 /\ gx{2}=g^K.x{2}
   ==> ={glob ADDHnmax, gyzs} /\ g^K.x{1}=gx{2} /\ H.Count.c{2} <= nmax).
-   by progress; exists (glob ADDHnmax){2}, K.x{2}; trivial.
+   by progress; exists (glob ADDHnmax){2} K.x{2}; trivial.
   by progress.
  symmetry.
  by call L.darray2_loop_equiv.
@@ -661,7 +661,7 @@ transitivity {1} {
   x{1} = K.x{2} /\ H.HybOrcl.l{2} = 0 /\ H.Count.c{2}=0
   ==> ={glob ADDHnmax, gx, gyzs} /\ b{1} /\ H.Count.c{2} <= 1
       /\ H.HybOrcl.l{2}<=nmax).
-   by progress; exists (glob ADDHnmax){2}, H.HybOrcl.l0{2}, b{1}, K.x{2}, (g^K.x{2}).
+   by progress; exists (glob ADDHnmax){2} H.HybOrcl.l0{2} b{1} (g^K.x{2}) K.x{2}.
   by progress; smt. 
  sim.
  while (={gyzs,i,x,y,z,gz,gy,gx,z,y,b,ADDH.l0, glob ADDHnmax} /\
@@ -781,7 +781,7 @@ transitivity {1} {
   x{1} = K.x{2} /\ H.HybOrcl.l{2} = 0 /\ H.Count.c{2}=0
   ==> ={glob ADDHnmax, gx, gyzs} /\ !b{1} /\ H.Count.c{2} <= 1
       /\ H.HybOrcl.l{2}<=nmax).
-   by progress; exists (glob ADDHnmax){2},H.HybOrcl.l0{2},b{1},K.x{2},(g^K.x{2}).
+   by progress; exists (glob ADDHnmax){2} H.HybOrcl.l0{2} b{1} (g^K.x{2}) K.x{2}.
   by progress; smt. 
  sim.
  while (={gyzs,i,x,y,z,gz,gy,gx,z,y,b,ADDH.l0, glob ADDHnmax} /\
@@ -947,7 +947,7 @@ proof.
   cut ->: Pr[Game(A).game(false) @ &m : true] = 1%r.
     byphoare (_:true)=> //.
     proc.
-    by call (_:true) => //; wp; do 3!rnd; wp; call (_:true) => //; skip; smt.
+    by call (_:true) => //; wp; do 3!rnd; wp; call (_:true) => //; skip; smt tmo=10.
   cut Hp1: phoare [Game(A).game: b /\ (glob A)=(glob A){m} ==> res] = p1.
     bypr=> &m' [b' gA]; rewrite /p1 b'.
     by byequiv (_: ={b, glob A} ==> ={res})=> //; first by sim.
@@ -1018,7 +1018,7 @@ transitivity {2} {
   ( ={glob A,b0,x,ADDHnmax.n}  /\ 0 <= ADDHnmax.n{2} <= nmax 
     ==> ={x,b0,ADDHnmax.n,glob A} /\ g^x{2}=gx{2} /\ gyzs{1}=xx{2}).
    progress.
-   by exists (glob A){2}, ADDHnmax.n{2}, b0{2}, x{2}; smt.
+   by exists (glob A){2} ADDHnmax.n{2} b0{2} x{2}; smt.
   by progress.
  wp 2 4.
  seq 1 2: (={glob A, b0, x, y} /\
@@ -1029,7 +1029,7 @@ transitivity {2} {
    ( ={glob A, b0, x, n} /\ 0 <= ADDHnmax.n{2} <= nmax /\ n{1} = ADDHnmax.n{2} ==> ={glob A, b0, x, y, n} /\ 0 <= ADDHnmax.n{2} <= nmax /\ n{1} = ADDHnmax.n{2})
    ( ={glob A, b0, x} /\ 0 <= ADDHnmax.n{2} <= nmax /\ n{1} = ADDHnmax.n{2}
       ==> ={glob A, b0, x, y} /\ 0 <= ADDHnmax.n{2} <= nmax /\ n{1} = ADDHnmax.n{2} ).
-     by progress; exists (glob A){2}, ADDHnmax.n{2}, b0{2}, ADDHnmax.n{2},
+     by progress; exists (glob A){2} ADDHnmax.n{2} b0{2} ADDHnmax.n{2}
           x{2}; smt.
     by progress.
    by inline DArrayTake.M.gen1; wp; rnd; wp; skip; progress.
@@ -1039,7 +1039,7 @@ transitivity {2} {
    ( ={glob A, b0, x} /\ 0 <= ADDHnmax.n{2} <= nmax /\ n{1} = ADDHnmax.n{2}
      ==> ={glob A, b0, x, y} /\ 0 <= ADDHnmax.n{2} <= nmax /\ n{1} = ADDHnmax.n{2} )
    ( ={glob A, b0, x, ADDHnmax.n} ==> ={glob A, b0, x, y, ADDHnmax.n} ). 
-     by progress; exists (glob A){2}, ADDHnmax.n{2}, b0{2}, x{2}; smt.
+     by progress; exists (glob A){2} ADDHnmax.n{2} b0{2} x{2}; smt.
     by progress.
    by call DArrayTake.darray_take_equiv.
   by inline DArrayTake.M.gen2; wp; rnd; wp; skip; progress; rewrite ?takeE. 
@@ -1050,7 +1050,7 @@ transitivity {2} {
   ( ={glob A, b0, x, y, n} /\ 0 <= ADDHnmax.n{2} <= nmax /\ n{1} = ADDHnmax.n{2} ==> ={glob A, b0, x, y, z, n} /\ 0 <= ADDHnmax.n{2} <= nmax /\ n{1} = ADDHnmax.n{2})
   ( ={glob A, b0, x, y} /\ 0 <= ADDHnmax.n{2} <= nmax /\ n{1} = ADDHnmax.n{2}
      ==> ={glob A, b0, x, y, z} /\ 0 <= ADDHnmax.n{2} <= nmax /\ n{1} = ADDHnmax.n{2} ).
-    by progress; exists (glob A){2}, ADDHnmax.n{2}, b0{2}, ADDHnmax.n{2},
+    by progress; exists (glob A){2} ADDHnmax.n{2} b0{2} ADDHnmax.n{2}
          x{2}; smt.
    by progress.
   by inline DArrayTake.M.gen1; wp; rnd; wp; skip; progress.
@@ -1060,7 +1060,7 @@ transitivity {2} {
   ( ={glob A, b0, x, y} /\ 0 <= ADDHnmax.n{2} <= nmax /\ n{1} = ADDHnmax.n{2}
     ==> ={glob A, b0, x, y, z} /\ 0 <= ADDHnmax.n{2} <= nmax /\ n{1} = ADDHnmax.n{2} )
   ( ={glob A, b0, x, y, ADDHnmax.n} ==> ={glob A, b0, x, y, z, ADDHnmax.n} ). 
-    by progress; exists (glob A){2}, ADDHnmax.n{2}, b0{2}, x{2}; smt.
+    by progress; exists (glob A){2} ADDHnmax.n{2} b0{2} x{2}; smt.
    by progress.
   by call DArrayTake.darray_take_equiv.
  by inline DArrayTake.M.gen2; wp; rnd; wp; skip; progress; rewrite ?takeE.

@@ -188,11 +188,17 @@ op all (p : 'x -> bool) (xs : 'x array) : bool = all p (ofarray xs) axiomatized 
 
 lemma allP_mem p (xs:'x array):
   all p xs <=> (forall x, mem (ofarray xs) x => p x) by smt.
-
+    
 lemma allP p (xs:'x array):
   all p xs <=>
-  (forall i, 0 <= i < size xs => p xs.[i]).
-proof. rewrite allP_mem. split. smt. progress. admit. qed.
+  forall i, 0 <= i < size xs => p xs.[i].
+proof.
+  rewrite allP_mem; split; first by smt.  
+  cut ? : forall i, 0 <= i < size xs => xs.[i] \in ofarray xs by smt. 
+  move => H0 x hx.
+  cut ? : forall i, 0 <= i < size xs => xs.[i] = x => p x by smt.
+  by smt full tmo=60.
+qed.
 
 (** cons *)
 op (::) (x : 'x) (xs : 'x array) = (mkarray [x]) || xs axiomatized by consE.
@@ -740,3 +746,5 @@ theory DArrayWhile2.
          ={len, d1, d2, f} /\ 0 <= len{1} ==> ={res} ].
 
 end DArrayWhile2.
+
+why3 "ArrayExt.why".

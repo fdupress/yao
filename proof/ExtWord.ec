@@ -68,67 +68,24 @@ theory Dword.
   require import Distr.
   require import Real.
 
-  (** Distribution *)
   op dword: word distr.
-
-  (** Probability definition *)
   axiom mu_x_def w: mu_x dword w = 1%r/(2^length)%r.
+  axiom lossless: weight dword = 1%r.
 
-  (** Losslessness *)
-  axiom lossless: is_lossless dword.
-
-  (** Distribution support definition *)
   axiom in_supp_def w: in_supp w dword.
 
-  (** Probability of outputting a word that is in a set X *)
   axiom mu_cpMemw X:
     mu dword (FSet.mem X) = (card X)%r / (2^length)%r.
 
-  (** Probability of outputting a word that is not in a set X *)
   require import Dexcepted.
   axiom lossless_restrw X:
     card X < 2^length =>
-    is_lossless (dword \ (fun x, mem X x)).
+    weight (dword \ (fun x, mem X x)) = 1%r.
 
-  (** 
-    Probability distribution that generates a random word 
-    except the last significant bit which is put at x 
-  *)
+  (* generate a random word except the last significant bit which is put at x *)
   op dwordLsb : bool -> word distr.
-    
-  lemma dwordLsbE b p: mu (dwordLsb b) p = 1%r/(2^(length-1))%r.
-  proof. admit. qed.
 
-  (*lemma dword1E w: mu dword (pred1 w) = 1%r / (Alphabet.card^n)%r.
-  proof. by rewrite dwordE count_uniq_mem 1:enum_uniq // enumP /b2i. qed.
-
-  lemma support_dword w: support dword w.
-  proof.
-    rewrite /support /in_supp dword1E divr_gt0 //.
-    by rewrite lt_fromint; apply/powPos/Alphabet.card_gt0.
-  qed.
-
-  lemma dword_ll: mu dword predT = 1%r.
-  proof.
-    apply/duniform_ll/negP=> zw; move: (enumP witness).
-    by rewrite zw.
-  qed.
-
-  lemma dword_uf: is_uniform dword.
-  proof.
-    apply/duniform_uf/negP=> zw; move: (enumP witness).
-    by rewrite zw.
-  qed.
-
-  lemma dword_fu: support dword = predT.
-  proof. by rewrite pred_ext=> x; rewrite support_dword. qed.*)
-  
-  (** Probability definition *)
   axiom dwordLsb_mu_x (b:bool) (x:word) : mu_x (dwordLsb b) x = if getlsb x = b then 1%r/(2^(length-1))%r else 0%r.
-
-  (** Losslessness *)
-  axiom dwordLsb_lossless (b:bool) : is_lossless (dwordLsb b).
-
-  (** If the word is defined in the distribution, the lsb must be the one defined *)
+  axiom dwordLsb_lossless (b:bool) : weight (dwordLsb b) = 1%r.
   axiom lsb_dwordLsb (b:bool) (x:word): in_supp x (dwordLsb b) => getlsb x = b.
 end Dword.

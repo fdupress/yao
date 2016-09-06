@@ -427,7 +427,7 @@ theory SomeGarble.
         by smt.
         (simplify inputEnc encode; rewrite size_offun max_ler; first by idtac => /#); simplify => /#.
         exact H2. 
-        by smt ["Alt-Ergo"] tmo=60.
+        by smt ["Alt-Ergo"] tmo=120.
       rewrite -/ar1 -/ar2; simplify extract.
       cut -> : (k - 1 + 1 = k) by idtac=>/#.
       rewrite - ! hypRec; first 4 by idtac=>/#.

@@ -814,7 +814,7 @@ theory SomeOT.
         apply arrayP; split;
           first by rewrite !size_mapi size_offun; smt.
         rewrite !size_mapi !size_offun /=. 
-        delta=> /= k Hk; rewrite get_mapi //=; first smt.
+        delta=> /= k Hk; rewrite get_mapi //=; first smt tmo=30.
         cut Hin: ESn_A.i1{2}.[k] \/ ESn_A.i1{2}.[k]=false
           by case (ESn_A.i1{2}.[k]); trivial.
         elim Hin => Hin; rewrite Hin //=.
@@ -1029,7 +1029,6 @@ else 0%r) = foldr (fun (x : ESn.dom_t) (z : real) => mu ESn.ddom (pred1 x) * z) 
     local lemma ginv_size sigma cs xs:
      size (ginv sigma cs xs) = size xs by [].
 
-
     local lemma pks_ginv (inp: bool array) (xs cs: gf_q array):
       size xs = phi1 inp =>
       size cs = phi1 inp =>
@@ -1038,9 +1037,9 @@ else 0%r) = foldr (fun (x : ESn.dom_t) (z : real) => mu ESn.ddom (pred1 x) * z) 
       rewrite /pk0s=> Hlen1 Hlen2.
       apply arrayP; split;
         first by rewrite !size_mapi size_offun; smt.
-      move=> k; rewrite size_mapi size_offun.
-      move => hk; rewrite ?get_mapi; simplify; smt. 
-    qed. 
+      move=> k; rewrite size_mapi size_offun max_ler; first by smt. 
+      move => hk. rewrite ?get_mapi. smt. smt. simplify. cut ->: (offun (fun (_ : int) => true) (phi1 inp)).[k] <=> true by smt. simplify. case (inp.[k]) => hcase. smt full. rewrite /gpow. rewrite mapE. smt. simplify. rewrite /ginv. rewrite get_mapi. smt. simplify. smt. 
+    qed.
 
     local lemma pks_ginv_inv (inp:bool array) (xs cs: gf_q array):
       size xs = phi1 inp =>

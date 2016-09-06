@@ -68,10 +68,6 @@ module GarbleHybridInit = {
       tok = garb'(G.a <= l, true,  false);
       tok = garb'(G.b <= l,  false, true);
       G.yy.[G.g] = garb'(G.a <= l,  true,  true);
-      
-      if (G.a <= l < G.b /\ C.gg.[(G.g, !C.v.[G.a], false)] = C.gg.[(G.g, !C.v.[G.a], true)]) {
-        garb(G.yy.[G.g], true, false);
-      }
         
       G.g = G.g + 1;
     }
