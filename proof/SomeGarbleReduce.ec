@@ -10,6 +10,8 @@ require import Pair.
 require import DInterval.
 require import Option.
 
+prover ["Alt-Ergo"].
+
 require (*--*) DKC.
 require (*--*) DKCSec2.
 
@@ -610,8 +612,8 @@ proof.
                         C.v{2}.[C.bb{2}.[G.g{2}]])] = C.v{2}.[G.g{2}]) => hc. rewrite hc. by move : H15; simplify validInputsP valid_circuitP fst snd => /#. cut ? : oget
       C.gg{2}.[(G.g{2}, ! C.v{2}.[C.aa{2}.[G.g{2}]],
                 C.v{2}.[C.bb{2}.[G.g{2}]])] =
-   ! C.v{2}.[G.g{2}] by idtac=>/#. rewrite H26. cut ->: C.v{2}.[G.g{2}] ^^ ! C.v{2}.[G.g{2}] <=> true by idtac=>/#. rewrite xor_true. rewrite H16. idtac=>/#. cut ? : 0 <= l < C.n{2} + C.q{2} - C.m{2}. cut ? : 0 <= l < SomeGarble.bound by rewrite l_pos. idtac=>/#. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. trivial. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. congr. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. congr. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. 
-
+   ! C.v{2}.[G.g{2}] by idtac=>/#. rewrite H26. cut ->: C.v{2}.[G.g{2}] ^^ ! C.v{2}.[G.g{2}] <=> true by idtac=>/#. rewrite xor_true. rewrite H16. idtac=>/#. cut ? : 0 <= l < C.n{2} + C.q{2} - C.m{2}. cut ? : 0 <= l < SomeGarble.bound by rewrite l_pos. idtac=>/#. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. trivial. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. congr. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. congr. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. prover ["Z3"]. move : H10; simplify validInputsP valid_circuitP fst snd => /#. 
+  prover ["Alt-Ergo"].
 
   rcondf{2} 3. progress. auto.
 
@@ -649,7 +651,8 @@ proof.
        rewrite ?xor_true ?xor_false //=. congr. congr. congr. congr. by rewrite ?H13; first 2 by move : H10; simplify validInputsP valid_circuitP fst snd => /#. congr. by rewrite ?H13; first 2 by move : H10; simplify validInputsP valid_circuitP fst snd => /#. cut ->: C.aa{2}.[G.g{2}] = DKCSecurity.l <=> false by idtac=>/#. simplify. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. cut ->: C.aa{2}.[G.g{2}] = DKCSecurity.l <=> false by idtac=>/#. simplify. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. idtac=>/#. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. congr. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. congr. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. congr. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. cut ? : Top.l <= C.bb{2}.[G.g{2}] by idtac=>/#. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. 
 
      rcondf{2} 3. auto. progress. smt.
-     rcondt{2} 10. progress. auto. progress. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. rcondf{2} 15. auto. progress. smt. 
+     rcondt{2} 10. progress. auto. progress. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. prover ["Z3"]. move : H10; simplify validInputsP valid_circuitP fst snd => /#. rcondf{2} 15. auto. progress. smt. 
+    prover ["Alt-Ergo"].
     rcondt{2} 25. progress. auto. progress. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. cut ? : 0 <= l < C.n{hr} + C.q{hr} - C.m{hr}. cut ? : 0 <= l < SomeGarble.bound by rewrite l_pos. idtac=>/#. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. rcondt{2} 30. auto; progress; smt. 
     rcondt{2} 41. progress. auto. progress. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. cut ? : 0 <= l < C.n{hr} + C.q{hr} - C.m{hr}. cut ? : 0 <= l < SomeGarble.bound by rewrite l_pos. idtac=>/#. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. rcondt{2} 46. auto; progress; smt. 
      rcondt{2} 57. progress. auto. progress. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. cut ? : 0 <= l < C.n{hr} + C.q{hr} - C.m{hr}. cut ? : 0 <= l < SomeGarble.bound by rewrite l_pos. idtac=>/#. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. rcondt{2} 62. auto; progress. 
@@ -1126,8 +1129,8 @@ move => Agen_ll Aget_ll.
                         C.v{2}.[C.bb{2}.[G.g{2}]])] = C.v{2}.[G.g{2}]) => hc. rewrite hc. by move : H15; simplify validInputsP valid_circuitP fst snd => /#. cut ? : oget
       C.gg{2}.[(G.g{2}, ! C.v{2}.[C.aa{2}.[G.g{2}]],
                 C.v{2}.[C.bb{2}.[G.g{2}]])] =
-   ! C.v{2}.[G.g{2}] by idtac=>/#. rewrite H26. cut ->: C.v{2}.[G.g{2}] ^^ ! C.v{2}.[G.g{2}] <=> true by idtac=>/#. rewrite xor_true. rewrite H16. idtac=>/#. cut ? : 0 <= l < C.n{2} + C.q{2} - C.m{2}. cut ? : 0 <= l < SomeGarble.bound by rewrite l_pos. idtac=>/#. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. trivial. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. congr. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. congr. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. 
-  
+   ! C.v{2}.[G.g{2}] by idtac=>/#. rewrite H26. cut ->: C.v{2}.[G.g{2}] ^^ ! C.v{2}.[G.g{2}] <=> true by idtac=>/#. rewrite xor_true. rewrite H16. idtac=>/#. cut ? : 0 <= l < C.n{2} + C.q{2} - C.m{2}. cut ? : 0 <= l < SomeGarble.bound by rewrite l_pos. idtac=>/#. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. trivial. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. congr. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. congr. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. prover ["Z3"]. move : H10; simplify validInputsP valid_circuitP fst snd => /#. 
+  prover ["Alt-Ergo"].
   case (C.aa{2}.[G.g{2}] = l).
   rcondt{2} 3. auto. progress; smt.      
 
@@ -1183,7 +1186,7 @@ move => Agen_ll Aget_ll.
        rewrite ?xor_true ?xor_false //=. congr. congr. congr. congr. by rewrite ?H13; first 2 by move : H10; simplify validInputsP valid_circuitP fst snd => /#. congr. by rewrite ?H13; first 2 by move : H10; simplify validInputsP valid_circuitP fst snd => /#. cut ->: C.aa{2}.[G.g{2}] = DKCSecurity.l <=> false by idtac=>/#. simplify. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. cut ->: C.aa{2}.[G.g{2}] = DKCSecurity.l <=> false by idtac=>/#. simplify. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. idtac=>/#. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. congr. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. congr. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. congr. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. cut ? : Top.l <= C.bb{2}.[G.g{2}] by idtac=>/#. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. 
 
      rcondf{2} 3. auto. progress. smt.
-     rcondt{2} 10. progress. auto. progress. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. rcondf{2} 15. auto. progress. smt. 
+     rcondt{2} 10. progress. auto. progress. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. prover ["Z3"]. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. rcondf{2} 15. auto. progress.  prover ["Alt-Ergo"]. smt.
     rcondt{2} 25. progress. auto. progress. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. cut ? : 0 <= l < C.n{hr} + C.q{hr} - C.m{hr}. cut ? : 0 <= l < SomeGarble.bound by rewrite l_pos. idtac=>/#. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. rcondt{2} 30. auto; progress; smt. 
     rcondt{2} 41. progress. auto. progress. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. cut ? : 0 <= l < C.n{hr} + C.q{hr} - C.m{hr}. cut ? : 0 <= l < SomeGarble.bound by rewrite l_pos. idtac=>/#. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. rcondt{2} 46. auto; progress; smt. 
      rcondt{2} 57. progress. auto. progress. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. cut ? : 0 <= l < C.n{hr} + C.q{hr} - C.m{hr}. cut ? : 0 <= l < SomeGarble.bound by rewrite l_pos. idtac=>/#. by move : H10; simplify validInputsP valid_circuitP fst snd => /#. rcondt{2} 62. auto; progress. 
@@ -1208,13 +1211,14 @@ auto. progress.
    auto. progress. idtac=>/#. idtac=>/#. 
 qed.
 
+(* 
 lemma GameHybrid_l_sim_pr (A <: GSch.EncSecurity.Adv_IND_t{DKC_Adv,DKCp}) &m:
   islossless A.gen_query =>
   islossless A.get_challenge =>
   !DKCp.b{m} =>  
   Pr[GameHybrid(A).garble(l)@ &m: res] =
   Pr[DKCSecurity.Game(DKC, DKC_Adv(DKCSecurity.DKC, A)).game(false)@ &m: !res].
-proof. by move=> AgenLL AgetL hb; byequiv (GameHybrid_l_sim A _ _) => //= /#. qed. 
+proof. move=> AgenLL AgetL hb; byequiv (GameHybrid_l_sim A _ _) => //= /#. qed. 
 
 lemma GameHybrid_l1_sim_pr (A <: GSch.EncSecurity.Adv_IND_t{DKC_Adv,DKCp}) &m:
   islossless A.gen_query =>
@@ -1223,3 +1227,4 @@ lemma GameHybrid_l1_sim_pr (A <: GSch.EncSecurity.Adv_IND_t{DKC_Adv,DKCp}) &m:
   Pr[GameHybrid(A).garble(l-1)@ &m: res] =
   Pr[DKCSecurity.Game(DKC, DKC_Adv(DKCSecurity.DKC, A)).game(true)@ &m: res].
 proof. by move=> AgenLL AgetL hb; byequiv (GameHybrid_l1_sim A _ _) => //= /#. qed.
+*)
