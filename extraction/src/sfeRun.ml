@@ -2,8 +2,8 @@ open EcIArray
 open Utils
 
 let print_boolarray bs = 
-  for i = 0 to length bs - 1 do 
-    print_char (if _dtlb_rb bs i then '1' else '0'); done; flush stdout
+  for i = 0 to top_Array_size bs - 1 do 
+    print_char (if top_Array___lb_rb bs i then '1' else '0'); done; flush stdout
 
 let _ = Random.self_init ()
 
@@ -13,7 +13,7 @@ let pp_name oname =
   | Some name -> Printf.printf "Running %s\n" name
 
 let pp_input i ti = 
-  Printf.printf "Input %i (%i bits):" i (length ti);
+  Printf.printf "Input %i (%i bits):" i (top_Array_size ti);
   print_boolarray ti; print_newline(); flush stdout
 
 let prepareCircuit fn =
@@ -25,9 +25,9 @@ let prepareI i =
   | Full bs -> array bs
   | Rand n  -> Random.self_init (); array (Array.init n (fun _ -> Random.bool ()))
 
-type randomness = { r1:(Prime_field.gf_q array0) option;
-                    r2:((Prime_field.gf_q array0 * string) * Prime_field.gf_q) option;
-                    toks:((Word.word * Word.word) array0) option }
+type randomness = { r1:(Prime_field.top_Prime_field_gf_q top_Array_array) option;
+                    r2:((Prime_field.top_Prime_field_gf_q top_Array_array * string) * Prime_field.top_Prime_field_gf_q) option;
+                    toks:((Word.top_Concrete_W_word * Word.top_Concrete_W_word) top_Array_array) option }
 
 let rec parsedRandoms res rands =
   match rands with
@@ -42,21 +42,21 @@ let rec parsedRandoms res rands =
     let res = {res with toks = Some (array toks)} in
     parsedRandoms res rands
 
-let prepareRandomness i1 fn rands : SFE.Concrete.rand1_t * SFE.Concrete.rand2_t =
+let prepareRandomness i1 fn rands : SFE.Concrete.top_Concrete_rand1_t * SFE.Concrete.top_Concrete_rand2_t =
   let res = parsedRandoms {r1 = None; r2 = None; toks = None} rands in
   let r1 = 
     match res.r1 with
     | None -> 
-      init (length i1) (fun _ -> Lint.random Prime_field.modulus)
+      top_Array_offun (fun _ -> Lint.random Prime_field.modulus) (top_Array_size i1) 
     | Some r1 -> r1 in
-  let (r2:SFE.Concrete.SomeOT.OTSecurity.OT.rand2_t) = 
+  let (r2:SFE.Concrete.SomeOT.OTSecurity.OT.top_Concrete_SomeOT_OTSecurity_OT_rand2_t) = 
     match res.r2 with
     | None -> 
       let t1 = 
-        init (length i1) (fun _ -> Lint.random Prime_field.modulus) in
+        top_Array_offun (fun _ -> Lint.random Prime_field.modulus) (top_Array_size i1) in
       ((t1, ""), Lint.random Prime_field.modulus)
     | Some r2 -> r2 in
-  let (toks:SFE.Concrete.ES.ProjScheme.Sch.Scheme.rand_t) =
+  let (toks:SFE.Concrete.ES.ProjScheme.Sch.Scheme.top_Concrete_ES_ProjScheme_Sch_Scheme_rand_t) =
     match res.toks with
     | None ->
       let init_word _ = 
@@ -67,7 +67,7 @@ let prepareRandomness i1 fn rands : SFE.Concrete.rand1_t * SFE.Concrete.rand2_t 
 	w in
       let init_token _ = init_word (), init_word () in
       let ((n,_,q,_,_),_) = fn in
-      init (n + q) init_token
+      top_Array_offun init_token (n + q)
     | Some ts -> ts in
   (r1,(r2,toks))
 
@@ -76,13 +76,13 @@ let execute (i1,i2,fn,r) =
      let i2 = prepareI i2 in
      let (r1,r2) = prepareRandomness i1 fn r in
      let t0 = Sys.time () in
-     let ((st2,m1), t01) = SFE.Concrete.p2_stage1 (fn,i2) r2 in
+     let ((st2,m1), t01) = SFE.Concrete.top_Concrete_p2_stage1 (fn,i2) r2 in
      let t1 = Sys.time () in
-     let (st1, m2) = SFE.Concrete.p1_stage1 i1 r1 m1 in
+     let (st1, m2) = SFE.Concrete.top_Concrete_p1_stage1 i1 r1 m1 in
      let t2 = Sys.time () in
-     let m3 = SFE.Concrete.p2_stage2 st2 m2 in
+     let m3 = SFE.Concrete.top_Concrete_p2_stage2 st2 m2 in
      let t3 = Sys.time () in
-     let (y,t34) = SFE.Concrete.p1_stage2 st1 m3 in
+     let (y,t34) = SFE.Concrete.top_Concrete_p1_stage2 st1 m3 in
      let t4 = Sys.time () in
      (i1,i2,y,t4 -. t0,t01 -. t0,t1 -. t0,t2 -. t1,t3 -. t2,t34 -. t3,t4 -. t3)
 

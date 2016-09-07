@@ -1,15 +1,15 @@
-type tweak_t = Word.word
-type key1_t = Word.word
-type key2_t = Word.word
-type msg_t = Word.word
-type cipher_t = Word.word
+type top_Concrete_ES_SomeGarble_DKCSecurity_D_tweak_t = Word.top_Concrete_W_word
+type top_Concrete_ES_SomeGarble_DKCSecurity_D_key1_t = Word.top_Concrete_W_word
+type top_Concrete_ES_SomeGarble_DKCSecurity_D_key2_t = Word.top_Concrete_W_word
+type top_Concrete_ES_SomeGarble_DKCSecurity_D_msg_t = Word.top_Concrete_W_word
+type top_Concrete_ES_SomeGarble_DKCSecurity_D_cipher_t = Word.top_Concrete_W_word
 
-let e : tweak_t -> key1_t -> key2_t -> msg_t -> cipher_t = fun tk a b x ->
-      let r1 = String.copy Word.zeros in
-      let r2 = String.copy Word.zeros in
-      let r3 = String.copy Word.zeros in
-      let ap = String.copy a in
-      let bp = String.copy b in
+let top_Concrete_ES_SomeGarble_DKCSecurity_D_E : top_Concrete_ES_SomeGarble_DKCSecurity_D_tweak_t -> top_Concrete_ES_SomeGarble_DKCSecurity_D_key1_t -> top_Concrete_ES_SomeGarble_DKCSecurity_D_key2_t -> top_Concrete_ES_SomeGarble_DKCSecurity_D_msg_t -> top_Concrete_ES_SomeGarble_DKCSecurity_D_cipher_t = fun tk a b x ->
+      let r1 = Word.top_Concrete_W_zeros in
+      let r2 = Word.top_Concrete_W_zeros in
+      let r3 = Word.top_Concrete_W_zeros in
+      let ap = a in
+      let bp = b in
       ap.[0] <- Char.chr ((Char.code ap.[0]) land 0xfe);
       bp.[0] <- Char.chr ((Char.code bp.[0]) land 0xfe);
       let aes128A = new Cryptokit.Block.aes_encrypt ap in
@@ -23,10 +23,10 @@ let e : tweak_t -> key1_t -> key2_t -> msg_t -> cipher_t = fun tk a b x ->
       done;
       r3
 
-let d : tweak_t -> key1_t -> key2_t -> cipher_t -> msg_t = fun tk a b y ->
-      let r1 = String.copy Word.zeros in
-      let r2 = String.copy Word.zeros in
-      let r3 = String.copy Word.zeros in
+let top_Concrete_ES_SomeGarble_DKCSecurity_D_D : top_Concrete_ES_SomeGarble_DKCSecurity_D_tweak_t -> top_Concrete_ES_SomeGarble_DKCSecurity_D_key1_t -> top_Concrete_ES_SomeGarble_DKCSecurity_D_key2_t -> top_Concrete_ES_SomeGarble_DKCSecurity_D_cipher_t -> top_Concrete_ES_SomeGarble_DKCSecurity_D_msg_t = fun tk a b y ->
+      let r1 = Word.top_Concrete_W_zeros in
+      let r2 = Word.top_Concrete_W_zeros in
+      let r3 = Word.top_Concrete_W_zeros in
       let ap = String.copy a in
       let bp = String.copy b in
       ap.[0] <- Char.chr ((Char.code ap.[0]) land 0xfe);

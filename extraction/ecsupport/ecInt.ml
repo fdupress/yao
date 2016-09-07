@@ -5,34 +5,34 @@ let zero : int = 0
 let one : int = 1
   
 (* Int.< *)
-let ls (x:int) (y:int) = x < y
+let ( < ) = ( < )
 
-(* Int.> *)
-let gt (x:int) (y:int) = x > y
-  
 (* Int.<= *)
-let lseq (x:int) (y:int) = x <= y
+let ( <= ) = ( <= )
+              
+(* Int.> *)
+let ( > ) a b = not (a <= b)
  
 (* Int.>= *)
-let gteq (x:int) (y:int) = x >= y
+let ( >= ) a b = not ( a < b )
  
 (* Int.+ *)
-let pl = (+)
+let (+) = (+)
 
 (* Int.[-] *)
-let lbmnrb = (~-)
+let (~-) = (~-)
   
 (* Int.* *)
-let as0 = ( * )
+let ( * ) = ( * )
 
 (* Int.- *)
-let mn = (-)
+let (-) = (-)
 
 (* Int.Abs *)
 module Abs = struct
   
   (* Int.Abs.`|_| *)
-  let bqbr_br = Pervasives.abs
+  let top_Int_bqbr_br = Pervasives.abs
   
 end
   
@@ -40,10 +40,10 @@ end
 module Extrema = struct
 
   (* Int.Extrema.min *)
-  let min = fun a b -> (if ls a b then a else b)
+  let top_Int_Extrema_min = fun a b -> (if a < b then a else b)
   
   (* Int.Extrema.max *)
-  let max = fun a b -> (if ls a b then b else a)
+  let top_Int_Extrema_max = fun a b -> (if a < b then b else a)
     
 end
   
@@ -51,10 +51,10 @@ end
 module EuclDiv = struct
 
   (* Int.EuclDiv./% *)
-  let slpc = (/)  
+  let top_IntDiv_euclidef = (/)  
 
   (* Int.EuclDiv.%% *)
-  let pcpc = (mod)
+  let top_IntDiv_pcpc = (mod)
   
 end
   
@@ -62,22 +62,10 @@ end
 module Power = struct
   
   (* Int.Power.^ *)
-  let rec cf x p = 
+  let rec top_IntDiv_cf x p = 
     if p <= 0 then 1 
     else 
-      let pow = cf x (p lsr 1) in
+      let pow = top_IntDiv_cf x (p lsr 1) in
       if p land 1 = 0 then pow else pow * x
         
-end
-
-(* Int.ForLoop *)
-module ForLoop = struct
-
-  (* Int.ForLoop.range *)
-  let range i j st f =
-    let st = ref st in
-    for k = i to (j - 1) do
-      st := f k !st;
-    done;
-    !st
 end
