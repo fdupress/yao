@@ -355,7 +355,7 @@ module Concrete = struct
     (* Concrete.SomeOT.msg2 *)
     let top_Concrete_SomeOT_msg2 (inp : bool EcIArray.top_Array_array) (r : top_Concrete_SomeOT_rand_c_t) (m1 : top_Concrete_SomeOT_msg1_t) =
       let (hkey, gcs) = m1 in ((inp, hkey, r), top_Concrete_SomeOT_pk0s inp gcs r)
-    
+                                
     (* Concrete.SomeOT.msg3 *)
     let top_Concrete_SomeOT_msg3 (st : top_Concrete_SomeOT_st_s_t) (r : Prime_field.top_Prime_field_gf_q) (m2 : top_Concrete_SomeOT_msg2_t) =
       let (inp, gc, hkey) = st in

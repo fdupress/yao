@@ -21,6 +21,23 @@ define do-build
 	$(OCAMLBUILD) "$(1)"
 endef
 
+test:
+	$(call do-build,src/sfeRun2.native)
+
+p2stage1:
+	$(call do-build,src/p2_stage1.native)
+
+p1stage1:
+	$(call do-build,src/p1_stage1.native)
+
+p2stage2:
+	$(call do-build,src/p2_stage2.native)
+
+p1stage2:
+	$(call do-build,src/p1_stage2.native)
+
+stages: p2stage1 p1stage1 p2stage2 p1stage2
+
 byte:
 	$(call do-build,src/sfeRun.byte)
 

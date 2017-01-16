@@ -5,6 +5,7 @@ import random
 
 def wireA(g,ins,gs):
     (inarity,outarity,in_w,out_w,gate,q) = g
+    
     inp = in_w[0]
     if (inp < ins):
         return str(inp)

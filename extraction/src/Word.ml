@@ -6,7 +6,7 @@ let _dtlb_rb :  top_Concrete_W_word -> int -> bool = fun t n ->
   c > 0
   
 let _dtlb_lsmn_rb :  top_Concrete_W_word -> int -> bool ->  top_Concrete_W_word = fun t n v ->
-  let t = t in
+  let t = String.copy t in
   let q = n / 8 in
   let r = n mod 8 in
   let c = Char.code t.[q] in
@@ -18,7 +18,7 @@ let _dtlb_lsmn_rb :  top_Concrete_W_word -> int -> bool ->  top_Concrete_W_word 
 let top_Concrete_W_zeros : top_Concrete_W_word = String.make 16 '\000'
 
 let top_Concrete_W_from_int : int -> top_Concrete_W_word = fun inttok ->
-  let tok = top_Concrete_W_zeros in
+  let tok = String.copy top_Concrete_W_zeros in
   let inttokr = ref inttok in
   for i = 0 to 7 do
       tok.[i] <- Char.chr (!inttokr mod 256);
@@ -33,7 +33,7 @@ let top_Concrete_W_setlsb (w:top_Concrete_W_word) (b:bool) =
   _dtlb_lsmn_rb w 0 b
   
 let top_Concrete_W_cf (a:top_Concrete_W_word) (b:top_Concrete_W_word) =
-  let r = top_Concrete_W_zeros in
+  let r = String.copy top_Concrete_W_zeros in
   for i = 0 to 15 do
     r.[i] <- Char.chr ((Char.code a.[i]) lxor (Char.code b.[i]))
   done;
