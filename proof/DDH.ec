@@ -436,9 +436,9 @@ theory DDHnmax.
       islossless A.init => islossless ADDH(A).init.
     proof.
       move=> H; proc; rnd; call (_:true) => //.
-      skip. progress.
-      rewrite DInterval.mu_dinter size_filter count_predT size_range ?max_ler; first by smt.
-      by smt.
+      skip. progress. 
+      rewrite DInterval.mu_dinter List.size_filter List.count_predT List.Range.size_range ?max_ler; first by smt.
+      by smt. 
     qed.
 
     lemma ADDH_solve_ll (A<:Adv_t):
@@ -874,7 +874,7 @@ move: (Pr[H.Ln(DDHb, ToAdv).main() @ &m : res /\ H.Count.c <= nmax] -
        Pr[H.Rn(DDHb, ToAdv).main() @ &m : res /\ H.Count.c <= nmax]) => adv.
 cut Hpos: 0%r <= 1%r / nmax%r by smt.
 cut H1: Real.zero <= nmax%r by smt. 
-cut ->: `|(1%r / nmax%r) * adv| = 1%r / nmax%r * `|adv| by smt. 
+cut ->: `|(1%r / nmax%r) * adv| = 1%r / nmax%r * `|adv| by smt tmo=10. 
 cut H2: 0%r <= `| adv| by smt.
 move=> H. smt.
 qed.

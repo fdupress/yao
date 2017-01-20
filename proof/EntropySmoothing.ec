@@ -311,7 +311,7 @@ theory ESn.
     proc => //. 
     seq 1 : true => //; first by call (_:true).
     seq 4 : true => //.
-      by auto; smt. (*first auto; smt.*)
+      by auto; progress; expect 3 by smt. 
     if.
     (*b*)
       seq 1 : true => //.
@@ -336,7 +336,8 @@ theory ESn.
     seq 1 : true => //; first by rnd; skip; smt.
     call (_:true).
     seq 1 : true => //; first by call (_:true).
-    seq 4 : true => //; first auto; smt.
+    seq 4 : true => //.
+      by auto; progress; expect 3 by smt.
     if.
     (*b*)
       seq 1 : true => //.
