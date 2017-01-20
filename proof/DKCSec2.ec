@@ -40,7 +40,7 @@ theory DKCSecurity.
   op bad : answer_DKC.
 
   module type Adv_DKC_t = {
-    proc get_challenge(lsb : bool) : bool
+    proc get_challenge(lsb : bool, l : int) : bool
   }.
 
   module DKCp = {
@@ -143,7 +143,7 @@ theory DKCSecurity.
       var b' : bool;
 
       lsb = D.initialize(b,l);
-      b' = A.get_challenge(lsb);
+      b' = A.get_challenge(lsb,l);
       return b' = b;
     }
 
