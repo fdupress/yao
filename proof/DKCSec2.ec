@@ -41,7 +41,7 @@ theory DKCSecurity.
 
   module type Adv_DKC_t = {
     proc get_l() : int
-    proc get_challenge(lsb : bool, l : int) : bool
+    proc get_challenge(lsb : bool) : bool
   }.
 
   module DKCp = {
@@ -137,22 +137,29 @@ theory DKCSecurity.
 
   module Game(D:DKC_t, A:Adv_DKC_t) = {
     
-    proc game(b : bool, l : int) : bool = {
+    proc game(b : bool) : bool = {
       var query : query_DKC;
       var answer : answer_DKC;
       var lsb : bool;
       var b' : bool;
+      var l : int;
 
-      lsb = D.initialize(b,l);
-      b' = A.get_challenge(lsb,l);
+      l = A.get_l();
+      if (0 <= l && l < bound) {
+        lsb = D.initialize(b,l);
+        b' = A.get_challenge(lsb);
+      }
+      else {
+        b' = ${0,1};
+      }    
       return b' = b;
     }
 
-    proc main(l : int) : bool = {
+    proc main() : bool = {
       var adv : bool;
       var b : bool;
       b = ${0,1};
-      adv = game(b,l);
+      adv = game(b);
       return adv;
     }
   }.
@@ -184,18 +191,19 @@ theory DKCSecurity.
     by auto; progress; smt.
   qed.
       
-  lemma game_ll (A <: Adv_DKC_t) :
+lemma game_ll (A <: Adv_DKC_t) :
+    islossless A.get_l =>
     islossless A.get_challenge =>
     islossless Game(DKC,A).game.
-  proof. by move => Agarble_ll; proc; call Agarble_ll; call init_ll. qed.
+    proof. admit.
+      qed.
 
-  lemma main_ll (D <: DKC_t) (A <: Adv_DKC_t) :
+    lemma main_ll (D <: DKC_t) (A <: Adv_DKC_t) :
+    islossless A.get_l =>
     islossless A.get_challenge =>
     islossless Game(DKC,A).main.
   proof.
-    move => Agarble_ll; proc.
-    call (_ : true); first by call Agarble_ll; call init_ll.
-    by auto; smt.
+    admit.
   qed.
   
   (*********************************)

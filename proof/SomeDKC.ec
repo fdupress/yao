@@ -42,7 +42,7 @@ theory SomeDKC.
         op E = E,
         op D = D.
 
-  (*prover ["Z3"].*)
+  prover ["Z3"].
         
   (** DKC security definitions, instantiated with the words defined in W *)
   clone import DKCSec2.DKCSecurity with
@@ -65,56 +65,32 @@ section SomeDKC_Proof.
   
 declare module A : Adv_DKC_t.
 
-op bound: int.
+  op bound: int.
     
   module Param = {
     var kpub : ((int * bool), word) fmap
     var used : word fset
-    var ksec : word
     var lsb : bool
     var l : int
     var tbl : (word,word) fmap
-    var b : bool
-  }.
-  
-  module O : PRF_Oracle = {
-    proc f(x: D): R = {
-      var ret : R;
-
-      if (Param.b) {
-        ret = PRFr_Wrapped.f(x);
-      }
-
-      else {
-        if (!(mem (dom Param.tbl) x)) {
-          ret = $Dword.dword;
-          Param.tbl.[x] = ret;
-        }
-        else {
-          ret = oget Param.tbl.[x];
-        }
-      }
-      
-      return ret;
-    }
   }.
   
   module D(F:PRF_Oracle) : PRF_Distinguisher = {
-    proc initialize(b : bool): unit = {
+
+    (* A = A() What oracles does a DKC adv get? *)
+    
+    proc initialize(l:int): bool = {
       var i, tok1, tok2;
       
       Param.used = FSet.fset0;
       Param.kpub = map0;
-      Param.l = A.get_l();
-      Param.lsb = false;
-      Param.ksec = WD.zeros;
+      Param.lsb = witness;
       Param.tbl = map0;
-      Param.b = b;
       
       i = 0;
       while (i < bound) {
-        Param.kpub.[(i, false)] = WD.zeros;
-        Param.kpub.[(i, true)] = WD.zeros;
+        Param.kpub.[(i, false)] = W.zeros;
+        Param.kpub.[(i, true)] = W.zeros;
         i = i + 1;
       }
             
@@ -122,7 +98,6 @@ op bound: int.
       while (i < bound) {
         if (i = Param.l) {
           Param.lsb = ${0,1};
-          Param.ksec = $Dword.dwordLsb (DKCp.lsb);
           Param.kpub.[(i,DKCp.lsb)] = witness; (* can never return or encrypt this key *)
           Param.kpub.[(i,!DKCp.lsb)] = $Dword.dwordLsb (!DKCp.lsb);  
         }
@@ -134,19 +109,22 @@ op bound: int.
         }
         i = i + 1;
       }
-    }
-    
-    proc work (b : bool) : bool = {
-      
+      return Param.lsb;
     }
     
     proc distinguish() : bool = {
-      var adv, b: bool;
+      var adv,l,lsb;
 
-      b = ${0,1};
+      l = A.get_l();
+      if (0 <= l && l < bound) {
+        lsb = initialize(l);
+        adv = A.get_challenge(lsb);
+      }
+      else {
+        adv = ${0,1};
+      }    
       
-      adv = work(b);
-      return (adv = b);
+      return adv;
     }
   }.
 
