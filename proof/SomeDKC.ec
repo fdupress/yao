@@ -3,6 +3,8 @@ require import Bool.
 require import Real.
 require import NewFMap.
 require import FSet.
+require import Distr.
+require import Option.
 require ConcretePRF.
 require IdealPRF.
 
@@ -40,7 +42,7 @@ theory SomeDKC.
         op E = E,
         op D = D.
 
-  prover ["Z3"].
+  (*prover ["Z3"].*)
         
   (** DKC security definitions, instantiated with the words defined in W *)
   clone import DKCSec2.DKCSecurity with
@@ -48,7 +50,8 @@ theory SomeDKC.
 
   lemma PrfDKC_correct : PrfDKC.Correct().
   proof.
-    rewrite /Correct /E /D; by smt.
+    by rewrite /Correct /E /D => t k1 k2 x;
+      rewrite xorwA xorwC xorwK xorw0.
   qed.
   
   (*  Prove that for all l, there exists a PRF attacker that breaks
@@ -63,49 +66,95 @@ section SomeDKC_Proof.
 declare module A : Adv_DKC_t.
 
 op bound: int.
-
-module Dp = {
+    
+  module Param = {
     var kpub : ((int * bool), word) fmap
     var used : word fset
+    var ksec : word
+    var lsb : bool
+    var l : int
+    var tbl : (word,word) fmap
+    var b : bool
   }.
+  
+  module O : PRF_Oracle = {
+    proc f(x: D): R = {
+      var ret : R;
 
-module D(F:PRF_Oracle) = {
-  proc distinguish(lsb : bool,l : int): bool= {
-      var i : int;
-    
+      if (Param.b) {
+        ret = PRFr_Wrapped.f(x);
+      }
+
+      else {
+        if (!(mem (dom Param.tbl) x)) {
+          ret = $Dword.dword;
+          Param.tbl.[x] = ret;
+        }
+        else {
+          ret = oget Param.tbl.[x];
+        }
+      }
+      
+      return ret;
+    }
+  }.
+  
+  module D(F:PRF_Oracle) : PRF_Distinguisher = {
+    proc initialize(b : bool): unit = {
+      var i, tok1, tok2;
+      
+      Param.used = FSet.fset0;
+      Param.kpub = map0;
+      Param.l = A.get_l();
+      Param.lsb = false;
+      Param.ksec = WD.zeros;
+      Param.tbl = map0;
+      Param.b = b;
+      
       i = 0;
       while (i < bound) {
-        DKCp.kpub.[(i, false)] = WD.zeros;
-        DKCp.kpub.[(i, true)] = WD.zeros;
+        Param.kpub.[(i, false)] = WD.zeros;
+        Param.kpub.[(i, true)] = WD.zeros;
         i = i + 1;
       }
             
       i = 0;
       while (i < bound) {
-        if (i = DKCp.l) {
-          DKCp.lsb = ${0,1};
-          DKCp.ksec = $Dword.dwordLsb (DKCp.lsb);
-          (* DKCp.kpub.[(i,DKCp.lsb)] = witness;  can never return or encrypt this key *)
-          DKCp.kpub.[(i,!DKCp.lsb)] = $Dword.dwordLsb (!DKCp.lsb);  
+        if (i = Param.l) {
+          Param.lsb = ${0,1};
+          Param.ksec = $Dword.dwordLsb (DKCp.lsb);
+          Param.kpub.[(i,DKCp.lsb)] = witness; (* can never return or encrypt this key *)
+          Param.kpub.[(i,!DKCp.lsb)] = $Dword.dwordLsb (!DKCp.lsb);  
         }
         else {
           tok1 = $Dword.dwordLsb (false);
           tok2 = $Dword.dwordLsb (true);
-            DKCp.kpub.[(i, false)] = tok1;
-            DKCp.kpub.[(i, true)] = tok2;
+            Param.kpub.[(i, false)] = tok1;
+            Param.kpub.[(i, true)] = tok2;
         }
         i = i + 1;
       }
-     
-      return DKCp.lsb;
     }
-   
-}.
+    
+    proc work (b : bool) : bool = {
+      
+    }
+    
+    proc distinguish() : bool = {
+      var adv, b: bool;
 
-equiv true_key : 
-    DKCSecurity.Game(DKC, A).game ~
+      b = ${0,1};
+      
+      adv = work(b);
+      return (adv = b);
+    }
+  }.
+
+equiv true_key l b:
+0 <= l < bound =>
+    [DKCSecurity.Game(DKC, A).game(b,l) ~
     IND(PRFr_Wrapped,D).main : 0 <= l{1} && b{1} = true
-                               ==> ={res}.
+                               ==> ={res}].
     proof.
       proc. inline DKC.initialize PRFr_Wrapped.init D(PRFr_Wrapped).distinguish.
 

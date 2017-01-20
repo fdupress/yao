@@ -2257,28 +2257,6 @@ proof. by move => AgenL AgetL; rewrite (GameHybridBound_independent A &m) //. qe
 (** 'l' parameter and its position *)
   (*op l : int.
   axiom l_pos : 0 <= l < bound.*)
-  
-  module AdvRandomInit (D : DKC_t) = {
-    proc init(useVisible:bool, lsb:bool, l : int): unit = {
-      var v, trnd, i;
-
-      R.t = offun (fun x, false) (C.n + C.q);
-      R.xx = map0;
-    
-      i = 0;
-      while (i < C.n + C.q) {
-        trnd = ${0,1};
-        v = if useVisible then C.v.[i] else false;
-        trnd = if (i < C.n + C.q - C.m) then trnd else v;
-      
-        R.t.[i] = trnd;
-      
-        i = i + 1;
-      }
-
-      R.t.[l] = !lsb;
-    }
-  }.
 
   module AdvInit (D : DKC_t) = {
     
@@ -2374,8 +2352,12 @@ proof. by move => AgenL AgetL; rewrite (GameHybridBound_independent A &m) //. qe
 }.
 
 module DKC_Adv (D : DKC_t, Adv_IND : EncSecurity.Adv_IND_t) : Adv_DKC_t = {
+
+  proc get_l() : int = {
+    return DKCp.l;
+  }
   
-  proc get_challenge (lsb:bool) : bool = {
+  proc get_challenge (lsb:bool, l : int) : bool = {
     var query_ind : EncSecurity.query_IND;
     var p : EncSecurity.Encryption.plain;
     var ret : bool;
@@ -2518,15 +2500,15 @@ proof.
  move => Agen_ll Aget_ll hl.
   proc => //.
   inline DKC.initialize DKC_Adv(DKC, A).get_challenge.
-  swap{2} 15 -14.
+  swap{2} 16 -15.
   seq 1 1 : (={glob A} /\ l{1} = lp - 1 /\ l{2} = lp /\ b{2} /\ query{1} = query_ind{2}); first by call (_ : true).
 
   case (EncSecurity.queryValid_IND query{1}).
     rcondt{1} 1; first by progress.
-    rcondt{2} 15. auto. while (true). auto. wp. while (true). auto. by auto. 
-    swap{2} 15 -14.
-    swap{2} 16 -14.
-    swap{2} 17 -14.
+    rcondt{2} 16. auto. while (true). auto. wp. while (true). auto. by auto. 
+    swap{2} 16 -15.
+    swap{2} 17 -15.
+    swap{2} 18 -15.
     seq 3 3 : ((={glob A,real,p} /\
       query{1} = query_ind{2} /\ 
       l{1} = lp-1 /\ l{2} = lp /\ b{2}) /\
@@ -2541,7 +2523,7 @@ proof.
         by move : H0; rewrite /queryValid_IND /valid_plain /validInputs /validInputsP ?valid_wireinput /valid_circuitP /fst /snd; case realL. 
         (*by simplify validBound; case realL => /#.*)
 
-    seq 1 15 : (={glob A, real, p} /\
+    seq 1 16 : (={glob A, real, p} /\
       query{1} = query_ind{2} /\
       l{1} = lp-1 /\ l{2} = lp /\ DKCp.l{2} = l{2} /\ DKCp.b{2} /\ b{2} /\ DKCp.b{2} = b{2} /\
       EncSecurity.queryValid_IND query{1} /\ 
@@ -3304,7 +3286,7 @@ while{2} (={glob A, real, p, G.g} /\
   by idtac=>/#.
   rcondf {1} 1. by auto.
 
-  rcondf{2} 15. progress. wp. while ((glob A){m} = (glob A) /\ query{m} = query_ind /\ l{m} = l - 1 /\ DKCp.b /\ b /\ DKCp.b = b /\ ! (EncSecurity.queryValid_IND query{m})). if. auto. auto. auto. while ((glob A){m} = (glob A) /\ query{m} = query_ind /\ l{m} = l - 1 /\ DKCp.b /\ b /\ DKCp.b = b /\ ! (EncSecurity.queryValid_IND query{m})). auto. auto. 
+  rcondf{2} 16. progress. wp. while ((glob A){m} = (glob A) /\ query{m} = query_ind /\ l{m} = l - 1 /\ DKCp.b /\ b /\ DKCp.b = b /\ ! (EncSecurity.queryValid_IND query{m})). if. auto. auto. auto. while ((glob A){m} = (glob A) /\ query{m} = query_ind /\ l{m} = l - 1 /\ DKCp.b /\ b /\ DKCp.b = b /\ ! (EncSecurity.queryValid_IND query{m})). auto. auto. 
      wp. rnd. wp. while {2} (={glob A} /\ query{1} = query_ind{2} /\ l{1} = lp - 1 /\ l{2} = lp /\ b{2} /\ DKCp.b{2} = b{2} /\ ! (EncSecurity.queryValid_IND query{1})) (DKCSecurity.bound{2} - i{2}). progress. auto. if. auto. progress. smt. smt. smt. idtac=>/#. auto. progress. smt. smt. idtac=>/#.
 wp. while {2} (={glob A} /\ query{1} = query_ind{2} /\ l{1} = lp - 1 /\ l{2} = lp /\ b{2} /\ DKCp.b{2} = b{2} /\ ! (EncSecurity.queryValid_IND query{1})) (DKCSecurity.bound{2} - i{2}). auto. progress. idtac=>/#. auto.
  progress. idtac=>/#. idtac=>/#. idtac=>/#.
@@ -3320,15 +3302,15 @@ proof.
  move => Agen_ll Aget_ll hl.
   proc => //.
   inline DKC.initialize DKC_Adv(DKC, A).get_challenge.
-  swap{2} 15 -14.
+  swap{2} 16 -15.
   seq 1 1 : (={glob A} /\ l{1} = lp /\ l{2} = lp /\ !b{2} /\ query{1} = query_ind{2}); first by call (_ : true).
 
   case (EncSecurity.queryValid_IND query{1}).
     rcondt{1} 1; first by progress.
-    rcondt{2} 15. auto. while (true). auto. wp. while (true). auto. by auto. 
-    swap{2} 15 -14.
-    swap{2} 16 -14.
-    swap{2} 17 -14.
+    rcondt{2} 16. auto. while (true). auto. wp. while (true). auto. by auto. 
+    swap{2} 16 -15.
+    swap{2} 17 -15.
+    swap{2} 18 -15.
     seq 3 3 : ((={glob A,real,p} /\
       query{1} = query_ind{2} /\ 
       l{1} = lp /\ l{2} = lp /\ !b{2}) /\
@@ -3343,7 +3325,7 @@ proof.
         by move : H0; rewrite /queryValid_IND /valid_plain /validInputs /validInputsP ?valid_wireinput /valid_circuitP /fst /snd; case realL. 
         (*by simplify validBound; case realL => /#.*)
 
-    seq 1 15 : (={glob A, real, p} /\
+    seq 1 16 : (={glob A, real, p} /\
       query{1} = query_ind{2} /\
       l{1} = lp /\ l{2} = lp /\ DKCp.l{2} = l{2} /\ !DKCp.b{2} /\ !b{2} /\ DKCp.b{2} = b{2} /\
       EncSecurity.queryValid_IND query{1} /\ 
@@ -3752,7 +3734,7 @@ case (trnd{1} = false). case (C.v{1}.[i{1}] = false). wp. rnd. rnd. wp. ((auto; 
       by rewrite size_offun max_ler => /#.
       rewrite get_set //= => /#.  
 
-
+ 
 (******)
 (* END OF RANDOM GENERATION *)
 (* BEGIN OF GARBLE *)
@@ -4174,7 +4156,7 @@ rcondt{2} 10. progress. auto. progress. idtac=>/#. by move : H9; simplify validI
   by idtac=>/#.
   rcondf {1} 1. by auto.
 
-  rcondf{2} 15. progress. wp. while ((glob A){m} = (glob A) /\ query{m} = query_ind /\ l{m} = l /\ !DKCp.b /\ !b /\ DKCp.b = b /\ ! (EncSecurity.queryValid_IND query{m})). if. auto. auto. auto. while ((glob A){m} = (glob A) /\ query{m} = query_ind /\ l{m} = l /\ !DKCp.b /\ !b /\ DKCp.b = b /\ ! (EncSecurity.queryValid_IND query{m})). auto. auto. 
+  rcondf{2} 16. progress. wp. while ((glob A){m} = (glob A) /\ query{m} = query_ind /\ l{m} = l /\ !DKCp.b /\ !b /\ DKCp.b = b /\ ! (EncSecurity.queryValid_IND query{m})). if. auto. auto. auto. while ((glob A){m} = (glob A) /\ query{m} = query_ind /\ l{m} = l /\ !DKCp.b /\ !b /\ DKCp.b = b /\ ! (EncSecurity.queryValid_IND query{m})). auto. auto. 
      wp. rnd. wp. while {2} true (DKCSecurity.bound{2} - i{2}). auto. if. auto. progress. smt. smt. smt. idtac=>/#. auto. progress. smt. smt. idtac=>/#. wp. while {2} true (DKCSecurity.bound{2} - i{2}). auto. progress. idtac=>/#. auto.
  progress. idtac=>/#. idtac=>/#. idtac=>/#.
 qed.

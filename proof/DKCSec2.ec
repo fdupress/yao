@@ -40,6 +40,7 @@ theory DKCSecurity.
   op bad : answer_DKC.
 
   module type Adv_DKC_t = {
+    proc get_l() : int
     proc get_challenge(lsb : bool, l : int) : bool
   }.
 
