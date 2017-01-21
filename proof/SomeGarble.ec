@@ -2257,10 +2257,9 @@ proof. by move => AgenL AgetL; rewrite (GameHybridBound_independent A &m) //. qe
 (** 'l' parameter and its position *)
   (*op l : int.
   axiom l_pos : 0 <= l < bound.*)
-
-  module AdvInit (O : DKC_AdvOracles) = {
-    
-    proc init(useVisible:bool, lsb:bool): unit = {
+  
+  module AdvRandomInit (D : DKC_t) = {
+    proc init(useVisible:bool, lsb:bool, l : int): unit = {
       var v, trnd, i;
 
       R.t = offun (fun x, false) (C.n + C.q);
@@ -2277,7 +2276,30 @@ proof. by move => AgenL AgetL; rewrite (GameHybridBound_independent A &m) //. qe
         i = i + 1;
       }
 
-      R.t.[DKCp.l] = !lsb;
+      R.t.[l] = !lsb;
+    }
+  }.
+
+  module AdvInit (O : DKC_AdvOracles) = {
+    
+    proc init(useVisible:bool, lsb:bool, l : int): unit = {
+      var v, trnd, i;
+
+      R.t = offun (fun x, false) (C.n + C.q);
+      R.xx = map0;
+    
+      i = 0;
+      while (i < C.n + C.q) {
+        trnd = ${0,1};
+        v = if useVisible then C.v.[i] else false;
+        trnd = if (i < C.n + C.q - C.m) then trnd else v;
+      
+        R.t.[i] = trnd;
+      
+        i = i + 1;
+      }
+
+      R.t.[l] = !lsb;
     }
     
     proc query_garble_dummy (alpha : bool, betha : bool) : unit = {
@@ -2351,14 +2373,9 @@ proof. by move => AgenL AgetL; rewrite (GameHybridBound_independent A &m) //. qe
   }
 }.
 
-module DKC_Adv (Adv_IND : EncSecurity.Adv_IND_t,O : DKC_AdvOracles) = {
-  var l : int
-
-  proc get_l() : int = {
-    return l;
-  }
+module DKC_Adv (Adv_IND : EncSecurity.Adv_IND_t, O : DKC_AdvOracles) = {
   
-  proc get_challenge (lsb:bool) : bool = {
+  proc get_challenge (lsb:bool,l:int) : bool = {
     var query_ind : EncSecurity.query_IND;
     var p : EncSecurity.Encryption.plain;
     var ret : bool;
@@ -2374,7 +2391,7 @@ module DKC_Adv (Adv_IND : EncSecurity.Adv_IND_t,O : DKC_AdvOracles) = {
       real = ${0,1};
       p = if real then snd query_ind else fst query_ind;
       CircuitInit.init(p);
-      AdvInit(O).init(true, lsb);
+      AdvInit(O).init(true, lsb,l);
       AdvInit(O).garble();
 
       i = 0;
@@ -2495,17 +2512,14 @@ lemma GameHybrid_l1_sim (A <: EncSecurity.Adv_IND_t{DKC_Adv,DKCp,DKC}) lp:
   islossless A.gen_query =>
   islossless A.get_challenge =>
   0 <= lp < boundl =>
-  equiv [ GameHybrid(A).garble ~ DKCSecurity.Game(DKC, DKC_Adv(A)).game:
-    ={glob A} /\ l{1} = lp-1 /\ DKC_Adv.l{2} = lp /\ b{2} ==> ={res}].
+  equiv [ GameHybrid(A).garble ~ DKCSecurity.Game(DKC,DKC_Adv(A)).game:
+    ={glob A} /\ l{1} = lp-1 /\ l{2} = lp /\ b{2} ==> ={res}].
 proof.
  move => Agen_ll Aget_ll hl.
   proc => //.
-  inline DKC.initialize DKCSecurity.Game(DKC,DKC_Adv(A)).A.get_l DKCSecurity.Game(DKC,DKC_Adv(A)).A.get_challenge.
-  admit.
-qed.
-(*
+  inline DKC.initialize DKC_Adv(A,DKC).get_challenge.
   swap{2} 16 -15.
-  seq 1 1 : (={glob A} /\ l{1} = lp - 1 /\ l{2} = lp /\ b{2} /\ query{1} = query_ind{2}); first by call (_ : true).
+  seq 1 1 : (={glob A} /\ l{1} = lp - 1 /\ l{2} = lp /\ b{2} /\ query{1} = query_ind{2});first by call (_ : true).
 
   case (EncSecurity.queryValid_IND query{1}).
     rcondt{1} 1; first by progress.
@@ -3295,21 +3309,17 @@ while{2} (={glob A, real, p, G.g} /\
 wp. while {2} (={glob A} /\ query{1} = query_ind{2} /\ l{1} = lp - 1 /\ l{2} = lp /\ b{2} /\ DKCp.b{2} = b{2} /\ ! (EncSecurity.queryValid_IND query{1})) (DKCSecurity.bound{2} - i{2}). auto. progress. idtac=>/#. auto.
  progress. idtac=>/#. idtac=>/#. idtac=>/#.
 qed.
-*)
 
 lemma GameHybrid_l_sim (A <: EncSecurity.Adv_IND_t{DKC_Adv,DKCp,DKC}) lp:
   islossless A.gen_query =>
   islossless A.get_challenge =>
   0 <= lp < boundl =>
   equiv [ GameHybrid(A).garble ~ DKCSecurity.Game(DKC, DKC_Adv(A)).game:
-    ={glob A} /\ l{1} = lp /\ DKC_Adv.l{2} = lp /\ !b{2} ==> res{1} <> res{2}].
+    ={glob A} /\ l{1} = lp /\ l{2} = lp /\ !b{2} ==> res{1} <> res{2}].
 proof.
  move => Agen_ll Aget_ll hl.
   proc => //.
-  inline DKC.initialize DKCSecurity.Game(DKC, DKC_Adv(A)).A.get_l DKCSecurity.Game(DKC, DKC_Adv(A)).A.get_challenge.
-  admit.
-qed.
-(*
+  inline DKC.initialize DKC_Adv(A,DKC).get_challenge.
   swap{2} 16 -15.
   seq 1 1 : (={glob A} /\ l{1} = lp /\ l{2} = lp /\ !b{2} /\ query{1} = query_ind{2}); first by call (_ : true).
 
@@ -3742,7 +3752,7 @@ case (trnd{1} = false). case (C.v{1}.[i{1}] = false). wp. rnd. rnd. wp. ((auto; 
       by rewrite size_offun max_ler => /#.
       rewrite get_set //= => /#.  
 
- 
+
 (******)
 (* END OF RANDOM GENERATION *)
 (* BEGIN OF GARBLE *)
@@ -4168,7 +4178,6 @@ rcondt{2} 10. progress. auto. progress. idtac=>/#. by move : H9; simplify validI
      wp. rnd. wp. while {2} true (DKCSecurity.bound{2} - i{2}). auto. if. auto. progress. smt. smt. smt. idtac=>/#. auto. progress. smt. smt. idtac=>/#. wp. while {2} true (DKCSecurity.bound{2} - i{2}). auto. progress. idtac=>/#. auto.
  progress. idtac=>/#. idtac=>/#. idtac=>/#.
 qed.
-*)
 
     (*************)
     (* REDUCTION *)
@@ -4176,12 +4185,13 @@ qed.
 
     require import OldMonoid.
     require import Sum.
-    
-  lemma reductionSimplified (A <: EncSecurity.Adv_IND_t{Rand,R,C,DKC_Adv,DKCp,DKC}) &m:
+
+
+lemma reductionSimplified (A <: EncSecurity.Adv_IND_t{Rand,R,C,DKC_Adv,DKCp,DKC}) &m:
     islossless A.gen_query =>
     islossless A.get_challenge =>
   Pr[GameHybrid(A).garble(-1) @ &m : res] - Pr[GameHybrid(A).garble(bound-1) @ &m : res] =
-  Mrplus.sum (fun i, (Pr[DKCSecurity.Game(DKC, DKC_Adv(A)).game(true)@ &m:res] - Pr[DKCSecurity.Game(DKC, DKC_Adv(A)).game(false)@ &m:!res])) (intval 0 (bound-1)).
+  Mrplus.sum (fun i, (Pr[DKCSecurity.Game(DKC, DKC_Adv(A)).game(true,i)@ &m:res] - Pr[DKCSecurity.Game(DKC, DKC_Adv(A)).game(false,i)@ &m:!res])) (intval 0 (bound-1)).
 proof.
 move => Agen_ll Aget_ll.
 
@@ -4214,17 +4224,18 @@ Pr[GameHybrid(A).garble(x - 1) @ &m : res] =
       Pr[GameHybrid(A).garble(i) @ &m : res])
    (intval 0 (SomeGarble.bound - 1)) = Mrplus.sum (fun (i : int) =>
       Pr[DKCSecurity.Game(DKC, DKC_Adv(A)).game(true,i) @ &m : res] -
-      Pr[DKCSecurity.Game(DKC, DKC_Adv(DKC, A)).game(false,i) @ &m : !res]) (intval 0 (SomeGarble.bound - 1)).
+      Pr[DKCSecurity.Game(DKC, DKC_Adv(A)).game(false,i) @ &m : !res]) (intval 0 (SomeGarble.bound - 1)).
 
     rewrite (Mrplus.sum_eq (fun (i : int) =>
       Pr[GameHybrid(A).garble(i - 1) @ &m : res] -
       Pr[GameHybrid(A).garble(i) @ &m : res]) (fun (i : int) => 
-      Pr[DKCSecurity.Game(DKC, DKC_Adv(DKC, A)).game(true,i) @ &m : res] -
-      Pr[DKCSecurity.Game(DKC, DKC_Adv(DKC, A)).game(false,i) @ &m : !res]) (intval 0 (SomeGarble.bound - 1))).
+      Pr[DKCSecurity.Game(DKC, DKC_Adv(A)).game(true,i) @ &m : res] -
+      Pr[DKCSecurity.Game(DKC, DKC_Adv(A)).game(false,i) @ &m : !res]) (intval 0 (SomeGarble.bound - 1))).
 
         move => x. rewrite intval_def. progress. congr. byequiv (GameHybrid_l1_sim (A) (x) Agen_ll Aget_ll _). idtac=>/#. done. done. congr. byequiv (GameHybrid_l_sim (A) (x) Agen_ll Aget_ll _). idtac=>/#. done. smt. done. done.
   qed.
 
+  
 (*lemma sch_is_ind (A <: EncSecurity.Adv_IND_t{Rand,R,R',G,C,DKCp,DKC,AdvInit,DKC_Adv}) &m lp:
   islossless A.gen_query =>
   islossless A.get_challenge =>

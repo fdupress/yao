@@ -5,13 +5,11 @@ require import NewFMap.
 require import FSet.
 require import Distr.
 require import Option.
-require ConcretePRF.
-require IdealPRF.
 
+require (*--*) SomePRF.
 require (*--*) DKC.
 require (*--*) DKCSec2.
 require (*--*) ExtWord.
-
 
 require import ArrayExt.
 require import GarbleTools.
@@ -20,16 +18,11 @@ theory SomeDKC.
   clone import ExtWord as W.
   clone ExtWord as KW with op length = W.length - 1.
   
-  clone import ConcretePRF with
-	type K = KW.word,
+  clone import SomePRF.PRF with
 	type D = word,
-	type R = word.
+	type R = word,
+	type K = KW.word.
 
-  clone import IdealPRF with
-	type K = KW.word,
-	type D = word,
-	type R = word.
-        
   op E(t,k1,k2,m) = (F k1 t) ^ (F k2 t) ^ m.
   op D(t,k1,k2,c) = (F k1 t) ^ (F k2 t) ^ c.
 
@@ -50,8 +43,7 @@ theory SomeDKC.
 
   lemma PrfDKC_correct : PrfDKC.Correct().
   proof.
-    by rewrite /Correct /E /D => t k1 k2 x;
-      rewrite xorwA xorwC xorwK xorw0.
+    rewrite /Correct /E /D; by smt.
   qed.
   
   (*  Prove that for all l, there exists a PRF attacker that breaks
@@ -59,12 +51,8 @@ theory SomeDKC.
       everything except the l,ksec encryption, which we simulate using
       the PRF oracle. If its the real oracle, then we are in the DKC
       game; otherwise, we are in a OTP world, because tweaks do not
-      repeat. *)  
-
-section SomeDKC_Proof.
-  
-declare module A : Adv_DKC_t.
-
+      repeat. *)
+   
   op bound: int.
     
   module Param = {
@@ -74,10 +62,16 @@ declare module A : Adv_DKC_t.
     var l : int
     var tbl : (word,word) fmap
   }.
-  
-  module D(F:PRF_Oracle) : PRF_Distinguisher = {
 
-    (* A = A() What oracles does a DKC adv get? *)
+  module DKC_Oracle(F:PRF_Oracle) = {
+    proc encrypt(q:query_DKC): answer_DKC =  {
+      return witness;
+    }
+  }.
+
+  module D(A : Adv_DKC_t,F:PRF_Oracle)  = {
+
+    module A = A(DKC_Oracle(F))
     
     proc initialize(l:int): bool = {
       var i, tok1, tok2;
@@ -112,40 +106,38 @@ declare module A : Adv_DKC_t.
       return Param.lsb;
     }
     
-    proc distinguish() : bool = {
-      var adv,l,lsb;
+    proc distinguish(l : int) : bool = {
+      var adv,lsb;
 
-      l = A.get_l();
-      if (0 <= l && l < bound) {
-        lsb = initialize(l);
-        adv = A.get_challenge(lsb);
-      }
-      else {
-        adv = ${0,1};
-      }    
+      lsb = initialize(l);
+      adv = A.get_challenge(lsb,l);
       
       return adv;
     }
   }.
 
-equiv true_key l b:
-0 <= l < bound =>
-    [DKCSecurity.Game(DKC, A).game(b,l) ~
-    IND(PRFr_Wrapped,D).main : 0 <= l{1} && b{1} = true
-                               ==> ={res}].
+equiv true_key l b (A <:  Adv_DKC_t):
+    DKCSecurity.Game(DKC,A).game ~
+    IND(PRFr_Wrapped,D(A)).main : 0 <= l{1} < bound && b{1} = true
+                               ==> ={res}.
     proof.
-      proc. inline DKC.initialize PRFr_Wrapped.init D(PRFr_Wrapped).distinguish.
-
-
+      proc. inline DKC.initialize PRFr_Wrapped.init D(A,PRFr_Wrapped).distinguish.
+      admit.
+    qed.
     
-lemma PrfDKC_secure : forall &m i, 0 <= i =>
-    Pr[DKCSecurity.Game(DKC, A).game(true,i)@ &m:res] - 
-    Pr[DKCSecurity.Game(DKC, A).game(false,i)@ &m:!res] =
-    Pr[IND(PRFr_Wrapped,D).main()@ &m:res] - Pr[IND(RandomFunction,D).main()@ &m:!res].
-    move => &m i  H.
+lemma PrfDKC_secure : forall (A <: Adv_DKC_t) &m i, 0 <= i < bound =>
+    Pr[DKCSecurity.Game(DKC,A).game(true,i)@ &m:res] - 
+    Pr[DKCSecurity.Game(DKC,A).game(false,i)@ &m:!res] =
+    Pr[IND(PRFr_Wrapped,D(A)).main(i)@ &m:res] - Pr[IND(RandomFunction,D(A)).main(i)@ &m:!res].
     admit.
   qed.
 
-  end section SomeDKC_Proof.
+  op e_prf : real.
+
+  axiom e_prob : 0%r <= e_prf <= 1%r.
+
+  axiom e_max_adv  : forall i &m (D <: PRF_Distinguisher),
+  Pr[IND(PRFr_Wrapped,D).main(i)@ &m:res] -
+  Pr[IND(RandomFunction,D).main(i)@ &m:!res] <= e_prf.
   
 end SomeDKC.
