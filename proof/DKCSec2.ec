@@ -39,7 +39,9 @@ theory DKCSecurity.
 
   op bad : answer_DKC.
 
-  module type Adv_DKC_t = {
+  module type DKC_AdvOracles = { proc encrypt(q:query_DKC): answer_DKC }.
+
+  module type Adv_DKC_t(O:DKC_AdvOracles) = {
     proc get_l() : int
     proc get_challenge(lsb : bool) : bool
   }.
@@ -136,6 +138,8 @@ theory DKCSecurity.
   }.
 
   module Game(D:DKC_t, A:Adv_DKC_t) = {
+
+    module A=A(D)
     
     proc game(b : bool) : bool = {
       var query : query_DKC;
@@ -192,15 +196,15 @@ theory DKCSecurity.
   qed.
       
 lemma game_ll (A <: Adv_DKC_t) :
-    islossless A.get_l =>
-    islossless A.get_challenge =>
+    islossless A(DKC).get_l =>
+    islossless A(DKC).get_challenge =>
     islossless Game(DKC,A).game.
     proof. admit.
       qed.
 
     lemma main_ll (D <: DKC_t) (A <: Adv_DKC_t) :
-    islossless A.get_l =>
-    islossless A.get_challenge =>
+    islossless A(DKC).get_l =>
+    islossless A(DKC).get_challenge =>
     islossless Game(DKC,A).main.
   proof.
     admit.
