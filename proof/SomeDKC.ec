@@ -5,6 +5,7 @@ require import NewFMap.
 require import FSet.
 require import Distr.
 require import Option.
+require import Array.
 
 require (*--*) SomePRF.
 require (*--*) DKC.
@@ -39,6 +40,7 @@ theory SomeDKC.
         
   (** DKC security definitions, instantiated with the words defined in W *)
   clone import DKCSec2.DKCSecurity with
+        theory WD <- W,
         theory D <- PrfDKC.
 
   lemma PrfDKC_correct : PrfDKC.Correct().
@@ -56,50 +58,47 @@ theory SomeDKC.
   op bound: int.
     
   module Param = {
-    var kpub : ((int * bool), word) fmap
+    var kpub : ((int * bool), (KW.word * bool)) fmap
     var used : word fset
     var lsb : bool
     var l : int
     var tbl : (word,word) fmap
   }.
 
-  module DKC_Oracle(F:PRF_Oracle) = {
-    proc encrypt(q:query_DKC): answer_DKC =  {
-      return witness;
-    }
-  }.
+  op kw2w(kw,lsb) = if kw = witness
+                    then witness
+                    else let lsbi = if lsb then 1 else 0
+                      in let kwi = (KW.to_int kw) * 2 + lsbi
+                      in W.from_int kwi.
 
-  module D(A : Adv_DKC_t,F:PRF_Oracle)  = {
-
-    module A = A(DKC_Oracle(F))
+    op w2kw(w) = if w = witness
+                    then witness
+                    else let kwi = (W.to_int w) (* / 2 how to divide?*)
+                          in let lsbi = W.getlsb w
+                          in (KW.from_int kwi,lsbi).
     
-    proc initialize(l:int): bool = {
-      var i, tok1, tok2;
+  module DKC_Oracle(O:PRF_Oracle) = {
+    proc encrypt(q:query_DKC) : answer_DKC = {
+      var aa,bb : KW.word;
+      var xx : word;
+      var ib,jb,lb : int * bool;
+      var bi,bj,bl', rn: bool;
+      var t : word;
+      var ki, kj : KW.word;
+      var lsbi,lsbj:bool;
+      var ans : answer_DKC;
+      var mask : word;
+
+      ans = bad;
+      (rn,ib,jb,lb,t) = q;
       
-      Param.used = FSet.fset0;
-      Param.kpub = map0;
-      Param.lsb = witness;
-      Param.tbl = map0;
-      
-      i = 0;
-      while (i < bound) {
-        Param.kpub.[(i, false)] = W.zeros;
-        Param.kpub.[(i, true)] = W.zeros;
-        i = i + 1;
-      }
-            
-      i = 0;
-      while (i < bound) {
-        if (i = Param.l) {
-          Param.lsb = ${0,1};
-          Param.kpub.[(i,DKCp.lsb)] = witness; (* can never return or encrypt this key *)
-          Param.kpub.[(i,!DKCp.lsb)] = $Dword.dwordLsb (!DKCp.lsb);  
+Param.lsb);  
         }
         else {
           tok1 = $Dword.dwordLsb (false);
           tok2 = $Dword.dwordLsb (true);
-            Param.kpub.[(i, false)] = tok1;
-            Param.kpub.[(i, true)] = tok2;
+            Param.kpub.[(i, false)] = w2kw tok1;
+            Param.kpub.[(i, true)] = w2kw tok2;
         }
         i = i + 1;
       }
