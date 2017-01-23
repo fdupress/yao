@@ -1,4 +1,5 @@
 require import Int.
+require import IntExtra.
 require import Bool.
 require import Real.
 require import NewFMap.
@@ -73,7 +74,7 @@ theory SomeDKC.
 
     op w2kw(w) = if w = witness
                     then witness
-                    else let kwi = (W.to_int w) (* / 2 how to divide?*)
+                    else let kwi = (W.to_int w) (* / 2 *)
                           in let lsbi = W.getlsb w
                           in (KW.from_int kwi,lsbi).
     
@@ -91,8 +92,71 @@ theory SomeDKC.
 
       ans = bad;
       (rn,ib,jb,lb,t) = q;
+  
+      if (!(mem Param.used t) && ib.`1 < jb.`1 && jb.`1 < lb.`1 && lb <> (Param.l,Param.lsb)) {
+        Param.used = Param.used `|` fset1 t; 
+        
+        (ki,lsbi) = oget Param.kpub.[ib];
+        (kj,lsbj) = oget Param.kpub.[jb];
+        
+        (aa,bb) = if (ib = (Param.l,Param.lsb)) 
+                  then (witness, kj) 
+                  else (if (jb = (Param.l,Param.lsb)) 
+                        then (ki, witness) 
+                        else (ki,kj));
+
+        xx = let (kxx,lsbxx) = oget Param.kpub.[lb] in kw2w kxx lsbxx;
+
+        if (rn) {
+          xx = $Dword.dword;
+        }
+        
+        if ((Param.l,Param.lsb)=ib) {
+          mask = O.f(t);
+          ans = (kw2w ki lsbi, kw2w kj lsbj, mask ^ (F kj t) ^ xx);
+        }
+        else  {
+            if ((Param.l,Param.lsb)=jb) {
+              mask = O.f(t);
+              ans = (kw2w ki lsbi, kw2w kj lsbj, (F ki t) ^ mask ^ xx);
+           }
+           else  {
+              ans = (kw2w ki lsbi, kw2w kj lsbj, (F ki t) ^ (F kj t) ^ xx);
+           }
+        }
+      }
+
+      return ans;
+    }
+  }.
       
-Param.lsb);  
+  module D(A : Adv_DKC_t,F:PRF_Oracle)  = {
+
+    module A = A(DKC_Oracle(F))
+    
+    proc initialize(l:int): bool = {
+      var i, tok1, tok2;
+      var ki : KW.word;
+      
+      Param.used = FSet.fset0;
+      Param.kpub = map0;
+      Param.lsb = witness;
+      Param.tbl = map0;
+      
+      i = 0;
+      while (i < bound) {
+        Param.kpub.[(i, false)] = (KW.zeros,false);
+        Param.kpub.[(i, true)] = (KW.zeros,false);
+        i = i + 1;
+      }
+
+      i = 0;
+      while (i < bound) {
+        if (i = Param.l) {
+          Param.lsb = ${0,1};
+          Param.kpub.[(i,Param.lsb)] = witness; (* can never return or encrypt this key *)
+          ki = $KW.Dword.dword;
+          Param.kpub.[(i,!Param.lsb)] = (ki,(!Param.lsb));  
         }
         else {
           tok1 = $Dword.dwordLsb (false);
@@ -115,6 +179,7 @@ Param.lsb);
     }
   }.
 
+
 equiv true_key l b (A <:  Adv_DKC_t):
     DKCSecurity.Game(DKC,A).game ~
     IND(PRFr_Wrapped,D(A)).main : 0 <= l{1} < bound && b{1} = true
@@ -123,6 +188,16 @@ equiv true_key l b (A <:  Adv_DKC_t):
       proc. inline DKC.initialize PRFr_Wrapped.init D(A,PRFr_Wrapped).distinguish.
       admit.
     qed.
+
+equiv false_key l b (A <:  Adv_DKC_t):
+    DKCSecurity.Game(DKC,A).game ~
+    IND(RandomFunction,D(A)).main : 0 <= l{1} < bound && b{1} = false
+                               ==> ={res}.
+    proof.
+      proc. inline DKC.initialize PRFr_Wrapped.init D(A,PRFr_Wrapped).distinguish.
+      admit.
+    qed.
+
     
 lemma PrfDKC_secure : forall (A <: Adv_DKC_t) &m i, 0 <= i < bound =>
     Pr[DKCSecurity.Game(DKC,A).game(true,i)@ &m:res] - 
@@ -131,12 +206,5 @@ lemma PrfDKC_secure : forall (A <: Adv_DKC_t) &m i, 0 <= i < bound =>
     admit.
   qed.
 
-  op e_prf : real.
-
-  axiom e_prob : 0%r <= e_prf <= 1%r.
-
-  axiom e_max_adv  : forall i &m (D <: PRF_Distinguisher),
-  Pr[IND(PRFr_Wrapped,D).main(i)@ &m:res] -
-  Pr[IND(RandomFunction,D).main(i)@ &m:!res] <= e_prf.
   
 end SomeDKC.
