@@ -68,31 +68,16 @@ theory SomeDKC.
   }.
 
   op kw2w(kw,lsb) =
+  (*if kw = witness then witness else*)
                    let lsbi = if lsb then 1 else 0
                       in let kwi = (KW.to_int kw) * 2 + lsbi
-                      in W.from_int kwi.
-
-  op kw2w'(kw,lsb) =
-  if kw = witness then witness else
-  let lsbi = if lsb then 1 else 0
-                      in let kwi = (KW.to_int kw) * 2 + lsbi
-    in W.setlsb (W.from_int kwi) lsb.
-
-
-
-    
+                      in W.setlsb (W.from_int kwi) lsb.
 
   op w2kw(w) =
-  if w = witness then witness else
+  (*if w = witness then witness else*)
   let kwi = (W.to_int w) %/ 2 (* / 2 *)
                           in let lsbi = W.getlsb w
                           in (KW.from_int kwi,lsbi).
-
-  op w2kw'(w) =
-  if w = witness then witness else
-  let kwi = (W.to_int w) %/ 2 (* / 2 *)
-                          in let lsbi = W.getlsb w
-                          in KW.from_int kwi.
   
     
   module DKC_Oracle(O:PRF_Oracle) = {
@@ -122,7 +107,7 @@ theory SomeDKC.
                         then (ki, witness) 
                         else (ki,kj));
 
-        xx = let (kxx,lsbxx) = oget Param.kpub.[lb] in kw2w' kxx lsbxx;
+        xx = let (kxx,lsbxx) = oget Param.kpub.[lb] in kw2w kxx lsbxx;
 
         if (rn) {
           xx = $Dword.dword;
@@ -130,15 +115,15 @@ theory SomeDKC.
         
         if ((Param.l,Param.lsb)=ib) {
           mask = O.f(t);
-          ans = (kw2w' ki lsbi, kw2w' kj lsbj, mask ^ (F kj t) ^ xx);
+          ans = (kw2w ki lsbi, kw2w kj lsbj, mask ^ (F kj t) ^ xx);
         }
         else  {
             if ((Param.l,Param.lsb)=jb) {
               mask = O.f(t);
-              ans = (kw2w' ki lsbi, kw2w' kj lsbj, (F ki t) ^ mask ^ xx);
+              ans = (kw2w ki lsbi, kw2w kj lsbj, (F ki t) ^ mask ^ xx);
            }
            else  {
-              ans = (kw2w' ki lsbi, kw2w' kj lsbj, (F ki t) ^ (F kj t) ^ xx);
+              ans = (kw2w ki lsbi, kw2w kj lsbj, (F ki t) ^ (F kj t) ^ xx);
            }
         }
       }
@@ -159,6 +144,7 @@ theory SomeDKC.
       Param.kpub = map0;
       Param.lsb = witness;
       Param.tbl = map0;
+      Param.l = l;
       
       i = 0;
       while (i < bound) {
@@ -197,49 +183,74 @@ theory SomeDKC.
   }.
       
   
-equiv true_key l b (A <:  Adv_DKC_t):
+equiv true_key lp b (A <:  Adv_DKC_t):
     DKCSecurity.Game(DKC,A).game ~
-    IND(PRFr_Wrapped,D(A)).main : 0 <= l < boundl /\ b = true
+    IND(PRFr_Wrapped,D(A)).main : 0 <= lp < boundl /\ b = true /\ l{1} = lp /\ l{2} = lp
                                ==> ={res}.
     proof.
       proc.
-      inline PRFr_Wrapped.init D(A,PRFr_Wrapped).distinguish. print W.
-      seq 1 3 : (0 <= l < boundl /\ b = true /\
+      inline PRFr_Wrapped.init D(A,PRFr_Wrapped).distinguish. 
+      seq 1 3 : (0 <= lp < boundl /\ b = true /\ (b{1}, l{1}).`2 = lp /\ l{2} = lp /\
       DKCp.used{1} = Param.used{2} /\ DKCp.used{1} = fset0 /\
-      DKCp.l{1} = Param.l{2} /\
+      DKCp.l{1} = Param.l{2} /\ DKCp.l{1} = lp /\ 
       DKCp.lsb{1} = Param.lsb{2} /\
       Param.tbl{2} = map0 /\
-      (forall k, 0 <= k < bound => oget DKCp.kpub{1}.[(k,true)] = kw2w' (fst (oget Param.kpub{2}.[(k,true)])) true) /\
-      (forall k, 0 <= k < bound => oget DKCp.kpub{1}.[(k,false)] = kw2w' (fst (oget Param.kpub{2}.[(k,false)])) false) /\
-      (forall k, 0 <= k < bound => getlsb (oget DKCp.kpub{1}.[(k,true)]) = snd (oget Param.kpub{2}.[(k,true)])) /\
-      (forall k, 0 <= k < bound => getlsb (oget DKCp.kpub{1}.[(k,false)]) = snd (oget Param.kpub{2}.[(k,false)])));   
+      (forall k, 0 <= k < bound => k <> Param.l{2} => oget DKCp.kpub{1}.[(k,true)] = kw2w (fst (oget Param.kpub{2}.[(k,true)])) true) /\
+      (forall k, 0 <= k < bound => k <> Param.l{2} => oget DKCp.kpub{1}.[(k,false)] = kw2w (fst (oget Param.kpub{2}.[(k,false)])) false) /\
+      (forall k, 0 <= k < bound => k = Param.l{2} => oget DKCp.kpub{1}.[(k,!Param.lsb{2})] = kw2w (fst (oget Param.kpub{2}.[(k,!Param.lsb{2})])) (!Param.lsb{2})));   
       inline DKC.initialize D(A, PRFr_Wrapped).initialize.
     
-        wp; while (0 <= l < boundl /\ b = true /\ ={i} /\ 0 <= i{1} <= bound /\
+        wp; while (0 <= lp < boundl /\ b = true /\ ={i} /\ 0 <= i{1} <= bound /\ (b{1}, l{1}).`2 = lp /\ l{2} = lp /\
       DKCp.used{1} = Param.used{2} /\ DKCp.used{1} = fset0 /\
-      DKCp.l{1} = Param.l{2} /\
+      DKCp.l{1} = Param.l{2} /\ DKCp.l{1} = lp /\
       DKCp.lsb{1} = Param.lsb{2} /\
       Param.tbl{2} = map0 /\
-      (forall k, 0 <= k < i{1} => oget DKCp.kpub{1}.[(k,true)] = kw2w' (fst (oget Param.kpub{2}.[(k,true)])) true) /\
-      (forall k, 0 <= k < i{1} => oget DKCp.kpub{1}.[(k,false)] = kw2w' (fst (oget Param.kpub{2}.[(k,false)])) false) /\
-      (forall k, 0 <= k < i{1} => getlsb (oget DKCp.kpub{1}.[(k,true)]) = snd (oget Param.kpub{2}.[(k,true)])) /\
-      (forall k, 0 <= k < i{1} => getlsb (oget DKCp.kpub{1}.[(k,false)]) = snd (oget Param.kpub{2}.[(k,false)]))).
+      (forall k, 0 <= k < i{1} => k <> Param.l{2} => oget DKCp.kpub{1}.[(k,true)] = kw2w (fst (oget Param.kpub{2}.[(k,true)])) true) /\
+      (forall k, 0 <= k < i{1} => k <> Param.l{2} => oget DKCp.kpub{1}.[(k,false)] = kw2w (fst (oget Param.kpub{2}.[(k,false)])) false) /\
+      (forall k, 0 <= k < i{1} => k = Param.l{2} => oget DKCp.kpub{1}.[(k,!Param.lsb{2})] = kw2w (fst (oget Param.kpub{2}.[(k,!Param.lsb{2})])) (!Param.lsb{2}))).
         
         if; first by progress. print w2kw.
-        wp. rnd (fun w, w2kw w) (fun w, kw2w' w (!Param.lsb{2})). wp. rnd{1}. rnd. skip; progress.
+        wp. rnd (fun w, fst (w2kw w)) (fun w, kw2w w (!Param.lsb{2})). wp. rnd{1}. rnd. skip; progress.
         by rewrite Dword.dwordLsb_lossless.
-        simplify w2kw kw2w' fst. case (kiR = witness) => hc. smt tmo=15. 
-        rewrite KW.Dword.mu_x_def Dword.dwordLsb_mu_x. cut ->: getlsb (kw2w' kiR (!lsbL)) = !lsbL <=> true. simplify kw2w'. rewrite get_setlsb. done. done.
+        simplify w2kw kw2w fst; smt tmo=15.
+        rewrite KW.Dword.mu_x_def Dword.dwordLsb_mu_x. cut ->: getlsb (kw2w kiR (!lsbL)) = !lsbL <=> true. simplify kw2w. rewrite get_setlsb. done. done.
         by smt.
-        simplify w2kw kw2w' fst; smt tmo=15. 
+        simplify w2kw kw2w fst; smt tmo=15. 
         idtac=>/#.
-        idtac=>/#.
-        rewrite !getP. case (k = Param.l{2}) => hc. case (true = !lsbL) => hc'. rewrite hc hc' //. cut ->: (k, true) = (Param.l{2}, !lsbL) <=> false by idtac=>/#. cut ->: (k, true) = (Param.l{2}, lsbL) <=> true by idtac=>/#. simplify. rewrite oget_some. simplify kw2w'. rewrite oget_some. simplify fst => /#. case ((k, true) = (Param.l{2}, lsbL)) => hc'. rewrite oget_some. simplify kw2w'. rewrite oget_some. simplify fst. => /#. cut ->: (k, true) = (Param.l{2}, lsbL) <=> false. simplify. by. idtac=>/#. rewrite oget_some. simplify kw2w'. rewrite oget_some. simplify fst => /#. 
-    
+        idtac=>/#. 
+        rewrite !getP => /#. 
+        rewrite !getP => /#. 
+        rewrite !getP => /#. 
+
+      auto; progress; first 2 by idtac=>/#.
+        rewrite !getP. case ((k, true) = (i{2}, true)) => hc. simplify kw2w w2kw. rewrite oget_some. smt tmo=30. idtac=>/#. 
+        rewrite !getP. case ((k, false) = (i{2}, false)) => hc. simplify kw2w w2kw. rewrite oget_some. smt tmo=30. idtac=>/#. 
+        rewrite !getP => /#. 
+
+    wp; while (0 <= lp < boundl /\ b = true /\ ={i} /\ 0 <= i{1} <= bound /\ (b{1}, l{1}).`2 = lp /\ l{2} = lp /\
+      DKCp.used{1} = Param.used{2} /\ DKCp.used{1} = fset0 /\
+      DKCp.l{1} = Param.l{2} /\ DKCp.l{1} = lp /\ 
+      DKCp.lsb{1} = Param.lsb{2} /\
+      Param.tbl{2} = map0 /\
+      (forall k, 0 <= k < i{1} => oget DKCp.kpub{1}.[(k,false)] = W.zeros) /\
+      (forall k, 0 <= k < i{1} => oget DKCp.kpub{1}.[(k,true)] = W.zeros) /\
+      (forall k, 0 <= k < i{1} => oget Param.kpub{2}.[(k,false)] = (KW.zeros, false)) /\
+      (forall k, 0 <= k < i{1} => oget Param.kpub{2}.[(k,true)] = (KW.zeros, true))).
+      auto; progress; expect 6 by by rewrite ?getP => /#. 
+
+    auto; progress; last 8 by idtac=>/#.
+        by rewrite dK_ll. 
+        by smt. 
+        by rewrite map0P =>/#.
+        by rewrite map0P =>/#.
+        by rewrite map0P =>/#.
+
+    wp. 
+
+
 
     
-      admit.
-    qed.
+  qed.
 
 equiv false_key l b (A <:  Adv_DKC_t):
     DKCSecurity.Game(DKC,A).game ~
