@@ -93,7 +93,7 @@ proof.
   move=> le0_l1 le0_l2.
   apply arrayP; split; first by rewrite size_append ?size_offun // => /#. 
   move => i Hisize.
-  rewrite get_append; first by smt.
+  rewrite get_append; first by smt tmo=10.
   case (0 <= i < size (offun (fun (_ : int) => a) l1)) => hc. 
     rewrite ?offunifE.
     cut ->: 0 <= i < l1 + l2 <=> true by smt.
@@ -347,11 +347,11 @@ qed.
 op has (p : 'a -> bool) xs = has p (ofarray xs).
 
 lemma hasP p (s : 'a array): has p s <=> (exists x, 0 <= x < size s /\ p s.[x]).
-proof. smt. qed.
+proof. smt tmo=10. qed.
 
 lemma hasPn (p : 'a -> bool) s :
   !has p s <=> (forall x, 0 <= x < size s => !p s.[x]).
-proof. smt. qed.
+proof. smt tmo=10. qed.
 
 (** find *)
 op find (p : 'a -> bool) xs = find p (ofarray xs).
@@ -746,5 +746,3 @@ theory DArrayWhile2.
          ={len, d1, d2, f} /\ 0 <= len{1} ==> ={res} ].
 
 end DArrayWhile2.
-
-why3 "ArrayExt.why".

@@ -100,7 +100,7 @@ theory SomeOT.
   op max_size: int. 
 
   (** Bit strings (words) to be used in the protocol *)
-  clone import ExtWord as W.
+  clone import ExtWord as WS.
   op ( ^^ ) (w:word) = ( ^ ) w.
  
   (** Decision Diffie-Hellman assumption for security proof *)

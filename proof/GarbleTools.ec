@@ -140,7 +140,7 @@ proof.
   rewrite /appendInit /=.
   rewrite ForLoop.range_ind_lazy; first by idtac=>/#. 
   cut ->: ForLoop.range (size ar) (size ar + (n - 1)) ar (appender extract) = appendInit ar (n-1) (extract) by rewrite /appendInit /=. 
-  by smt.
+  by smt tmo=10.
 qed.
 
 (**
@@ -181,9 +181,9 @@ proof.
     cut hk : k = size (appendInit ar (k - size ar) extract) by smt.
     rewrite hk ?appendInit_size; first by smt.
     cut ->: size ar + (k - size ar) = k by smt.
-    by rewrite hk; smt. 
+    by rewrite hk; smt tmo=10. 
     move => i ige0 Hind; rewrite -Hind.
-    by smt timeout=60.
+    by smt timeout=120.
 qed.
 
 (**
@@ -314,7 +314,7 @@ theory Tweak.
     move => i ige0 Hind.
     rewrite powS; first by exact ige0.
     rewrite mulzC mult_div_frac -Hind.
-    by smt timeout=30.
+    by smt full timeout=60.
   qed.
   
   (** Bounds of the tweak *)
@@ -377,4 +377,10 @@ theory Tweak.
     by apply from_int_inj; smt.
     by smt.
   qed.
+
+  lemma tweak_inj2 g g' a a' b b':
+    0 <= g  < 2 ^ (WT.length - 2) =>
+    0 <= g' < 2 ^ (WT.length - 2) =>
+    g = g' /\ a = a' /\ b = b' =>  
+    tweak g a b = tweak g' a' b' by [].
 end Tweak.

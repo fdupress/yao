@@ -18,7 +18,8 @@ require import ArrayExt.
 
 theory DKCSecurity.
   clone import ExtWord as WD.
-
+  import WD.
+  
   clone export DKC as D with
     type tweak_t = word,
     type key1_t = word,
@@ -27,13 +28,10 @@ theory DKCSecurity.
     type cipher_t = word.
 
   const bound : int.
-  axiom bound_pos : 1 < bound. 
+  axiom bound_pos : 1 < bound.
 
   const boundl : int.
   axiom boundl_pos : 1 < boundl.
-
-  op l : int.
-  axiom l_pos : 0 <= l < boundl.
   
   (* i * j * pos * tweak *)
   type query_DKC = bool * (int * bool) * (int * bool) * (int * bool) * word.
@@ -41,8 +39,10 @@ theory DKCSecurity.
 
   op bad : answer_DKC.
 
-  module type Adv_DKC_t = {
-    proc get_challenge(lsb : bool) : bool
+  module type DKC_AdvOracles = { proc encrypt(q:query_DKC): answer_DKC }.
+
+  module type Adv_DKC_t(O:DKC_AdvOracles) = {
+    proc get_challenge(lsb : bool, l:int) : bool
   }.
 
   module DKCp = {
@@ -51,10 +51,11 @@ theory DKCSecurity.
     var kpub : ((int * bool), word) fmap
     var used : word fset
     var lsb : bool
+    var l : int
   }.
 
   module type DKC_t = {
-    proc initialize(b: bool) : bool
+    proc initialize(b: bool, l: int) : bool
     proc encrypt(q : query_DKC) : answer_DKC
   }.
 
@@ -62,21 +63,28 @@ theory DKCSecurity.
   
   module DKC : DKC_t = {    
     
-    proc initialize(b : bool): bool = {
+    proc initialize(b : bool,l:int): bool = {
       var i, tok1, tok2;
 
       DKCp.lsb = witness;
       DKCp.ksec = witness;
       
       DKCp.b = b;
-
+      DKCp.l = l;
+      
       DKCp.used = FSet.fset0;
-
       DKCp.kpub = map0;
       
       i = 0;
       while (i < bound) {
-        if (i = l) {
+        DKCp.kpub.[(i, false)] = WD.zeros;
+        DKCp.kpub.[(i, true)] = WD.zeros;
+        i = i + 1;
+      }
+            
+      i = 0;
+      while (i < bound) {
+        if (i = DKCp.l) {
           DKCp.lsb = ${0,1};
           DKCp.ksec = $Dword.dwordLsb (DKCp.lsb);
           DKCp.kpub.[(i,DKCp.lsb)] = witness; (* can never return or encrypt this key *)
@@ -104,21 +112,21 @@ theory DKCSecurity.
       ans = bad;
       (rn,ib,jb,lb,t) = q;
       
-      if (ib.`1 < jb.`1 && jb.`1 < lb.`1 && lb <> (l,DKCp.lsb)) {
+      if (!(mem DKCp.used t) && ib.`1 < jb.`1 && jb.`1 < lb.`1 && lb <> (DKCp.l,DKCp.lsb)) {
         DKCp.used = DKCp.used `|` fset1 t; (* to do: check unicity *)
         
         ki = oget DKCp.kpub.[ib];
         kj = oget DKCp.kpub.[jb];
         
-        (aa,bb) = if (ib = (l,DKCp.lsb)) 
+        (aa,bb) = if (ib = (DKCp.l,DKCp.lsb)) 
                   then (DKCp.ksec, kj) 
-                  else (if (jb = (l,DKCp.lsb)) 
+                  else (if (jb = (DKCp.l,DKCp.lsb)) 
                         then (ki, DKCp.ksec) 
                         else (ki,kj));
 
         xx = oget DKCp.kpub.[lb];
         
-        if (((((l,DKCp.lsb) = ib) || ((l,DKCp.lsb) = jb)) /\ !DKCp.b) || rn) {
+        if (((((DKCp.l,DKCp.lsb) = ib) || ((DKCp.l,DKCp.lsb) = jb)) /\ !DKCp.b) || rn) {
           xx = $Dword.dword;
         }
         ans = (ki, kj, E t aa bb xx);
@@ -127,25 +135,27 @@ theory DKCSecurity.
       return ans;
     }
   }.
-  
+
   module Game(D:DKC_t, A:Adv_DKC_t) = {
 
-    proc game(b : bool) : bool = {
+    module A=A(D)
+    
+    proc game(b : bool, l : int) : bool = {
       var query : query_DKC;
       var answer : answer_DKC;
       var lsb : bool;
       var b' : bool;
 
-      lsb = D.initialize(b);
-      b' = A.get_challenge(lsb);
+      lsb = D.initialize(b,l);
+      b' = A.get_challenge(lsb,l);
       return b' = b;
     }
 
-    proc main() : bool = {
+    proc main(l:int) : bool = {
       var adv : bool;
       var b : bool;
-      b = ${0,1}; 
-      adv = game(b);
+      b = ${0,1};
+      adv = game(b,l);
       return adv;
     }
   }.
@@ -158,7 +168,10 @@ theory DKCSecurity.
   proof.
     proc => //.
     seq 2 : true => //; first by auto.
-    if; first by auto; smt.
+    if.
+    case (((DKCp.l, DKCp.lsb) = ib || (DKCp.l, DKCp.lsb) = jb) /\ !DKCp.b || rn).
+      rcondt 6; first by auto. by auto; smt. 
+      rcondf 6; first 2 by auto. 
     trivial.
   qed.
 
@@ -169,16 +182,18 @@ theory DKCSecurity.
       auto; progress; if.
       (auto; progress; first 4 by smt); last 2 by idtac=>/#. 
       (auto; progress; first 2 by smt); last 3 by idtac=>/#.
-    auto; progress; expect 2 by smt.
+    wp; while (0 <= i <= bound) (bound - i).
+      auto; progress; expect 3 by idtac=>/#.
+    by auto; progress; smt.
   qed.
-
+      
   lemma game_ll (A <: Adv_DKC_t) :
-    islossless A.get_challenge =>
+    islossless A(DKC).get_challenge =>
     islossless Game(DKC,A).game.
   proof. by move => Agarble_ll; proc; call Agarble_ll; call init_ll. qed.
 
   lemma main_ll (D <: DKC_t) (A <: Adv_DKC_t) :
-    islossless A.get_challenge =>
+    islossless A(DKC).get_challenge =>
     islossless Game(DKC,A).main.
   proof.
     move => Agarble_ll; proc.

@@ -63,6 +63,9 @@ axiom from_to i: to_int (from_int i) = i %% 2^length.
 axiom from_to_bound i: 0 <= i < 2^length => to_int (from_int i) = i.
 axiom from_int_inj : Fun.injective from_int.
 
+(** Auxiliar. To be moved or removed *)
+lemma from_int_inj_fun a b : a <> b => from_int a <> from_int b by []. 
+
 (** Probability distribution of our refined and extended Word *)
 theory Dword.
   require import Distr.
