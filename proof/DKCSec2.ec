@@ -17,35 +17,45 @@ require ExtWord.
 require import ArrayExt.
 
 theory DKCSecurity.
-  clone import ExtWord as WD.
-  import WD.
-  
-  clone export DKC as D with
+  clone import DKCScheme.
+
+  (*clone export DKC as D with
     type tweak_t = word,
     type key1_t = word,
     type key2_t = word,
     type msg_t = word,
-    type cipher_t = word.
+    type cipher_t = word.*)
 
   const bound : int.
   axiom bound_pos : 1 < bound.
 
-  const boundl : int.
-  axiom boundl_pos : 1 < boundl.
+  (*const boundl : int.
+  axiom boundl_pos : 1 < boundl.*)
   
   (* i * j * pos * tweak *)
-  type query_DKC = bool * (int * bool) * (int * bool) * (int * bool) * word.
-  type answer_DKC = word * word * word.
+  type query_DKC = bool * (int * bool) * (int * bool) * (int * bool) * tweak_t.
+
+  op queryValid_DKC(query : query_DKC) =
+    0 <= fst query.`2 < bound /\
+    0 <= fst query.`3 < bound /\
+    0 <= fst query.`4 < bound.
+  
+  type answer_DKC = key1_t * key2_t * cipher_t.
 
   op bad : answer_DKC.
 
-  module type DKC_AdvOracles = { proc encrypt(q:query_DKC): answer_DKC }.
+  module type DKC_AdvOracle = { proc encrypt(q:query_DKC): answer_DKC }.
 
-  module type Adv_DKC_t(O:DKC_AdvOracles) = {
+  module type Adv_DKC_t(O:DKC_AdvOracle) = {
     proc get_challenge(lsb : bool, l:int) : bool
   }.
 
-  module DKCp = {
+  module type DKC_AdvOracles = {
+    proc initialize(b: bool, l: int) : bool
+    proc encrypt(q : query_DKC) : answer_DKC
+  }.
+  
+  (*module DKCp = {
     var b : bool
     var ksec : word
     var kpub : ((int * bool), word) fmap
@@ -54,14 +64,11 @@ theory DKCSecurity.
     var l : int
   }.
 
-  module type DKC_t = {
-    proc initialize(b: bool, l: int) : bool
-    proc encrypt(q : query_DKC) : answer_DKC
-  }.
+  
 
   op itb (x:int) = if x = 1 then true else false.
   
-  module DKC : DKC_t = {    
+  module DKCM : DKC_t = {    
     
     proc initialize(b : bool,l:int): bool = {
       var i, tok1, tok2;
@@ -75,12 +82,12 @@ theory DKCSecurity.
       DKCp.used = FSet.fset0;
       DKCp.kpub = map0;
       
-      i = 0;
+      (*i = 0;
       while (i < bound) {
         DKCp.kpub.[(i, false)] = WD.zeros;
         DKCp.kpub.[(i, true)] = WD.zeros;
         i = i + 1;
-      }
+      }*)
             
       i = 0;
       while (i < bound) {
@@ -134,11 +141,11 @@ theory DKCSecurity.
 
       return ans;
     }
-  }.
+  }.*)
 
-  module Game(D:DKC_t, A:Adv_DKC_t) = {
+  module Game(O:DKC_AdvOracles, A:Adv_DKC_t) = {
 
-    module A=A(D)
+    module A=A(O)
     
     proc game(b : bool, l : int) : bool = {
       var query : query_DKC;
@@ -146,7 +153,7 @@ theory DKCSecurity.
       var lsb : bool;
       var b' : bool;
 
-      lsb = D.initialize(b,l);
+      lsb = O.initialize(b,l);
       b' = A.get_challenge(lsb,l);
       return b' = b;
     }
@@ -164,7 +171,7 @@ theory DKCSecurity.
   (* Lossnessness properties *)
   (***************************)
 
-  lemma encrypt_ll : islossless DKC.encrypt.
+  (*lemma encrypt_ll : islossless DKC.encrypt.
   proof.
     proc => //.
     seq 2 : true => //; first by auto.
@@ -185,19 +192,21 @@ theory DKCSecurity.
     wp; while (0 <= i <= bound) (bound - i).
       auto; progress; expect 3 by idtac=>/#.
     by auto; progress; smt.
-  qed.
+  qed.*)
       
-  lemma game_ll (A <: Adv_DKC_t) :
-    islossless A(DKC).get_challenge =>
-    islossless Game(DKC,A).game.
-  proof. by move => Agarble_ll; proc; call Agarble_ll; call init_ll. qed.
+  lemma game_ll (O<: DKC_AdvOracles) (A <: Adv_DKC_t) :
+    islossless A(O).get_challenge =>
+    islossless O.initialize =>  
+    islossless Game(O,A).game.
+  proof. by move => Agarble_ll Oinit_ll; proc; call Agarble_ll; call Oinit_ll. qed.
 
-  lemma main_ll (D <: DKC_t) (A <: Adv_DKC_t) :
-    islossless A(DKC).get_challenge =>
-    islossless Game(DKC,A).main.
+  lemma main_ll (O<: DKC_AdvOracles) (A <: Adv_DKC_t) :
+    islossless A(O).get_challenge =>
+    islossless O.initialize =>    
+    islossless Game(O,A).main.
   proof.
-    move => Agarble_ll; proc.
-    call (_ : true); first by call Agarble_ll; call init_ll.
+    move => Agarble_ll Oinit_ll; proc. 
+    call (_ : true); first by call Agarble_ll; call Oinit_ll.
     by auto; smt.
   qed.
   

@@ -16,7 +16,7 @@ require import Pair.
     - D -> a permutation defined on the type of the ciphertext,
     using a tweak and two keys, that produce a plaintext
 *)
-theory DKC.
+theory DKCScheme.
 
   (** Tweak *)
   type tweak_t.
@@ -25,6 +25,10 @@ theory DKC.
   type key1_t.
   type key2_t.
 
+  (** Keys distribution *)
+  op key1_t_d : key1_t distr.
+  op key2_t_d : key2_t distr.
+  
   (** Plaintext *)
   type msg_t.
 
@@ -45,4 +49,4 @@ theory DKC.
     Shouldn't this be in the security definitions?
   *)
   pred Correct (t:unit) = forall t k1 k2 x, D t k1 k2 (E t k1 k2 x) = x.
-end DKC.
+end DKCScheme.
