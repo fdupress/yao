@@ -15,7 +15,8 @@ require import Option.
 require (*--*) DKC.
 require (*--*) DKCSec2.
 require (*--*) Sch.
-require (*--*) SchSec. 
+require (*--*) SchSec.
+require (*--*) SomeDKC.
 
 require import GarbleTools.
   
@@ -41,14 +42,22 @@ theory SomeGarble.
   (** Maximum number of gates that a circuit *)
   op maxGates : int = 2^62 - 1.
 
-  (** DKC security definitions, instantiated with the words defined in W *)
-  clone import DKCSec2.DKCSecurity with
-    theory WD <- W,
-    op bound = nwires,
-    op boundl = SomeGarble.bound.
-
   (** Tweak theory, instantiated with the words defined in W *)
   clone import Tweak with theory WT <- W.
+  
+  clone import SomeDKC.SomeDKC with
+    theory W <- W,
+    op DKCSecurity.bound = bound.
+    
+  print SomeDKC.
+  import PrfDKC.
+  (** DKC security definitions, instantiated with the words defined in W *)
+  (*clone import DKCSec2.DKCSecurity with
+    theory WD <- W,
+    op bound = nwires,
+    op boundl = SomeGarble.bound.*)
+
+  
 
   (** Auxiliar types used in the definition of the scheme *)
   (** Tokens type **)
@@ -282,7 +291,9 @@ theory SomeGarble.
     
     op Input.encode (iK:inputK_t) (x:input_t) = offun (fun g, oget iK.[(g, x.[g])]) (size x),
     op Input.inputG_len (x: word array) = Array.size x.  
-  
+
+    print W.
+    
   clone Inp as GSch with
     type fun_t = bool funct_t,
     type funG_t = word funct_t,
@@ -316,7 +327,7 @@ theory SomeGarble.
       let (n, m, q, aa, bb) = fst fn in
       let evalGate =
         fun g x1 x2,
-          D (tweak g (W.getlsb x1) (W.getlsb x2)) x1 x2 (oget (snd fn).[(g, W.getlsb x1, W.getlsb x2)]) in
+          D (tweak g (getlsb x1) (getlsb x2)) x1 x2 (oget (snd fn).[(g, getlsb x1, getlsb x2)]) in
       ArrayExt.sub (GarbleTools.evalComplete q i (GarbleTools.extract evalGate aa bb)) (n+q-m) m,
 
     op funG (fn:fun_t) (r:rand_t) = 
@@ -330,7 +341,7 @@ theory SomeGarble.
     op outputK (fn:fun_t) (r:rand_t) = tt,
 
     op decode(k:outputK_t, o: outputG_t) =
-      map W.getlsb o,
+      map getlsb o,
 
     op pi_sampler(im : (topo_t * output_t)) =
       let (n,m,q,aa,bb) = fst im in
@@ -365,10 +376,10 @@ theory SomeGarble.
     Formally, eval(fn,i) = decode (evalG(fn, encode (e,i)))
       *)
   
-  lemma gsch_correct : D.Correct() => GSch.Correct().
+  lemma gsch_correct : PrfDKC.Correct() => GSch.Correct().
   proof.
   (*Some simplification before proving the main inductive formula *)
-    simplify D.Correct GSch.Correct
+    simplify PrfDKC.Correct GSch.Correct
       validInputs validRand eval decode outputK
       evalG funG encode inputK => DKCHyp x fn input /=.
     elim fn=> topo ff h_fn /=.
@@ -382,7 +393,7 @@ theory SomeGarble.
 
     pose inputEnc := GSch.Input.encode (GSch.inputK ((n, m, q, aa, bb), ff) x) input.
 
-    cut ->: W.getlsb = getlsb by done.
+    cut ->: getlsb = getlsb by done.
     pose eval:= (fun (g : int) (x1 x2 : word),
                    D (tweak g (getlsb x1) (getlsb x2)) x1 x2
                      (oget
