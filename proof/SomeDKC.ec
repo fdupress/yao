@@ -108,7 +108,8 @@ theory SomeDKC.
 	type D = word,
 	type R = word,
 	type K = KW.word,
-        op dK = KW.Dword.dword.
+        op dK = KW.Dword.dword,
+        op dR = W.Dword.dword.
           
   clone import DKC.DKCScheme as PrfDKC with
         type tweak_t = word,
@@ -285,6 +286,7 @@ theory SomeDKC.
               ans = (kw2w ki lsbi, kw2w kj lsbj, (F ki t) ^ mask ^ xx);
            }
            else  {
+              mask = O.f(t);
               ans = (kw2w ki lsbi, kw2w kj lsbj, (F ki t) ^ (F kj t) ^ xx);
            }
         }
@@ -502,7 +504,7 @@ equiv true_key lp (A <:  Adv_DKC_t{Param,DKCp,PRFr_Wrapped}):
     rcondf{2} 9. progress. auto. 
     rcondf{2} 9. auto.
     (*case (q{2}.`2.`1 = Param.l{2}).*)    
-
+    inline PRFr_Wrapped.f.
     wp. rnd. wp. skip. progress.
       by idtac=>/#.
       by idtac=>/#.
@@ -536,7 +538,7 @@ equiv true_key lp (A <:  Adv_DKC_t{Param,DKCp,PRFr_Wrapped}):
     rcondf{2} 8. progress. auto. 
     rcondf{2} 8. auto.
     (*case (q{2}.`2.`1 = Param.l{2}).*)    
-
+    inline PRFr_Wrapped.f. 
     wp. skip. progress.
       by idtac=>/#.
       by idtac=>/#.
@@ -544,19 +546,22 @@ equiv true_key lp (A <:  Adv_DKC_t{Param,DKCp,PRFr_Wrapped}):
 
   skip. progress => /#.
   qed.
-  
+
+  lemma aux_xorwK (w w1 w2:word): w = w ^ w1 ^ w2 ^ w1 ^ w2 by []. 
+  lemma aux_xorwK' (w w1 w2 w3:word): w1 ^ w2 ^ w = w3 ^ w2 ^ (w ^ w1 ^ w3) by [].
+      
 equiv false_key lp (A <:  Adv_DKC_t{Param,DKCp,PRFr_Wrapped,RandomFunction}):
     DKCSecurity.Game(DKC_O,A).game ~
     IND(RandomFunction,D(A)).main : ={glob A} /\ 0 <= lp < bound /\ !b{1} /\ l{1} = lp /\ l{2} = lp
-                               ==> ={res}.
+                               ==> res{1} <> res{2}.
 
     proof.
       proc. 
-      inline PRFr_Wrapped.init RandomFunction.init D(A, RandomFunction).distinguish DKC_O.initialize. swap{1} 13 -1.
-      seq 12 3 : (={glob A} /\ 0 <= lp < bound /\ !b{1} /\ (b{1}, l{1}).`2 = lp /\ l{2} = lp /\
+      inline PRFr_Wrapped.init RandomFunction.init D(A, RandomFunction).distinguish.
+      seq 1 3 : (={glob A} /\ 0 <= lp < bound /\ !b{1} /\ (b{1}, l{1}).`2 = lp /\ l{2} = lp /\
       DKCp.used{1} = Param.used{2} /\ DKCp.used{1} = fset0 /\ DKCp.b{1} = b{1} /\ !DKCp.b{1} /\
       DKCp.l{1} = Param.l{2} /\ DKCp.l{1} = lp /\ Param.l{2} = l0{2} /\ DKCp.l{1} = l{1} /\
-      DKCp.lsb{1} = Param.lsb{2} /\ lsb{1} = DKCp.lsb{1} /\ lsb{2} = Param.lsb{2} /\ (*getlsb DKCp.ksec{1} = DKCp.lsb{1} /\*)
+      DKCp.lsb{1} = Param.lsb{2} /\ lsb{1} = DKCp.lsb{1} /\ lsb{2} = Param.lsb{2} /\ getlsb DKCp.ksec{1} = DKCp.lsb{1} /\
       Param.tbl{2} = map0 /\
       RandomFunction.m{2} = map0 /\
       (*oget Param.kpub{2}.[(Param.l{2},Param.lsb{2})] = (witness,witness) /\
@@ -573,8 +578,8 @@ equiv false_key lp (A <:  Adv_DKC_t{Param,DKCp,PRFr_Wrapped,RandomFunction}):
       inline DKC_O.initialize D(A, RandomFunction).initialize.
         
     
-        (*swap{2} 1 11.
-        wp. rnd (fun w, fst (w2kw' w)) (fun w, kw2w' w (Param.lsb{2})).*)
+        swap{2} 1 11.
+        wp. rnd{1} (fun w, fst (w2kw' w)) (fun w, kw2w' w (Param.lsb{2})).
     
         wp; while (={glob A} /\ 0 <= lp < bound /\ !b{1} /\ ={i} /\ 0 <= i{1} <= bound /\ (b{1}, l{1}).`2 = lp /\ l{2} = lp /\
       DKCp.used{1} = Param.used{2} /\ DKCp.used{1} = fset0 /\ DKCp.b{1} = b{1} /\ !DKCp.b{1} /\
@@ -601,8 +606,7 @@ equiv false_key lp (A <:  Adv_DKC_t{Param,DKCp,PRFr_Wrapped,RandomFunction}):
         rewrite !getP => /#. 
         rewrite !getP => /#.  
         rewrite !getP => /#. 
-        rewrite !getP ;smt.  
-
+        rewrite !getP. cut ->: (l0{2}, !lsbL) = (l0{2}, !lsbL) <=> true by done. simplify. rewrite !oget_some; smt. 
     
       auto; progress; first 2 by idtac=>/#. rewrite !getP => /#. 
         rewrite !getP. case ((k, b1) = (i{2}, true)) => hc. rewrite !oget_some kw2w_w2kw. rewrite (Dword.lsb_dwordLsb (true) _). done. idtac=>/#. done. case ((k, b1) = (i{2}, false)) => hc'. rewrite !oget_some kw2w_w2kw. rewrite (Dword.lsb_dwordLsb (false) _). done. idtac=>/#. done. idtac=>/#.
@@ -631,7 +635,9 @@ equiv false_key lp (A <:  Adv_DKC_t{Param,DKCp,PRFr_Wrapped,RandomFunction}):
         by idtac=>/#.
         by idtac=>/#.
         by idtac=>/#. 
-        rewrite H22 => /#. 
+        by rewrite Dword.dwordLsb_lossless. 
+        by rewrite (Dword.lsb_dwordLsb (lsb_R) _).
+        by rewrite H22 => /#.
         wp. 
 
     call (_ : 
@@ -642,9 +648,9 @@ equiv false_key lp (A <:  Adv_DKC_t{Param,DKCp,PRFr_Wrapped,RandomFunction}):
   DKCp.l{1} = lp /\
   DKCp.lsb{1} = Param.lsb{2} /\
   getlsb DKCp.ksec{1} = DKCp.lsb{1} /\
-  getlsb DKCp.ksec{1} = DKCp.lsb{1} /\
   oget DKCp.kpub{1}.[(DKCp.l{1}, DKCp.lsb{1})] =
   kw2w (fst (oget Param.kpub{2}.[(Param.l{2}, Param.lsb{2})])) Param.lsb{2} /\
+  DKCp.used{1} = dom (RandomFunction.m{2}) /\    
   (forall (k : int) (b0 : bool),
      0 <= k < bound =>
      k <> Param.l{2} =>
@@ -679,83 +685,99 @@ equiv false_key lp (A <:  Adv_DKC_t{Param,DKCp,PRFr_Wrapped,RandomFunction}):
     case (q{2}.`2 = (Param.l{2}, Param.lsb{2})).
         rcondt{2} 9. progress. auto. 
         inline RandomFunction.f.
-        rcondt{2} 10. auto.  progress. admit. 
-        wp. rnd{2} (fun w, fst (w2kw' w)) (fun w, kw2w' w (!Param.lsb{2})). wp. rnd. wp. skip. progress. 
-          by smt.
-          by rewrite H13 H2 => /#.   
-
-          cut ->: q{2}.`3 = (q{2}.`3.`1,q{2}.`3.`2) by idtac=>/#. rewrite H3 => /#.
-          simplify PrfDKC.E. simplify PRF.F. rewrite H13 /=. rewrite getP. simplify. rewrite oget_some. admit. cut ->: q{2}.`3 = (q{2}.`3.`1,q{2}.`3.`2) by idtac=>/#. rewrite H3. idtac=>/#. idtac=>/#. rewrite w2kw_kw2w =>/#. 
+        rcondt{2} 10. auto.  
+    swap{2} 8 3. wp. rnd (fun w, w ^ (F (fst (w2kw aa{1})) t{1}) ^ mask{2}). wp. rnd{2}. wp. skip. progress. 
+      by smt. 
+      by rewrite H13 /= -aux_xorwK.  
+      by rewrite !Dword.mu_x_def. 
+      by rewrite H13 /= Dword.in_supp_def.
+      by rewrite H13 /= -aux_xorwK.
+      by rewrite H13 H2 => /#.   
+      cut ->: q{2}.`3 = (q{2}.`3.`1,q{2}.`3.`2) by idtac=>/#. rewrite H3 => /#.
+      simplify PrfDKC.E fst; rewrite H13 /= getP /= oget_some -aux_xorwK'; smt. 
+      by rewrite dom_set.
 
     case (q{2}.`3 = (Param.l{2}, Param.lsb{2})).
-        rcondf{2} 9. progress. auto. rcondt{2} 9. progress. auto. 
+        rcondf{2} 9. progress. auto. rcondt{2} 9. progress. auto.
         inline RandomFunction.f.
-        rcondt{2} 10. auto.  progress. admit.
-        wp. rnd{2}. wp. rnd. wp. skip. progress.
-        by smt.
-        cut ->: q{2}.`2 = (q{2}.`2.`1,q{2}.`2.`2) by idtac=>/#. rewrite H3 => /#.
-        by rewrite H14 H2 => /#. 
-        simplify PrfDKC.E. simplify PRF.F. cut ->: q{2}.`2 = (Param.l{2}, getlsb DKCp.ksec{1}) <=> false by idtac=>/#. rewrite H14 /=. congr. congr. congr. cut ->: q{2}.`2 = (q{2}.`2.`1,q{2}.`2.`2) by idtac=>/#. rewrite H3. idtac=>/#. idtac=>/#. rewrite w2kw_kw2w =>/#. admit. 
+        rcondt{2} 10. auto.  
+    swap{2} 8 3. wp. rnd (fun w, w ^ (F (fst (w2kw bb{1})) t{1}) ^ mask{2}). wp. rnd{2}. wp. skip. progress. 
+      by smt. 
+      by rewrite -aux_xorwK.  
+      by rewrite !Dword.mu_x_def. 
+      by rewrite Dword.in_supp_def.
+      by rewrite -aux_xorwK.
+      cut ->: q{2}.`2 = (q{2}.`2.`1,q{2}.`2.`2) by idtac=>/#. rewrite H3 => /#.
+      by rewrite H14 H2 => /#.         
+      cut ->: q{2}.`2 = (Param.l{2}, getlsb DKCp.ksec{1}) <=> false by idtac=>/#. simplify PrfDKC.E fst; rewrite H14 /= getP /= oget_some; smt. 
+      by rewrite dom_set.  
 
-    rcondf{2} 9. progress. auto. 
-    rcondf{2} 9. auto.
-
-    wp. rnd. wp. skip. progress.
-      by idtac=>/#.
-      by idtac=>/#.
+      rcondf{2} 9. progress. auto. rcondf{2} 9. progress. auto.
+      inline RandomFunction.f.
+      rcondt{2} 10. auto.  
+    wp. rnd{2}. wp. rnd. wp. skip. progress. 
+      by smt.
+      cut ->: q{2}.`2 = (q{2}.`2.`1,q{2}.`2.`2) by idtac=>/#. idtac=>/#.
+      cut ->: q{2}.`3 = (q{2}.`3.`1,q{2}.`3.`2) by idtac=>/#. idtac=>/#.
       cut ->: q{2}.`2 = (Param.l{2}, getlsb DKCp.ksec{1}) <=> false by idtac=>/#. cut ->: q{2}.`3 = (Param.l{2}, getlsb DKCp.ksec{1}) <=> false by idtac=>/#. simplify. simplify E. congr. congr. congr. cut ->: q{2}.`2 = (q{2}.`2.`1,q{2}.`2.`2) by idtac=>/#. by smt. by smt. 
+      by rewrite dom_set.  
 
-
-    (********************)
-    (* !rn *)
-    (********************)
-
-    case (q{2}.`2 = (Param.l{2}, Param.lsb{2})).
-
-    rcondt{1} 8. progress. auto. progress. idtac=>/#. 
-    rcondf{2} 8. progress. auto.
-
-    
+  rcondf{2} 8. auto. 
+  case (q{2}.`2 = (Param.l{2}, Param.lsb{2})).
+        rcondt{1} 8. auto. progress => /#. 
         rcondt{2} 8. progress. auto. 
         inline RandomFunction.f.
-        rcondt{2} 9. auto.  progress. admit.
-        wp. rnd{1}. rnd{2}. wp. skip. progress. 
-        by smt. by smt. by rewrite H13 H2 => /#.   
+        rcondt{2} 9. auto.  
+    wp. rnd (fun w, w ^ (F (fst (w2kw aa{1})) t{1}) ^ xx{2}). wp. skip. progress. 
+      by rewrite H13 /= -aux_xorwK.  
+      by rewrite !Dword.mu_x_def. 
+      by rewrite H13 /= Dword.in_supp_def.
+      by rewrite H13 /= -aux_xorwK.
+      by rewrite H13 H2 => /#.   
+      cut ->: q{2}.`3 = (q{2}.`3.`1,q{2}.`3.`2) by idtac=>/#. rewrite H3 => /#.
+      simplify PrfDKC.E fst; rewrite H13 /= getP /= oget_some;smt.  
+      by rewrite dom_set.
 
-          cut ->: q{2}.`3 = (q{2}.`3.`1,q{2}.`3.`2) by idtac=>/#. rewrite H3 => /#.
-          simplify PrfDKC.E. simplify PRF.F. rewrite H13 /=. congr. congr. admit. congr. cut ->: q{2}.`3 = (q{2}.`3.`1,q{2}.`3.`2) by idtac=>/#. rewrite H3. idtac=>/#. idtac=>/#. rewrite w2kw_kw2w =>/#. admit. 
+  case (q{2}.`3 = (Param.l{2}, Param.lsb{2})).
+        rcondt{1} 8. auto. progress => /#. 
+        rcondf{2} 8. auto. rcondt{2} 8. auto.
+        inline RandomFunction.f.
+        rcondt{2} 9. auto.  
+    wp. rnd (fun w, w ^ (F (fst (w2kw bb{1})) t{1}) ^ xx{2}). wp. skip. progress. 
+      by rewrite H13 /= -aux_xorwK.  
+      by rewrite !Dword.mu_x_def. 
+      by rewrite H13 /= Dword.in_supp_def.
+      by rewrite H13 /= -aux_xorwK.
+      cut ->: q{2}.`2 = (q{2}.`2.`1,q{2}.`2.`2) by idtac=>/#. rewrite H3 => /#.
+      by rewrite H14 H2 => /#.   
+      cut ->: q{2}.`2 = (Param.l{2}, getlsb DKCp.ksec{1}) <=> false by idtac=>/#. simplify PrfDKC.E fst; rewrite H14 /= getP /= oget_some;smt.  
+      by rewrite dom_set.
 
-    case (q{2}.`3 = (Param.l{2}, Param.lsb{2})).
-        rcondt{1} 8. progress. auto. progress. idtac=>/#. 
-    rcondf{2} 8. progress. auto.
-        rcondf{2} 8. progress. auto. rcondt{2} 8. progress. auto. 
-        inline RandomFunction.f. rcondt{2} 9. auto.  progress. admit.
-        wp. rnd{1}skip. progress.
-        cut ->: q{2}.`2 = (q{2}.`2.`1,q{2}.`2.`2) by idtac=>/#. rewrite H4 => /#.
-        by rewrite H15 H3 => /#. 
-        simplify PrfDKC.E. simplify PRF.F. cut ->: q{2}.`2 = (Param.l{2}, Param.lsb{2}) <=> false by idtac=>/#. rewrite H15 /=. congr. congr. congr. cut ->: q{2}.`2 = (q{2}.`2.`1,q{2}.`2.`2) by idtac=>/#. rewrite H4. idtac=>/#. idtac=>/#. rewrite w2kw_kw2w =>/#. rewrite w2kw_kw2w => /#. idtac=>/#.
-
-    rcondf{2} 8. progress. auto. 
-    rcondf{2} 8. auto.
-    (*case (q{2}.`2.`1 = Param.l{2}).*)    
-
-    wp. skip. progress.
-      by idtac=>/#.
-      by idtac=>/#.
-      cut ->: q{2}.`2 = (Param.l{2}, Param.lsb{2}) <=> false by idtac=>/#. cut ->: q{2}.`3 = (Param.l{2}, Param.lsb{2}) <=> false by idtac=>/#. simplify. simplify E. congr. congr. congr. cut ->: q{2}.`2 = (q{2}.`2.`1,q{2}.`2.`2) by idtac=>/#. by smt. by smt. idtac=>/#.
-
-
-
-
+    rcondf{1} 8. auto. progress => /#. 
+        rcondf{2} 8. auto. rcondf{2} 8. auto.
+        inline RandomFunction.f.
+        rcondt{2} 9. auto.  
+    wp. rnd{2}. wp. skip. progress. 
+      by smt.
+      cut ->: q{2}.`2 = (q{2}.`2.`1,q{2}.`2.`2) by idtac=>/#. idtac=>/#. 
+      cut ->: q{2}.`3 = (q{2}.`3.`1,q{2}.`3.`2) by idtac=>/#. idtac=>/#. 
+      cut ->: q{2}.`2 = (Param.l{2}, getlsb DKCp.ksec{1}) <=> false by idtac=>/#. cut ->: q{2}.`3 = (Param.l{2}, getlsb DKCp.ksec{1}) <=> false by idtac=>/#. simplify. simplify E. congr. congr. congr. cut ->: q{2}.`2 = (q{2}.`2.`1,q{2}.`2.`2) by idtac=>/#. by smt. by smt. simplify. cut ->: q{2}.`4 = (q{2}.`4.`1,q{2}.`4.`2) by idtac=>/#. case (q{2}.`4.`1 = Param.l{2}) => hc. cut ->: q{2}.`4.`2 = ! getlsb DKCp.ksec{1} by idtac=>/#. rewrite H5 => /#. rewrite H3 => /#.
+      by rewrite dom_set.  
+    
+skip. progress. by rewrite dom0. idtac=>/#. 
   qed.
 
     
-lemma PrfDKC_secure : forall (A <: Adv_DKC_t) &m i, 0 <= i < bound =>
-    Pr[DKCSecurity.Game(DKC,A).game(true,i)@ &m:res] - 
-    Pr[DKCSecurity.Game(DKC,A).game(false,i)@ &m:!res] =
-    Pr[IND(PRFr_Wrapped,D(A)).main(i)@ &m:res] - Pr[IND(RandomFunction,D(A)).main(i)@ &m:!res].
-    admit.
-  qed.
+lemma PrfDKC_secure (A <: Adv_DKC_t{PRFr_Wrapped,DKCp,Param,RandomFunction}) &m i: 0 <= i < bound =>
+    Pr[DKCSecurity.Game(DKC_O,A).game(true,i)@ &m:res] - 
+    Pr[DKCSecurity.Game(DKC_O,A).game(false,i)@ &m:!res] =
+    Pr[IND(PRFr_Wrapped,D(A)).main(i)@ &m:res] - Pr[IND(RandomFunction,D(A)).main(i)@ &m:res].
+  proof.
+    move => hi.
+    congr.
+    byequiv (true_key (i) A). done. done.
+    congr. byequiv (false_key (i) A). done. smt. 
+qed.
 
   
 end SomeDKC.
