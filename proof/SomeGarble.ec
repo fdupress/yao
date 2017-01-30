@@ -47,16 +47,14 @@ theory SomeGarble.
   
   clone import SomeDKC.SomeDKC with
     theory W <- W,
-    op DKCSecurity.bound = bound.
+    op DKCSecurity.bound = nwires.
     
-  print SomeDKC.
   import PrfDKC.
   (** DKC security definitions, instantiated with the words defined in W *)
   (*clone import DKCSec2.DKCSecurity with
     theory WD <- W,
     op bound = nwires,
     op boundl = SomeGarble.bound.*)
-
   
 
   (** Auxiliar types used in the definition of the scheme *)
@@ -291,8 +289,6 @@ theory SomeGarble.
     
     op Input.encode (iK:inputK_t) (x:input_t) = offun (fun g, oget iK.[(g, x.[g])]) (size x),
     op Input.inputG_len (x: word array) = Array.size x.  
-
-    print W.
     
   clone Inp as GSch with
     type fun_t = bool funct_t,
@@ -376,9 +372,10 @@ theory SomeGarble.
     Formally, eval(fn,i) = decode (evalG(fn, encode (e,i)))
       *)
   
-  lemma gsch_correct : PrfDKC.Correct() => GSch.Correct().
+  lemma gsch_correct : GSch.Correct().
   proof.
-  (*Some simplification before proving the main inductive formula *)
+    cut : PrfDKC.Correct() by rewrite PrfDKC_correct.
+    (*Some simplification before proving the main inductive formula *)
     simplify PrfDKC.Correct GSch.Correct
       validInputs validRand eval decode outputK
       evalG funG encode inputK => DKCHyp x fn input /=.
@@ -1218,7 +1215,7 @@ module GarbleRealInit = {
   proc init() : unit = {
     var tok : word;
 
-    G.yy = Array.offun (fun x, (W.zeros)) (C.n + C.q);
+    G.yy = Array.offun (fun x, (SomeGarble.W.zeros)) (C.n + C.q);
     G.pp = map0;
     G.randG = map0;
     G.a = 0;
@@ -1368,7 +1365,7 @@ proof.
               cut hneq : forall (x:bool), ((! x) = x) = false by idtac=>/#.
               cut lem : forall u v, Some (enc R.xx{m} ((C.n{m}, C.m{m}, C.q{m}, C.aa{m}, C.bb{m}), C.gg{m}) i
               (u ^^ R.t{hr}.[C.aa{m}.[i]]) (v ^^ R.t{hr}.[C.bb{m}.[i]])) =
-                Some (DKCSecurity.D.E (tweak i (R.t{hr}.[C.aa{m}.[i]]^^u) (R.t{hr}.[C.bb{m}.[i]]^^v))
+                Some (E (tweak i (R.t{hr}.[C.aa{m}.[i]]^^u) (R.t{hr}.[C.bb{m}.[i]]^^v))
                 (oget R.xx{hr}.[(C.aa{m}.[i], u ^^ C.v{m}.[C.aa{m}.[i]])]) (oget R.xx{hr}.[(C.bb{m}.[i], v ^^ C.v{m}.[C.bb{m}.[i]])]) (oget R.xx{hr}.[(i, (oget C.gg{m}.[(i, u^^C.v{m}.[C.aa{m}.[i]], v^^C.v{m}.[C.bb{m}.[i]])]))])).
                 move => u v.
                 simplify enc fst snd.
@@ -1446,7 +1443,7 @@ module GarbleInitFake = {
   proc garb'(rn : bool, alpha : bool, bet : bool) : word = {
     var yy : word;
         
-    yy = $W.Dword.dword;
+    yy = $Dword.dword;
     yy = if rn then yy else oget R.xx.[(G.g, oget C.gg.[(G.g, C.v.[G.a] ^^ alpha, C.v.[G.b] ^^ bet)])];
     garb(yy, alpha, bet);
     return yy;
@@ -1455,7 +1452,7 @@ module GarbleInitFake = {
   proc init() : unit = {
     var tok : word;
 
-    G.yy = Array.offun (fun x, (W.zeros)) (C.n + C.q);
+    G.yy = Array.offun (fun x, (SomeGarble.W.zeros)) (C.n + C.q);
     G.pp = map0;
     G.randG = map0;
     G.a = 0;
@@ -1532,8 +1529,8 @@ module RandomInit' = {
       trnd = ${0,1};
       v = if useVisible then C.v.[i] else false;
       trnd = if (i < C.n + C.q - C.m) then trnd else v;
-      tok1 = $W.Dword.dwordLsb ( trnd);
-      tok2 = $W.Dword.dwordLsb (!trnd);
+      tok1 = $Dword.dwordLsb ( trnd);
+      tok2 = $Dword.dwordLsb (!trnd);
 
       R'.t.[i] = trnd;
 
@@ -1552,7 +1549,7 @@ module GarbleInitFake' = {
     var wa, wb : word;
     var twe : word;
       
-    G.yy = Array.offun (fun x, (W.zeros)) (C.n + C.q);
+    G.yy = Array.offun (fun x, (SomeGarble.W.zeros)) (C.n + C.q);
     G.pp = map0;
     G.randG = map0;
     G.a = 0;
@@ -1571,19 +1568,19 @@ module GarbleInitFake' = {
 
       wa = oget R'.ii.[G.a];
       wb = oget R'.vv.[G.b];
-      tok = $W.Dword.dword;
+      tok = $Dword.dword;
       twe = tweak G.g (getlsb wa) (getlsb wb);
       G.pp.[(G.g, getlsb wa, getlsb wb)] = E twe wa wb tok;
         
       wa = oget R'.vv.[G.a];
       wb = oget R'.ii.[G.b];
-      tok = $W.Dword.dword;
+      tok = $Dword.dword;
       twe = tweak G.g (getlsb wa) (getlsb wb);
       G.pp.[(G.g, getlsb wa, getlsb wb)] = E twe wa wb tok;
 
       wa = oget R'.ii.[G.a];
       wb = oget R'.ii.[G.b];
-      tok = $W.Dword.dword;
+      tok = $Dword.dword;
       twe = tweak G.g (getlsb wa) (getlsb wb);
       G.pp.[(G.g, getlsb wa, getlsb wb)] = E twe wa wb tok;
 
@@ -1717,7 +1714,6 @@ proof.
       by idtac=>/#.
   qed.  
 
-
   
 equiv GarbleInitFake'InitEquiv: GarbleInitFake'.init ~ GarbleInitFake'.init:
   ={C.n, C.m, C.q, C.aa, C.bb} /\
@@ -1756,7 +1752,7 @@ proof.
     (forall g a b, G.g{1} <= g => G.pp{2}.[(g, a, b)] = None) /\
     ={G.g} /\ C.n{1} <= G.g{1} <= C.n{1} + C.q{1}).
       auto; progress.
-        rewrite ?getP //=. case (g = G.g{2}) => hc. case (a = getlsb (oget R'.ii{1}.[C.aa{2}.[G.g{2}]])) => ha. case (b = getlsb (oget R'.ii{1}.[C.bb{2}.[G.g{2}]])) => hb. cut ->: a = getlsb (oget R'.ii{2}.[C.aa{2}.[G.g{2}]]) <=> true by idtac=>/#. cut ->: b = getlsb (oget R'.ii{2}.[C.bb{2}.[G.g{2}]]) <=> true by idtac=>/#. cut ->: b = getlsb (oget R'.vv{2}.[C.bb{2}.[G.g{2}]]) <=> false by idtac=>/#. cut ->: a = getlsb (oget R'.vv{2}.[C.aa{2}.[G.g{2}]]) <=> false by idtac=>/#. simplify => /#. simplify. cut ->: b = getlsb (oget R'.vv{1}.[C.bb{2}.[G.g{2}]]) <=> true by idtac=>/#. cut ->: a = getlsb (oget R'.ii{2}.[C.aa{2}.[G.g{2}]]) <=> true by idtac=>/#. cut ->: b = getlsb (oget R'.ii{2}.[C.bb{2}.[G.g{2}]]) <=> false by idtac=>/#. cut ->: b = getlsb (oget R'.vv{2}.[C.bb{2}.[G.g{2}]]) <=> true by idtac=>/#. cut ->: a = getlsb (oget R'.vv{2}.[C.aa{2}.[G.g{2}]]) <=> false by idtac=>/#. simplify =>/#. cut ->: a = getlsb (oget R'.vv{1}.[C.aa{2}.[G.g{2}]]) <=> true by idtac=>/#. case (b = getlsb (oget R'.ii{1}.[C.bb{2}.[G.g{2}]])) => hb. cut ->: a = getlsb (oget R'.ii{2}.[C.aa{2}.[G.g{2}]]) <=> false by idtac=>/#. cut ->: a = getlsb (oget R'.vv{2}.[C.aa{2}.[G.g{2}]]) <=> true by idtac=>/#. cut ->: b = getlsb (oget R'.ii{2}.[C.bb{2}.[G.g{2}]]) <=> true by idtac=>/#. simplify => /#. cut ->: b = getlsb (oget R'.vv{1}.[C.bb{2}.[G.g{2}]]) <=> true by idtac=>/#. cut ->: a = getlsb (oget R'.ii{2}.[C.aa{2}.[G.g{2}]]) <=> false by idtac=>/#. cut ->: b = getlsb (oget R'.ii{2}.[C.bb{2}.[G.g{2}]]) <=> false by idtac=>/#. cut ->: b = getlsb (oget R'.vv{2}.[C.bb{2}.[G.g{2}]]) <=> true by idtac=>/#. cut ->: a = getlsb (oget R'.vv{2}.[C.aa{2}.[G.g{2}]]) <=> true by idtac=>/#. simplify => /#. simplify => /#. 
+        rewrite ?getP //=. case (g = G.g{2}) => hc. case (a = getlsb (oget R'.ii{1}.[C.aa{2}.[G.g{2}]])) => ha. case (b = getlsb (oget R'.ii{1}.[C.bb{2}.[G.g{2}]])) => hb. cut ->: a = getlsb (oget R'.ii{2}.[C.aa{2}.[G.g{2}]]) <=> true by idtac=>/#. cut ->: b = getlsb (oget R'.ii{2}.[C.bb{2}.[G.g{2}]]) <=> true by idtac=>/#. cut ->: b = getlsb (oget R'.vv{2}.[C.bb{2}.[G.g{2}]]) <=> false by idtac=>/#. cut ->: a = getlsb (oget R'.vv{2}.[C.aa{2}.[G.g{2}]]) <=> false by idtac=>/#. simplify => /#. simplify. cut ->: b = getlsb (oget R'.vv{1}.[C.bb{2}.[G.g{2}]]) <=> true by idtac=>/#. cut ->: a = getlsb (oget R'.ii{2}.[C.aa{2}.[G.g{2}]]) <=> true by idtac=>/#. cut ->: b = getlsb (oget R'.ii{2}.[C.bb{2}.[G.g{2}]]) <=> false by idtac=>/#. cut ->: b = getlsb (oget R'.vv{2}.[C.bb{2}.[G.g{2}]]) <=> true by idtac=>/#. cut ->: a = getlsb (oget R'.vv{2}.[C.aa{2}.[G.g{2}]]) <=> false by idtac=>/#. simplify =>/#. cut ->: a = getlsb (oget R'.vv{1}.[C.aa{2}.[G.g{2}]]) <=> true by idtac=>/#. case (b = getlsb (oget R'.ii{1}.[C.bb{2}.[G.g{2}]])) => hb. cut ->: a = getlsb (oget R'.ii{2}.[C.aa{2}.[G.g{2}]]) <=> false by idtac=>/#. cut ->: a = getlsb (oget R'.vv{2}.[C.aa{2}.[G.g{2}]]) <=> true by idtac=>/#. cut ->: b = getlsb (oget R'.ii{2}.[C.bb{2}.[G.g{2}]]) <=> true by idtac=>/#. simplify => /#. cut ->: b = getlsb (oget R'.vv{1}.[C.bb{2}.[G.g{2}]]) <=> true by idtac=>/#. cut ->: a = getlsb (oget R'.ii{2}.[C.aa{2}.[G.g{2}]]) <=> false by idtac=>/#. cut ->: b = getlsb (oget R'.ii{2}.[C.bb{2}.[G.g{2}]]) <=> false by idtac=>/#. cut ->: b = getlsb (oget R'.vv{2}.[C.bb{2}.[G.g{2}]]) <=> true by idtac=>/#. cut ->: a = getlsb (oget R'.vv{2}.[C.aa{2}.[G.g{2}]]) <=> true by idtac=>/#. simplify E => /#. simplify E => /#. 
 
         rewrite in_dom. rewrite ?getP. simplify. case (g = G.g{2}) => hc. simplify. case (a = getlsb (oget R'.ii{1}.[C.aa{2}.[G.g{2}]])) => ha. simplify. case (b = getlsb (oget R'.ii{1}.[C.bb{2}.[G.g{2}]])) => hb. idtac=>/#. cut ->: b = getlsb (oget R'.vv{1}.[C.bb{2}.[G.g{2}]]) <=> true by idtac=>/#. by simplify. simplify. cut ->: a = getlsb (oget R'.vv{1}.[C.aa{2}.[G.g{2}]]) <=> true by idtac=>/#. simplify. case (b = getlsb (oget R'.ii{1}.[C.bb{2}.[G.g{2}]])) => hb. idtac=>/#. cut ->: b = getlsb (oget R'.vv{1}.[C.bb{2}.[G.g{2}]]) <=> true by idtac=>/#. by simplify. simplify. smt.
 
@@ -2053,7 +2049,7 @@ module GarbleHybridInit = {
   proc init(l : int) : unit = {
     var tok : word;
 
-    G.yy = Array.offun (fun x, (W.zeros)) (C.n + C.q);
+    G.yy = Array.offun (fun x, SomeGarble.W.zeros) (C.n + C.q);
     G.pp = map0;
     G.randG = map0;
     G.a = 0;
@@ -2261,37 +2257,13 @@ lemma GameHybridBound_pr (A <: EncSecurity.Adv_IND_t{Rand,GameReal,GarbleRealIni
   2%r * Pr[GameHybrid(A).garble(bound - 1)@ &m:res] = 1%r.
 proof. by move => AgenL AgetL; rewrite (GameHybridBound_independent A &m) //. qed.
 
-  (***********)
+  (*****************)
   (* DKC ADVERSARY *)
-  (*********)
+  (*****************)
 
-(** 'l' parameter and its position *)
-  (*op l : int.
-  axiom l_pos : 0 <= l < bound.*)
-  
-  module AdvRandomInit (D : DKC_t) = {
-    proc init(useVisible:bool, lsb:bool, l : int): unit = {
-      var v, trnd, i;
+  import DKCSecurity.
 
-      R.t = offun (fun x, false) (C.n + C.q);
-      R.xx = map0;
-    
-      i = 0;
-      while (i < C.n + C.q) {
-        trnd = ${0,1};
-        v = if useVisible then C.v.[i] else false;
-        trnd = if (i < C.n + C.q - C.m) then trnd else v;
-      
-        R.t.[i] = trnd;
-      
-        i = i + 1;
-      }
-
-      R.t.[l] = !lsb;
-    }
-  }.
-
-  module AdvInit (O : DKC_AdvOracles) = {
+  module AdvInit (O : DKC_AdvOracle) = {
     
     proc init(useVisible:bool, lsb:bool, l : int): unit = {
       var v, trnd, i;
@@ -2344,7 +2316,7 @@ proof. by move => AgenL AgetL; rewrite (GameHybridBound_independent A &m) //. qe
   proc garble() : unit = {
     var tok, yy : word;
 
-    G.yy = Array.offun (fun x, (W.zeros)) (C.n + C.q);
+    G.yy = Array.offun (fun x, SomeGarble.W.zeros) (C.n + C.q);
     G.pp = map0;
     G.randG = map0;
     G.a = 0;
@@ -2384,7 +2356,11 @@ proof. by move => AgenL AgetL; rewrite (GameHybridBound_independent A &m) //. qe
   }
 }.
 
-module DKC_Adv (Adv_IND : EncSecurity.Adv_IND_t, O : DKC_AdvOracles) = {
+(**
+    Build a DKC adversary based on a IND adversary
+    *)
+
+module DKC_Adv (A : EncSecurity.Adv_IND_t, O : DKC_AdvOracle) = {
   
   proc get_challenge (lsb:bool,l:int) : bool = {
     var query_ind : EncSecurity.query_IND;
@@ -2396,7 +2372,7 @@ module DKC_Adv (Adv_IND : EncSecurity.Adv_IND_t, O : DKC_AdvOracles) = {
     var i : int;
     var ki,kj,zz,twe : word;
     
-    query_ind = Adv_IND.gen_query();
+    query_ind = A.gen_query();
       
     if (EncSecurity.queryValid_IND query_ind) {
       real = ${0,1};
@@ -2415,7 +2391,7 @@ module DKC_Adv (Adv_IND : EncSecurity.Adv_IND_t, O : DKC_AdvOracles) = {
       
       c = (((C.n, C.m, C.q, C.aa, C.bb), G.pp), encode (inputK C.f R.xx) C.x, tt);
           
-      adv = Adv_IND.get_challenge(c);
+      adv = A.get_challenge(c);
       ret = (real = adv);
     }
     else {
@@ -2429,7 +2405,7 @@ module DKC_Adv (Adv_IND : EncSecurity.Adv_IND_t, O : DKC_AdvOracles) = {
 lemma DKC_Adv_query_garble_ll (A <: EncSecurity.Adv_IND_t{Rand,R,C,DKC_Adv,DKCp}):
     islossless A.gen_query =>
     islossless A.get_challenge =>
-    islossless AdvInit(DKC).query_garble.
+    islossless AdvInit(DKC_O).query_garble.
 proof.
   move => Agen_ll Aget_ll.
   proc.
@@ -2439,7 +2415,7 @@ qed.
 lemma DKC_Adv_query_garble_dummy_ll (A <: EncSecurity.Adv_IND_t{Rand,R,C,DKC_Adv,DKCp}):
     islossless A.gen_query =>
     islossless A.get_challenge =>
-    islossless AdvInit(DKC).query_garble_dummy.
+    islossless AdvInit(DKC_O).query_garble_dummy.
 proof.
   move => Agen_ll Aget_ll.
   proc.
@@ -2449,7 +2425,7 @@ qed.
 lemma DKC_Adv_get_ll (A <: EncSecurity.Adv_IND_t{Rand,R,C,DKC_Adv,DKCp}):
     islossless A.gen_query =>
     islossless A.get_challenge =>
-    islossless DKC_Adv(A,DKC).get_challenge.
+    islossless DKC_Adv(A,DKC_O).get_challenge.
 proof.
   move => Agen_ll Aget_ll.
   proc => //.
@@ -2519,16 +2495,18 @@ qed.
   equiv [ GameHybrid(A).garble ~ DKCSecurity.Game(DKC, DKC_Adv(DKC, A)).game:
     ={glob A} /\ (forall (plain:fun_t*input_t), let (n,m,q,aa,bb) = fst (fst plain) in DKCSecurity.bound = n + q) /\ DKCSecurity.l = l /\ DKCSecurity.boundl = bound /\ l{1} = l-1 /\ DKCp.b{2} /\ b{2} /\ DKCp.b{2} = b{2} ==> ={res}].*)
 
-lemma GameHybrid_l1_sim (A <: EncSecurity.Adv_IND_t{DKC_Adv,DKCp,DKC}) lp:
+print DKC_Adv.
+
+lemma GameHybrid_l1_sim (A <: EncSecurity.Adv_IND_t{DKC_Adv,DKCp,DKC_O}) lp:
   islossless A.gen_query =>
   islossless A.get_challenge =>
-  0 <= lp < boundl =>
-  equiv [ GameHybrid(A).garble ~ DKCSecurity.Game(DKC,DKC_Adv(A)).game:
+  0 <= lp < bound =>
+  equiv [ GameHybrid(A).garble ~ DKCSecurity.Game(DKC_O, DKC_Adv(A)).game:
     ={glob A} /\ l{1} = lp-1 /\ l{2} = lp /\ b{2} ==> ={res}].
 proof.
  move => Agen_ll Aget_ll hl.
   proc => //.
-  inline DKC.initialize DKC_Adv(A,DKC).get_challenge.
+  inline DKC_O.initialize Game(DKC_O, DKC_Adv(A)).A.get_challenge.
   swap{2} 16 -15.
   seq 1 1 : (={glob A} /\ l{1} = lp - 1 /\ l{2} = lp /\ b{2} /\ query{1} = query_ind{2});first by call (_ : true).
 
@@ -2573,7 +2551,7 @@ proof.
       (forall k, 0 <= k < C.n{1} + C.q{1} => DKCp.kpub{2}.[(k, R.t{2}.[k])] <> None) /\
       (forall k, 0 <= k < C.n{1} + C.q{1} => DKCp.kpub{2}.[(k, !R.t{2}.[k])] <> None)).
     
-      inline RandomInit.init AdvInit(DKC).init.
+      inline RandomInit.init AdvInit(DKC_O).init.
 
       transitivity{2} {
         b0 = b;
@@ -2589,8 +2567,8 @@ proof.
         i = 0;
 
         while (i < C.n + C.q) {
-          DKCp.kpub.[(i, false)] = W.zeros;
-          DKCp.kpub.[(i, true)] = W.zeros;
+          DKCp.kpub.[(i, false)] = SomeGarble.W.zeros;
+          DKCp.kpub.[(i, true)] = SomeGarble.W.zeros;
           i = i + 1;
         }
       
@@ -2700,7 +2678,7 @@ proof.
 
           progress. exists (glob A){2}. exists C.aa{2}. exists C.bb{2}. exists (((C.n{2}, C.m{2}, C.q{2}, C.aa{2}, C.bb{2}), C.gg{2})). exists (C.gg{2}). exists C.m{2}. exists C.n{2}.  exists C.q{2}. exists C.v{2}. exists (C.x{2}).      exists (DKCp.b{2}). exists (b{2}). exists l{2}. exists (p{2}). exists (query_ind{2}).  exists (real{2}). by progress. by progress.  
 
-      swap{2} 13 -7. swap{2} 14 -5. fusion{2} 14!1 @ 1,4.
+      swap{2} 14 -7. swap{2} 15 -5. swap{2} 15 2.  fusion{2} 14!1 @ 1,4.
       
       wp.
       
@@ -2867,8 +2845,8 @@ case (trnd{1} = false). case (C.v{1}.[i{1}] = false). wp. rnd. rnd. wp. ((auto; 
     C.v{2}.[i1_0] =
     oget C.gg{2}.[(i1_0, C.v{2}.[C.aa{2}.[i1_0]], C.v{2}.[C.bb{2}.[i1_0]])]) /\
   0 <= i{2} <= C.n{2} + C.q{2} /\
-  (forall k, 0 <= k < i{2} => DKCp.kpub{2}.[(k, false)] = Some W.zeros) /\
-  (forall k, 0 <= k < i{2} => DKCp.kpub{2}.[(k, true)] = Some W.zeros)
+  (forall k, 0 <= k < i{2} => DKCp.kpub{2}.[(k, false)] = Some SomeGarble.W.zeros) /\
+  (forall k, 0 <= k < i{2} => DKCp.kpub{2}.[(k, true)] = Some SomeGarble.W.zeros)
 ) (C.n{2} + C.q{2} - i{2}).
 
  auto. progress; expect 5 by rewrite ?getP => /#. 
@@ -2896,7 +2874,6 @@ case (trnd{1} = false). case (C.v{1}.[i{1}] = false). wp. rnd. rnd. wp. ((auto; 
   b{2} /\ size R.t{1} = size R.t{2} /\
   i{1} = i1{2} /\ size R.t{1} = C.n{1} + C.q{1} /\
   DKCp.b{2} = b{2} /\ DKCp.b{1} = b{1} /\
-  boundl = SomeGarble.bound /\
   EncSecurity.queryValid_IND query_ind{1} /\
   ={glob C} /\
   size C.v{1} = C.n{1} + C.q{1} /\
@@ -2950,8 +2927,8 @@ case (trnd{1} = false). case (C.v{1}.[i{1}] = false). wp. rnd. rnd. wp. ((auto; 
     C.n{2} <= i1_0 < C.n{2} + C.q{2} =>
     C.v{2}.[i1_0] =
     oget C.gg{2}.[(i1_0, C.v{2}.[C.aa{2}.[i1_0]], C.v{2}.[C.bb{2}.[i1_0]])]) /\
-  (forall k, 0 <= k < i{2} => DKCp.kpub{2}.[(k, false)] = Some W.zeros) /\
-  (forall k, 0 <= k < i{2} => DKCp.kpub{2}.[(k, true)] = Some W.zeros)
+  (forall k, 0 <= k < i{2} => DKCp.kpub{2}.[(k, false)] = Some SomeGarble.W.zeros) /\
+  (forall k, 0 <= k < i{2} => DKCp.kpub{2}.[(k, true)] = Some SomeGarble.W.zeros)
 ).
 
   progress. auto; progress; expect 6 by rewrite ?getP => /#. 
@@ -3391,8 +3368,8 @@ proof.
         i = 0;
 
         while (i < C.n + C.q) {
-          DKCp.kpub.[(i, false)] = W.zeros;
-          DKCp.kpub.[(i, true)] = W.zeros;
+          DKCp.kpub.[(i, false)] = SomeGarble.W.zeros;
+          DKCp.kpub.[(i, true)] = SomeGarble.W.zeros;
           i = i + 1;
         }
       
@@ -3669,8 +3646,8 @@ case (trnd{1} = false). case (C.v{1}.[i{1}] = false). wp. rnd. rnd. wp. ((auto; 
     C.v{2}.[i1_0] =
     oget C.gg{2}.[(i1_0, C.v{2}.[C.aa{2}.[i1_0]], C.v{2}.[C.bb{2}.[i1_0]])]) /\
   0 <= i{2} <= C.n{2} + C.q{2} /\
-  (forall k, 0 <= k < i{2} => DKCp.kpub{2}.[(k, false)] = Some W.zeros) /\
-  (forall k, 0 <= k < i{2} => DKCp.kpub{2}.[(k, true)] = Some W.zeros)
+  (forall k, 0 <= k < i{2} => DKCp.kpub{2}.[(k, false)] = Some SomeGarble.W.zeros) /\
+  (forall k, 0 <= k < i{2} => DKCp.kpub{2}.[(k, true)] = Some SomeGarble.W.zeros)
 ) (C.n{2} + C.q{2} - i{2}).
 
  auto. progress; expect 5 by rewrite ?getP => /#. 
@@ -3752,8 +3729,8 @@ case (trnd{1} = false). case (C.v{1}.[i{1}] = false). wp. rnd. rnd. wp. ((auto; 
     C.n{2} <= i1_0 < C.n{2} + C.q{2} =>
     C.v{2}.[i1_0] =
     oget C.gg{2}.[(i1_0, C.v{2}.[C.aa{2}.[i1_0]], C.v{2}.[C.bb{2}.[i1_0]])]) /\
-  (forall k, 0 <= k < i{2} => DKCp.kpub{2}.[(k, false)] = Some W.zeros) /\
-  (forall k, 0 <= k < i{2} => DKCp.kpub{2}.[(k, true)] = Some W.zeros)
+  (forall k, 0 <= k < i{2} => DKCp.kpub{2}.[(k, false)] = Some SomeGarble.W.zeros) /\
+  (forall k, 0 <= k < i{2} => DKCp.kpub{2}.[(k, true)] = Some SomeGarble.W.zeros)
 ).
 
   progress. auto; progress; expect 6 by rewrite ?getP => /#. 
