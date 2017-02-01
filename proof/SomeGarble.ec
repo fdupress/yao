@@ -47,7 +47,8 @@ theory SomeGarble.
   
   clone import SomeDKC.SomeDKC with
     theory W <- W,
-    op DKCSecurity.bound = nwires.
+    op DKCSecurity.bound = nwires + 1,
+    op DKCSecurity.boundl = SomeGarble.bound.
     
   import PrfDKC.
   (** DKC security definitions, instantiated with the words defined in W *)
@@ -1094,8 +1095,8 @@ theory SomeGarble.
           by rewrite get_set => /#. 
         by rewrite !getP => /#. 
         by rewrite !getP => /#. 
-        by rewrite !getP; case (i{2} = j)=> h;[ |cut := H4 j _]; smt.
-        by rewrite !getP; case (i{2} = j)=> h;[ |cut := H4 j _]; smt.
+        by rewrite !getP; case (i{2} = j)=> h;[ |cut := H4 j _]; smt tmo=10.
+        by rewrite !getP; case (i{2} = j)=> h;[ |cut := H4 j _]; smt tmo=10.
       swap{1} 4 1; do 2!(wp; rnd); wp; rnd (fun (x:bool), !x); skip;(progress=> //;first 6 smt).
         by rewrite set_set => /#. 
         by simplify t_xor; progress; cut:= H i0; smt.
@@ -1110,8 +1111,8 @@ theory SomeGarble.
           by cut:= H3 j v0; smt.
         by rewrite !getP => /#. 
         by rewrite !getP => /#. 
-        by rewrite !getP; case (i{2} = j)=> h;[subst=> /= |cut := H4 j]; smt.
-        by rewrite !getP; case (i{2} = j)=> h;[ |cut := H4 j]; smt.
+        by rewrite !getP; case (i{2} = j)=> h;[subst=> /= |cut := H4 j]; smt tmo=10.
+        by rewrite !getP; case (i{2} = j)=> h;[ |cut := H4 j]; smt tmo=10.
     (wp; skip; progress=> //; simplify validRand validRand; first by idtac=>/#); last 8 by idtac=>/#. 
       by rewrite size_offun max_ler => /#.
       by rewrite size_offun max_ler => /#.
@@ -1417,7 +1418,7 @@ proof.
       by move : H1; case realL => /#.     
       by idtac=>/#.
       by idtac=>/#.
-      by idtac=>/#.
+      by rewrite H16 => /#. 
       by idtac=>/#.
       by (rewrite get_initGates; first by idtac=>/#); rewrite H22 map0P //=.  
       by idtac=>/#.
@@ -1752,7 +1753,7 @@ proof.
     (forall g a b, G.g{1} <= g => G.pp{2}.[(g, a, b)] = None) /\
     ={G.g} /\ C.n{1} <= G.g{1} <= C.n{1} + C.q{1}).
       auto; progress.
-        rewrite ?getP //=. case (g = G.g{2}) => hc. case (a = getlsb (oget R'.ii{1}.[C.aa{2}.[G.g{2}]])) => ha. case (b = getlsb (oget R'.ii{1}.[C.bb{2}.[G.g{2}]])) => hb. cut ->: a = getlsb (oget R'.ii{2}.[C.aa{2}.[G.g{2}]]) <=> true by idtac=>/#. cut ->: b = getlsb (oget R'.ii{2}.[C.bb{2}.[G.g{2}]]) <=> true by idtac=>/#. cut ->: b = getlsb (oget R'.vv{2}.[C.bb{2}.[G.g{2}]]) <=> false by idtac=>/#. cut ->: a = getlsb (oget R'.vv{2}.[C.aa{2}.[G.g{2}]]) <=> false by idtac=>/#. simplify => /#. simplify. cut ->: b = getlsb (oget R'.vv{1}.[C.bb{2}.[G.g{2}]]) <=> true by idtac=>/#. cut ->: a = getlsb (oget R'.ii{2}.[C.aa{2}.[G.g{2}]]) <=> true by idtac=>/#. cut ->: b = getlsb (oget R'.ii{2}.[C.bb{2}.[G.g{2}]]) <=> false by idtac=>/#. cut ->: b = getlsb (oget R'.vv{2}.[C.bb{2}.[G.g{2}]]) <=> true by idtac=>/#. cut ->: a = getlsb (oget R'.vv{2}.[C.aa{2}.[G.g{2}]]) <=> false by idtac=>/#. simplify =>/#. cut ->: a = getlsb (oget R'.vv{1}.[C.aa{2}.[G.g{2}]]) <=> true by idtac=>/#. case (b = getlsb (oget R'.ii{1}.[C.bb{2}.[G.g{2}]])) => hb. cut ->: a = getlsb (oget R'.ii{2}.[C.aa{2}.[G.g{2}]]) <=> false by idtac=>/#. cut ->: a = getlsb (oget R'.vv{2}.[C.aa{2}.[G.g{2}]]) <=> true by idtac=>/#. cut ->: b = getlsb (oget R'.ii{2}.[C.bb{2}.[G.g{2}]]) <=> true by idtac=>/#. simplify => /#. cut ->: b = getlsb (oget R'.vv{1}.[C.bb{2}.[G.g{2}]]) <=> true by idtac=>/#. cut ->: a = getlsb (oget R'.ii{2}.[C.aa{2}.[G.g{2}]]) <=> false by idtac=>/#. cut ->: b = getlsb (oget R'.ii{2}.[C.bb{2}.[G.g{2}]]) <=> false by idtac=>/#. cut ->: b = getlsb (oget R'.vv{2}.[C.bb{2}.[G.g{2}]]) <=> true by idtac=>/#. cut ->: a = getlsb (oget R'.vv{2}.[C.aa{2}.[G.g{2}]]) <=> true by idtac=>/#. simplify E => /#. simplify E => /#. 
+        rewrite ?getP //=. case (g = G.g{2}) => hc. case (a = getlsb (oget R'.ii{1}.[C.aa{2}.[G.g{2}]])) => ha. case (b = getlsb (oget R'.ii{1}.[C.bb{2}.[G.g{2}]])) => hb. cut ->: a = getlsb (oget R'.ii{2}.[C.aa{2}.[G.g{2}]]) <=> true by idtac=>/#. cut ->: b = getlsb (oget R'.ii{2}.[C.bb{2}.[G.g{2}]]) <=> true by idtac=>/#. cut ->: b = getlsb (oget R'.vv{2}.[C.bb{2}.[G.g{2}]]) <=> false by idtac=>/#. cut ->: a = getlsb (oget R'.vv{2}.[C.aa{2}.[G.g{2}]]) <=> false by idtac=>/#. simplify => /#. simplify. cut ->: b = getlsb (oget R'.vv{1}.[C.bb{2}.[G.g{2}]]) <=> true by idtac=>/#. cut ->: a = getlsb (oget R'.ii{2}.[C.aa{2}.[G.g{2}]]) <=> true by idtac=>/#. cut ->: b = getlsb (oget R'.ii{2}.[C.bb{2}.[G.g{2}]]) <=> false by idtac=>/#. cut ->: b = getlsb (oget R'.vv{2}.[C.bb{2}.[G.g{2}]]) <=> true by idtac=>/#. cut ->: a = getlsb (oget R'.vv{2}.[C.aa{2}.[G.g{2}]]) <=> false by idtac=>/#. simplify. rewrite H => /#. cut ->: a = getlsb (oget R'.vv{1}.[C.aa{2}.[G.g{2}]]) <=> true by idtac=>/#. case (b = getlsb (oget R'.ii{1}.[C.bb{2}.[G.g{2}]])) => hb. cut ->: a = getlsb (oget R'.ii{2}.[C.aa{2}.[G.g{2}]]) <=> false by idtac=>/#. cut ->: a = getlsb (oget R'.vv{2}.[C.aa{2}.[G.g{2}]]) <=> true by idtac=>/#. cut ->: b = getlsb (oget R'.ii{2}.[C.bb{2}.[G.g{2}]]) <=> true by idtac=>/#. simplify. rewrite H=> /#. cut ->: b = getlsb (oget R'.vv{1}.[C.bb{2}.[G.g{2}]]) <=> true by idtac=>/#. cut ->: a = getlsb (oget R'.ii{2}.[C.aa{2}.[G.g{2}]]) <=> false by idtac=>/#. cut ->: b = getlsb (oget R'.ii{2}.[C.bb{2}.[G.g{2}]]) <=> false by idtac=>/#. cut ->: b = getlsb (oget R'.vv{2}.[C.bb{2}.[G.g{2}]]) <=> true by idtac=>/#. cut ->: a = getlsb (oget R'.vv{2}.[C.aa{2}.[G.g{2}]]) <=> true by idtac=>/#. simplify E => /#. simplify E => /#. 
 
         rewrite in_dom. rewrite ?getP. simplify. case (g = G.g{2}) => hc. simplify. case (a = getlsb (oget R'.ii{1}.[C.aa{2}.[G.g{2}]])) => ha. simplify. case (b = getlsb (oget R'.ii{1}.[C.bb{2}.[G.g{2}]])) => hb. idtac=>/#. cut ->: b = getlsb (oget R'.vv{1}.[C.bb{2}.[G.g{2}]]) <=> true by idtac=>/#. by simplify. simplify. cut ->: a = getlsb (oget R'.vv{1}.[C.aa{2}.[G.g{2}]]) <=> true by idtac=>/#. simplify. case (b = getlsb (oget R'.ii{1}.[C.bb{2}.[G.g{2}]])) => hb. idtac=>/#. cut ->: b = getlsb (oget R'.vv{1}.[C.bb{2}.[G.g{2}]]) <=> true by idtac=>/#. by simplify. simplify. smt.
 
@@ -1840,7 +1841,7 @@ proof.
         rewrite ?getP H2 //= /#. 
         rewrite ?getP H2 //= /#. 
         rewrite ?getP ?get_set; first by idtac=>/#. rewrite H2 //=. case (i{2} < C.n{2} + C.q{2} - C.m{2}) => hi. case (k = i{2}) => hk. rewrite oget_some; first by smt. idtac=>/#. case (k = i{2}) => hk; first by smt. idtac=>/#.
-        rewrite ?getP ?get_set; first by idtac=>/#. rewrite H2 //=. case (i{2} < C.n{2} + C.q{2} - C.m{2}) => hi. case (k = i{2}) => hk. rewrite oget_some; first by smt. idtac=>/#. case (k = i{2}) => hk; first by smt. idtac=>/#.
+        rewrite ?getP ?get_set; first by idtac=>/#. rewrite H2 //=. case (i{2} < C.n{2} + C.q{2} - C.m{2}) => hi. case (k = i{2}) => hk. rewrite oget_some; first by smt. idtac=>/#. case (k = i{2}) => hk. rewrite (Dword.lsb_dwordLsb (!C.v{1}.[i{2}]) (tok2L)). idtac=>/#. done. idtac=>/#. 
   by auto; progress => /#. 
 qed.
 
@@ -2295,7 +2296,7 @@ proof. by move => AgenL AgetL; rewrite (GameHybridBound_independent A &m) //. qe
       gamma = C.v.[G.g] ^^ oget C.gg.[(G.g, C.v.[G.a] ^^ alpha, C.v.[G.b] ^^ betha)];
     
       (ki,kj,zz) = O.encrypt(true, (G.a, R.t.[G.a] ^^ alpha), (G.b, R.t.[G.b] ^^ betha), (C.n+C.q, R.t.[G.g]), twe);
-    
+      
       G.pp.[(G.g, R.t.[G.a] ^^ alpha, R.t.[G.b] ^^ betha)] = zz;
     }
   
@@ -2384,7 +2385,7 @@ module DKC_Adv (A : EncSecurity.Adv_IND_t, O : DKC_AdvOracle) = {
       i = 0;
       while (i < C.n) {
         twe = tweak i C.x.[i] R.t.[0]; 
-        (ki,kj,zz) = O.encrypt(false, (i, R.t.[i]), (C.n+C.q-1, R.t.[DKCp.l]), (C.n+C.q, R.t.[0]), twe);
+        (ki,kj,zz) = O.encrypt(false, (i, R.t.[i]), (C.n, R.t.[DKCp.l]), (C.n+C.q, R.t.[0]), twe);
         R.xx.[(i, C.x.[i])] = ki;
         i = i + 1;
       }
@@ -2431,10 +2432,9 @@ proof.
   proc => //.
   seq 1 : true => //; first by call (_:true).
   if.
-  wp; call (_:true) => //; wp; while true (C.n - i).
-      by move => z; auto; call encrypt_ll; auto => /#. 
+  wp; call (_:true) => //; wp. while true (C.n - i).
+    move => z. auto. call encrypt_ll. auto => /#.
   wp.
-  
   call (_: 0 <= C.n /\ 0 <= C.q ==> true) => //.
   proc.
 
@@ -2484,8 +2484,7 @@ wp. skip. progress => /#.
 
 
   case v => hv. move : H. simplify EncSecurity.queryValid_IND EncSecurity.Encryption.valid_plain validInputs. rewrite ?valid_wireinput. simplify valid_circuitP. simplify fst snd. elim (query_ind{hr}.`1.`1.`1) => n m q aa bb. elim (query_ind{hr}.`2.`1.`1) => n' m' q' aa' bb'. simplify. progress.  idtac=>/#. move : H. simplify EncSecurity.queryValid_IND EncSecurity.Encryption.valid_plain validInputs. rewrite ?valid_wireinput. simplify valid_circuitP. simplify fst snd. elim (query_ind{hr}.`1.`1.`1) => n m q aa bb. elim (query_ind{hr}.`2.`1.`1) => n' m' q' aa' bb'. simplify. progress.  idtac=>/#.
-  case v => hv. move : H. simplify EncSecurity.queryValid_IND EncSecurity.Encryption.valid_plain validInputs. rewrite ?valid_wireinput. simplify valid_circuitP. simplify fst snd. elim (query_ind{hr}.`1.`1.`1) => n m q aa bb. elim (query_ind{hr}.`2.`1.`1) => n' m' q' aa' bb'. simplify. progress.  idtac=>/#. move : H. simplify EncSecurity.queryValid_IND EncSecurity.Encryption.valid_plain validInputs. rewrite ?valid_wireinput. simplify valid_circuitP. simplify fst snd. elim (query_ind{hr}.`1.`1.`1) => n m q aa bb. elim (query_ind{hr}.`2.`1.`1) => n' m' q' aa' bb'. simplify. progress.  idtac=>/#.
-  move : H. simplify EncSecurity.queryValid_IND EncSecurity.Encryption.valid_plain validInputs. rewrite ?valid_wireinput. simplify valid_circuitP. simplify fst snd. elim (query_ind{hr}.`1.`1.`1) => n m q aa bb. elim (query_ind{hr}.`2.`1.`1) => n' m' q' aa' bb'. simplify. progress. idtac=>/#.
+  case v => hv. move : H. simplify EncSecurity.queryValid_IND EncSecurity.Encryption.valid_plain validInputs. rewrite ?valid_wireinput. simplify valid_circuitP. simplify fst snd. elim (query_ind{hr}.`1.`1.`1) => n m q aa bb. elim (query_ind{hr}.`2.`1.`1) => n' m' q' aa' bb'. simplify. progress.  idtac=>/#. move : H. simplify EncSecurity.queryValid_IND EncSecurity.Encryption.valid_plain validInputs. rewrite ?valid_wireinput. simplify valid_circuitP. simplify fst snd. elim (query_ind{hr}.`1.`1.`1) => n m q aa bb. elim (query_ind{hr}.`2.`1.`1) => n' m' q' aa' bb'. simplify. progress => /#. idtac=>/#. 
   by auto; smt.
 qed.
 
@@ -2495,12 +2494,10 @@ qed.
   equiv [ GameHybrid(A).garble ~ DKCSecurity.Game(DKC, DKC_Adv(DKC, A)).game:
     ={glob A} /\ (forall (plain:fun_t*input_t), let (n,m,q,aa,bb) = fst (fst plain) in DKCSecurity.bound = n + q) /\ DKCSecurity.l = l /\ DKCSecurity.boundl = bound /\ l{1} = l-1 /\ DKCp.b{2} /\ b{2} /\ DKCp.b{2} = b{2} ==> ={res}].*)
 
-print DKC_Adv.
-
 lemma GameHybrid_l1_sim (A <: EncSecurity.Adv_IND_t{DKC_Adv,DKCp,DKC_O}) lp:
   islossless A.gen_query =>
   islossless A.get_challenge =>
-  0 <= lp < bound =>
+  0 <= lp < DKCSecurity.boundl =>
   equiv [ GameHybrid(A).garble ~ DKCSecurity.Game(DKC_O, DKC_Adv(A)).game:
     ={glob A} /\ l{1} = lp-1 /\ l{2} = lp /\ b{2} ==> ={res}].
 proof.
@@ -2549,10 +2546,14 @@ proof.
       (forall k, 0 <= k < C.n{1} + C.q{1} => k <> lp => R.xx{1}.[(k, !C.v{1}.[k])] = DKCp.kpub{2}.[(k, !R.t{2}.[k])]) /\
         oget R.xx{1}.[(lp, !C.v{1}.[lp])] = DKCp.ksec{2} /\ DKCp.used{2} = fset0 /\
       (forall k, 0 <= k < C.n{1} + C.q{1} => DKCp.kpub{2}.[(k, R.t{2}.[k])] <> None) /\
-      (forall k, 0 <= k < C.n{1} + C.q{1} => DKCp.kpub{2}.[(k, !R.t{2}.[k])] <> None)).
-    
+      (forall k, 0 <= k < C.n{1} + C.q{1} => DKCp.kpub{2}.[(k, !R.t{2}.[k])] <> None));    
       inline RandomInit.init AdvInit(DKC_O).init.
 
+    splitwhile{2} 12 : i < DKCSecurity.bound - 1.
+    swap{2} 22 -9. swap{2} 21 -12. swap{2} 19 -13. swap{2} 23 -7.
+
+    
+    
       transitivity{2} {
         b0 = b;
         l0 = l;
@@ -2563,10 +2564,14 @@ proof.
         DKCp.l = l0;
         DKCp.used = fset0;
         DKCp.kpub = map0;
+
+        useVisible = true;
+      
+        R.t = offun (fun (_ : int) => false) (C.n + C.q);
       
         i = 0;
 
-        while (i < C.n + C.q) {
+        while (i < C.n + C.q + 1) {
           DKCp.kpub.[(i, false)] = SomeGarble.W.zeros;
           DKCp.kpub.[(i, true)] = SomeGarble.W.zeros;
           i = i + 1;
@@ -2588,10 +2593,7 @@ proof.
           }
           i = i + 1;
         }
-        
-        useVisible = true;
-        
-        R.t = offun (fun (_ : int) => false) (C.n + C.q);
+
         i = 0;
         while (i < C.n + C.q) {
           trnd =$ {0,1};
@@ -2600,6 +2602,23 @@ proof.
           R.t.[i] = trnd;
           i = i + 1;
         }
+        
+        while (i < C.n + C.q + 1) {
+          if (i = lp) {
+            DKCp.lsb = ${0,1};
+            DKCp.ksec = $Dword.dwordLsb (DKCp.lsb);
+            DKCp.kpub.[(i,DKCp.lsb)] = witness;
+            DKCp.kpub.[(i,!DKCp.lsb)] = $Dword.dwordLsb (!DKCp.lsb); (* can never return or encrypt this key *)
+          }
+          else {
+            tok1 = $Dword.dwordLsb (false);
+            tok2 = $Dword.dwordLsb (true);
+            DKCp.kpub.[(i, false)] = tok1;
+            DKCp.kpub.[(i, true)] = tok2;
+          }
+          i = i + 1;
+        }
+        
         R.t.[DKCp.l] = !DKCp.lsb;
       }
       ( (={glob A, real, p} /\
@@ -2640,8 +2659,7 @@ proof.
       (forall k, 0 <= k < C.n{1} + C.q{1} => k <> lp => R.xx{1}.[(k, !C.v{1}.[k])] = DKCp.kpub{2}.[(k, !R.t{2}.[k])]) /\
         oget R.xx{1}.[(lp, !C.v{1}.[lp])] = DKCp.ksec{2} /\ DKCp.used{2} = fset0 /\
       (forall k, 0 <= k < C.n{1} + C.q{1} => DKCp.kpub{2}.[(k, R.t{2}.[k])] <> None) /\
-      (forall k, 0 <= k < C.n{1} + C.q{1} => DKCp.kpub{2}.[(k, !R.t{2}.[k])] <> None)
-      )
+      (forall k, 0 <= k < C.n{1} + C.q{1} => DKCp.kpub{2}.[(k, !R.t{2}.[k])] <> None)      )
       
       ( (={glob A, real, p, DKCp.b, l, b, query_ind} /\
           query_ind{1} = query_ind{2} /\ l{1} = lp /\
@@ -2661,7 +2679,7 @@ proof.
 
         ={glob A, real, p, R.t, DKCp.b, l, DKCp.l, DKCp.kpub, b, DKCp.lsb, DKCp.ksec, query_ind} /\
           DKCp.b{2} /\ 
-          b{2} /\ i{1} = i1{2} /\ 
+          b{2} /\ 
           DKCp.b{2} = b{2} /\
         EncSecurity.queryValid_IND query_ind{1} /\
         ={glob C} /\
@@ -2678,11 +2696,34 @@ proof.
 
           progress. exists (glob A){2}. exists C.aa{2}. exists C.bb{2}. exists (((C.n{2}, C.m{2}, C.q{2}, C.aa{2}, C.bb{2}), C.gg{2})). exists (C.gg{2}). exists C.m{2}. exists C.n{2}.  exists C.q{2}. exists C.v{2}. exists (C.x{2}).      exists (DKCp.b{2}). exists (b{2}). exists l{2}. exists (p{2}). exists (query_ind{2}).  exists (real{2}). by progress. by progress.  
 
-      swap{2} 14 -7. swap{2} 15 -5. swap{2} 15 2.  fusion{2} 14!1 @ 1,4.
-      
       wp.
+      while{2} (={glob A, real, p} /\ C.n{2} + C.q{2} <= i{2} <= C.n{2} + C.q{2} + 1 /\ 
+    query{1} = query_ind{2} /\ ={useVisible} /\ useVisible{2} /\
+      DKCp.l{2} = lp /\ l{2} = lp /\
+    l{1} = lp-1 /\ DKCp.b{2} /\ b{2} /\ DKCp.b{2} = b{2} /\
+      EncSecurity.queryValid_IND query{1} /\ size R.t{1} = C.n{1} + C.q{1} /\
+    ={glob C} /\ size R.t{1} = size R.t{2} /\ size R.t{1} = C.n{1} + C.q{1} /\
+      size C.v{1} = C.n{1} + C.q{1} /\ 
+      C.f{1} = ((C.n{1}, C.m{1}, C.q{1}, C.aa{1}, C.bb{1}), C.gg{1}) /\
+      validInputsP (C.f{1}, C.x{1}) /\
+    (forall (i1 : int), 0 <= i1 < C.n{2} => C.v{2}.[i1] = C.x{2}.[i1]) /\
+    (forall (i1 : int),
+      C.n{2} <= i1 < C.n{2} + C.q{2} =>
+      C.v{2}.[i1] =
+      oget C.gg{2}.[(i1, C.v{2}.[C.aa{2}.[i1]], C.v{2}.[C.bb{2}.[i1]])]) /\
+    (forall k, 0 <= k < C.n{1} + C.q{1} => k <> lp => R.t{1}.[k] = R.t{2}.[k]) /\
+    (forall k, 0 <= k < C.n{1} + C.q{1} => k = lp => R.t{1}.[k] = !DKCp.lsb{2}) /\
+    (forall k, 0 <= k < C.n{1} + C.q{1} => R.xx{1}.[(k, C.v{1}.[k])] = DKCp.kpub{2}.[(k, R.t{1}.[k])]) /\
+    (forall k, 0 <= k < C.n{1} + C.q{1} => k <> lp => R.xx{1}.[(k, !C.v{1}.[k])] = DKCp.kpub{2}.[(k, !R.t{1}.[k])]) /\
+    (forall k, 0 <= k < C.n{1} + C.q{1} => k = lp => oget R.xx{1}.[(k,!C.v{1}.[k])] = DKCp.ksec{2}) /\ DKCp.used{2} = fset0 /\
+      (forall k, 0 <= k < C.n{1} + C.q{1} + 1 => DKCp.kpub{2}.[(k, R.t{2}.[k])] <> None) /\
+      (forall k, 0 <= k < C.n{1} + C.q{1} + 1 => DKCp.kpub{2}.[(k, !R.t{2}.[k])] <> None)) (C.n{2}+C.q{2}+1-i{2}).
+
+    progress. auto. rcondf 1. auto. progress. idtac=>/#. auto. progress. by smt. by smt. idtac=>/#. idtac=>/#. by rewrite !getP => /#. by rewrite !getP => /#. by rewrite !getP => /#. by rewrite !getP => /#. by idtac=>/#. 
+
+    fusion{2} 14!1 @ 1,4.
       
-  while (={glob A, real, p, i} /\
+      while (={glob A, real, p,i} /\ 
     query{1} = query_ind{2} /\ ={useVisible} /\ useVisible{2} /\
       0 <= i{1} <= C.n{1} + C.q{1} /\ DKCp.l{2} = lp /\ l{2} = lp /\
     l{1} = lp-1 /\ DKCp.b{2} /\ b{2} /\ DKCp.b{2} = b{2} /\
@@ -2701,14 +2742,12 @@ proof.
     (forall k, 0 <= k < i{1} => R.xx{1}.[(k, C.v{1}.[k])] = DKCp.kpub{2}.[(k, R.t{1}.[k])]) /\
     (forall k, 0 <= k < i{1} => k <> lp => R.xx{1}.[(k, !C.v{1}.[k])] = DKCp.kpub{2}.[(k, !R.t{1}.[k])]) /\
     (forall k, 0 <= k < i{1} => k = lp => oget R.xx{1}.[(k,!C.v{1}.[k])] = DKCp.ksec{2}) /\ DKCp.used{2} = fset0 /\
-      (forall k, 0 <= k < C.n{1} + C.q{1} => DKCp.kpub{2}.[(k, R.t{2}.[k])] <> None) /\
-      (forall k, 0 <= k < C.n{1} + C.q{1} => DKCp.kpub{2}.[(k, !R.t{2}.[k])] <> None)).
-  
-    if{2}; last first.
+      (forall k, 0 <= k < C.n{1} + C.q{1} + 1 => DKCp.kpub{2}.[(k, R.t{2}.[k])] <> None) /\
+      (forall k, 0 <= k < C.n{1} + C.q{1} + 1 => DKCp.kpub{2}.[(k, !R.t{2}.[k])] <> None)). if{2}; last first.
 
   case ((i < C.n + C.q - C.m){1}).
     swap{2} 5 -4.
-      seq 1 1 : ((((={glob A, real, p, i} /\
+        seq 1 1 : ((((={glob A, real, p, i} /\
      query{1} = query_ind{2} /\
      ={useVisible} /\
      useVisible{2} /\
@@ -2744,22 +2783,22 @@ proof.
      (forall (k : int),
        0 <= k < i{1} =>
      k = lp => oget R.xx{1}.[(k, ! C.v{1}.[k])] = DKCp.ksec{2}) /\ DKCp.used{2} = fset0 /\
-      (forall k, 0 <= k < C.n{1} + C.q{1} => DKCp.kpub{2}.[(k, R.t{2}.[k])] <> None) /\
-      (forall k, 0 <= k < C.n{1} + C.q{1} => DKCp.kpub{2}.[(k, !R.t{2}.[k])] <> None) /\
-    i{1} < C.n{1} + C.q{1} /\ i{2} < C.n{2} + C.q{2}) /\
+      (forall k, 0 <= k < C.n{1} + C.q{1} + 1 => DKCp.kpub{2}.[(k, R.t{2}.[k])] <> None) /\
+      (forall k, 0 <= k < C.n{1} + C.q{1} + 1 => DKCp.kpub{2}.[(k, !R.t{2}.[k])] <> None) /\
+    i{1} < C.n{1} + C.q{1} /\ i{2} < C.n{2} + C.q{2} + 1) /\
    i{2} <> lp) /\
-  i{1} < C.n{1} + C.q{1} - C.m{1} /\ ={trnd})). by auto. 
+  i{1} < C.n{1} + C.q{1} - C.m{1} /\ ={trnd})). auto; progress => /#.  
 
-   case (trnd{1} = false). case (C.v{1}.[i{1}] = false). wp. rnd. rnd. wp. ((auto; progress; first 6 by idtac=>/#); first 3 by rewrite ?size_set); first 7 by rewrite ?getP H ?get_set //= => /#. 
+case (trnd{1} = false). case (C.v{1}.[i{1}] = false). wp. rnd. rnd. wp. skip. ((auto; progress; first 6 by idtac=>/#); first 3 by rewrite ?size_set); first 7 by rewrite ?getP H ?get_set //= => /#. 
 
     wp. rnd. rnd. wp. ((auto; progress; first 6 by idtac=>/#); first 3 by rewrite ?size_set); first 7 by rewrite ?getP H ?get_set //= => /#. 
 
     case (C.v{1}.[i{1}] = false). wp. swap{2} 2-1. rnd. rnd. wp. ((auto; progress; first 6 by idtac=>/#); first 3 by rewrite ?size_set); first 7 by rewrite ?getP H ?get_set //= => /#. 
 
-     wp. swap{2} 2-1. rnd. rnd. wp. ((auto; progress; first 6 by idtac=>/#); first 3 by rewrite ?size_set); first 7 by rewrite ?getP H ?get_set //= => /#. 
+     wp. swap{2} 2-1. rnd. rnd. wp. ((auto; progress; first 6 by idtac=>/#); first 3 by rewrite ?size_set); first 7 by rewrite ?getP H ?get_set //= => /#.
 
      swap{2} 5 -4.
-      seq 1 1 : ((((={glob A, real, p, i} /\
+        seq 1 1 : ((((={glob A, real, p, i} /\
      query{1} = query_ind{2} /\
      ={useVisible} /\
      useVisible{2} /\ DKCp.l{2} = lp /\
@@ -2795,19 +2834,19 @@ proof.
      (forall (k : int),
        0 <= k < i{1} =>
      k = lp => oget R.xx{1}.[(k, ! C.v{1}.[k])] = DKCp.ksec{2}) /\ DKCp.used{2} = fset0 /\
-      (forall k, 0 <= k < C.n{1} + C.q{1} => DKCp.kpub{2}.[(k, R.t{2}.[k])] <> None) /\
-      (forall k, 0 <= k < C.n{1} + C.q{1} => DKCp.kpub{2}.[(k, !R.t{2}.[k])] <> None) /\
-    i{1} < C.n{1} + C.q{1} /\ i{2} < C.n{2} + C.q{2}) /\
+      (forall k, 0 <= k < C.n{1} + C.q{1} + 1 => DKCp.kpub{2}.[(k, R.t{2}.[k])] <> None) /\
+      (forall k, 0 <= k < C.n{1} + C.q{1} + 1 => DKCp.kpub{2}.[(k, !R.t{2}.[k])] <> None) /\
+    i{1} < C.n{1} + C.q{1} /\ i{2} < C.n{2} + C.q{2} + 1) /\
    i{2} <> lp) /\
-  ! i{1} < C.n{1} + C.q{1} - C.m{1} /\ ={trnd})). by auto. 
+  ! i{2} < C.n{2} + C.q{2} - C.m{2} /\ ={trnd})). by auto; progress => /#. 
 
-case (trnd{1} = false). case (C.v{1}.[i{1}] = false). wp. rnd. rnd. wp. ((auto; progress; first 6 by idtac=>/#); first 3 by rewrite ?size_set); first 7 by rewrite ?getP H ?get_set //= => /#.
+case (trnd{1} = false). case (C.v{1}.[i{1}] = false). wp. rnd. rnd. wp. ((auto; progress; first 6 by idtac=>/#); first 3 by rewrite ?size_set); first 7 by rewrite ?getP H ?get_set //= => /#. 
 
     swap{2} 2-1. wp. rnd. rnd. wp. ((auto; progress; first 6 by idtac=>/#); first 3 by rewrite ?size_set); first 7 by rewrite ?getP H ?get_set //= => /#. 
 
-    case (C.v{1}.[i{1}] = false). wp. rnd. rnd. wp. ((auto; progress; first 6 by idtac=>/#); first 3 by rewrite ?size_set); first 7 by rewrite ?getP H ?get_set //= => /#. 
+    case (C.v{1}.[i{1}] = false). wp. rnd. rnd. wp. ((auto; progress; first 6 by idtac=>/#); first 3 by rewrite ?size_set); first 7 by rewrite ?getP H ?get_set //= => /#.
 
-     wp. swap{2} 2-1. rnd. rnd. wp. ((auto; progress; first 6 by idtac=>/#); first 3 by rewrite ?size_set); first 7 by rewrite ?getP H ?get_set //= => /#. 
+     wp. swap{2} 2-1. rnd. rnd. wp. ((auto; progress; first 6 by idtac=>/#); first 3 by rewrite ?size_set); first 7 by rewrite ?getP H ?get_set //= => /#.
 
       wp. rnd{2}. swap{2} 2 2. rnd. rnd. wp. rnd (fun b, !b). 
       auto; progress. by rewrite ?DBool.dboolb. idtac=>/#. idtac=>/#. idtac=>/#. idtac=>/#. idtac=>/#. by rewrite DBool.dbool_ll.
@@ -2844,10 +2883,10 @@ case (trnd{1} = false). case (C.v{1}.[i{1}] = false). wp. rnd. rnd. wp. ((auto; 
     C.n{2} <= i1_0 < C.n{2} + C.q{2} =>
     C.v{2}.[i1_0] =
     oget C.gg{2}.[(i1_0, C.v{2}.[C.aa{2}.[i1_0]], C.v{2}.[C.bb{2}.[i1_0]])]) /\
-  0 <= i{2} <= C.n{2} + C.q{2} /\
+  0 <= i{2} <= C.n{2} + C.q{2} + 1 /\
   (forall k, 0 <= k < i{2} => DKCp.kpub{2}.[(k, false)] = Some SomeGarble.W.zeros) /\
   (forall k, 0 <= k < i{2} => DKCp.kpub{2}.[(k, true)] = Some SomeGarble.W.zeros)
-) (C.n{2} + C.q{2} - i{2}).
+) (C.n{2} + C.q{2} + 1 - i{2}).
 
  auto. progress; expect 5 by rewrite ?getP => /#. 
 
@@ -2857,18 +2896,39 @@ case (trnd{1} = false). case (C.v{1}.[i{1}] = false). wp. rnd. rnd. wp. ((auto; 
         by idtac=>/#.
         by rewrite ?map0P => /#. by rewrite ?map0P => /#. 
         by rewrite ?map0P. idtac=>/#.  idtac=>/#.
-        
+        idtac=>/#. idtac=>/#. idtac=>/#. idtac=>/#. idtac=>/#. idtac=>/#. idtac=>/#. idtac=>/#. 
         rewrite ?get_set //= => /#.
-        idtac=>/#.
+        idtac=>/#. 
         rewrite get_set //= => /#. 
-        rewrite get_set //= => /#.  
+        rewrite get_set //= => /#. idtac=>/#. 
+        (*rewrite !get_set. idtac=>/#. cut ->: k = l{2} <=> false by done. simplify. idtac=>/#. idtac=>/#.*)
         rewrite ?getP //= => /#.
         rewrite ?getP //= => /#. 
-    rewrite ?getP //= => /#. 
-      wp.
-      while (={glob A, real, p, R.t, DKCp.b, l, DKCp.l, DKCp.kpub, DKCp.ksec, DKCp.lsb, b, query_ind} /\
-      DKCSecurity.bound = C.n{1} + C.q{1} /\ l{1} = lp /\ DKCp.l{2} = lp /\
-   i{1} = i1{2} /\ lsb1{2} = DKCp.lsb{2} /\
+
+wp; while (={glob A, real, p, R.t, DKCp.b, l, DKCp.l, DKCp.kpub, b, DKCp.lsb,
+      DKCp.ksec, query_ind, i} /\ C.n{1} + C.q{1} <= i{1} <= C.n{1} + C.q{1} + 1 /\
+  DKCp.b{2} /\ l{1} = lp /\ DKCp.l{2} = lp /\
+  b{2} /\ DKCSecurity.bound = C.n{1} + C.q{1} + 1 /\
+  DKCp.b{2} = b{2} /\
+  (EncSecurity.queryValid_IND query_ind{1}) /\
+  ={glob C} /\
+  size C.v{1} = C.n{1} + C.q{1} /\
+  C.f{1} = ((C.n{1}, C.m{1}, C.q{1}, C.aa{1}, C.bb{1}), C.gg{1}) /\
+  validInputsP (C.f{1}, C.x{1}) /\
+  (forall (i0_0 : int), 0 <= i0_0 < C.n{2} => C.v{2}.[i0_0] = C.x{2}.[i0_0]) /\
+  (forall (i0_0 : int),
+     C.n{2} <= i0_0 < C.n{2} + C.q{2} =>
+     C.v{2}.[i0_0] =
+     oget C.gg{2}.[(i0_0, C.v{2}.[C.aa{2}.[i0_0]], C.v{2}.[C.bb{2}.[i0_0]])]) /\
+   DKCp.used{2} = fset0). 
+
+rcondf{1} 1. auto => /#.
+rcondf{2} 1. auto => /#. 
+auto; progress => /#.
+
+   while (={glob A, real, p, R.t, DKCp.b, l, DKCp.l, DKCp.kpub, DKCp.ksec, DKCp.lsb, b, query_ind} /\
+      DKCSecurity.bound = C.n{1} + C.q{1} + 1 /\ l{1} = lp /\ DKCp.l{2} = lp /\
+   i{1} = i1{2} /\ 
   i{1} = i1{2} /\ 0 <= i{1} <= C.n{1} + C.q{1} /\
   DKCp.b{2} /\ ={useVisible} /\ useVisible{1} /\
   b{2} /\ size R.t{1} = size R.t{2} /\
@@ -2890,12 +2950,11 @@ case (trnd{1} = false). case (C.v{1}.[i{1}] = false). wp. rnd. rnd. wp. ((auto; 
 
       wp.  
       while (={glob A, real, p, i, DKCp.kpub, DKCp.b, l, DKCp.l, DKCp.ksec, DKCp.lsb, b, query_ind} /\
-      DKCSecurity.bound = C.n{1} + C.q{1} /\ l{1} = lp /\ DKCp.l{2} = lp /\
+      DKCSecurity.bound = C.n{1} + C.q{1} + 1 /\ l{1} = lp /\ DKCp.l{2} = lp /\
    0 <= i{1} <= C.n{1} + C.q{1} /\
   DKCp.b{2} /\ 
   b{2} /\
   DKCp.b{2} = b{2} /\
-  boundl = SomeGarble.bound /\
   EncSecurity.queryValid_IND query_ind{1} /\
   ={glob C} /\
   size C.v{1} = C.n{1} + C.q{1} /\
@@ -2908,17 +2967,16 @@ case (trnd{1} = false). case (C.v{1}.[i{1}] = false). wp. rnd. rnd. wp. ((auto; 
      oget C.gg{2}.[(i0_0, C.v{2}.[C.aa{2}.[i0_0]], C.v{2}.[C.bb{2}.[i0_0]])]) /\ DKCp.used{2} = fset0).
 
     if. progress. 
-      auto; progress; first 4 by idtac=>/#.
-    auto; progress; first 4 by idtac=>/#. 
+      auto; progress; first 4 by idtac=>/#. idtac=>/#.
+    auto; progress; first 4 by idtac=>/#. idtac=>/#.
 
     wp.
     while (={glob A, real, p, DKCp.b, b, query_ind, i, DKCp.kpub, DKCp.b, DKCp.ksec, DKCp.lsb, b, query_ind} /\
-   ={query_ind} /\ 0 <= i{2} <= C.n{2} + C.q{2} /\ l{1} = lp /\ DKCp.l{2} = lp /\
-   DKCSecurity.bound = C.n{1} + C.q{1} /\
+   ={query_ind} /\ 0 <= i{2} <= C.n{2} + C.q{2} + 1 /\ l{1} = lp /\ DKCp.l{2} = lp /\
+   DKCSecurity.bound = C.n{1} + C.q{1} + 1/\
    DKCp.b{2} /\ b{2} /\ DKCp.b{2} = b{2} /\
   (EncSecurity.queryValid_IND query_ind{1}) /\
   ={glob C} /\
-  boundl = SomeGarble.bound /\
   size C.v{1} = C.n{1} + C.q{1} /\
   C.f{1} = ((C.n{1}, C.m{1}, C.q{1}, C.aa{1}, C.bb{1}), C.gg{1}) /\
   validInputsP (C.f{1}, C.x{1}) /\
@@ -2934,10 +2992,9 @@ case (trnd{1} = false). case (C.v{1}.[i{1}] = false). wp. rnd. rnd. wp. ((auto; 
   progress. auto; progress; expect 6 by rewrite ?getP => /#. 
 
 
-    auto; progress; first 10 by idtac=>/#.
-      by rewrite size_offun max_ler => /#.
+    auto; progress;first 11 by idtac=>/#.
+      by rewrite size_offun max_ler => /#. idtac=>/#. idtac=>/#. idtac=>/#. idtac=>/#. idtac=>/#. 
       rewrite get_set //= => /#.  
-
 
 (******)
 (* END OF RANDOM GENERATION *)
@@ -2951,7 +3008,7 @@ case (trnd{1} = false). case (C.v{1}.[i{1}] = false). wp. rnd. rnd. wp. ((auto; 
 
 while{2} (={glob A, real, p, G.g} /\
     query{1} = query_ind{2} /\
-    DKCSecurity.bound = C.n{1} + C.q{1} /\
+    DKCSecurity.bound = C.n{1} + C.q{1} + 1 /\
     l{1} = lp-1 /\ l{2} = lp /\ DKCp.l{2} = l{2} /\
     0 <= i0{2} <= C.n{2} /\
     DKCp.b{2} /\
@@ -2987,7 +3044,7 @@ while{2} (={glob A, real, p, G.g} /\
   (forall k, 0 <= k < i0{2} => R.xx{2}.[(k, C.v{2}.[k])] = R.xx{1}.[(k, C.v{1}.[k])])
 ) (C.n{2} - i0{2}).
 
-    progress. inline*. rcondt 5. auto. progress; expect 4 by idtac=>/#. rcondf 10. auto. progress. idtac=>/#. (auto; progress; first 2 by idtac=>/#); first 6 by rewrite ?in_fsetU ?in_fset1 => /#. rewrite in_fsetU in_fset1. cut ->: mem DKCp.used{hr} (tweak k C.x{hr}.[k] R.t{hr}.[0]) <=> false by idtac=>/#. cut ? : k <> i0{hr} by idtac=>/#. by rewrite from_int_inj_fun => /#. by rewrite ?getP => /#. idtac=>/#. 
+    progress. inline*. rcondt 5. auto. progress => /#. rcondf 10. auto. progress. idtac=>/#. (auto; progress; first 2 by idtac=>/#); first 6 by rewrite ?in_fsetU ?in_fset1 => /#. rewrite in_fsetU in_fset1. cut ->: mem DKCp.used{hr} (tweak k C.x{hr}.[k] R.t{hr}.[0]) <=> false by idtac=>/#. cut ? : k <> i0{hr} by idtac=>/#. by rewrite from_int_inj_fun => /#. by rewrite ?getP => /#. idtac=>/#. 
 
 (******************************)
 
@@ -2995,7 +3052,7 @@ while{2} (={glob A, real, p, G.g} /\
 
     while (={glob A, real, p, G.g} /\
     query{1} = query_ind{2} /\
-    DKCSecurity.bound = C.n{1} + C.q{1} /\
+    DKCSecurity.bound = C.n{1} + C.q{1} + 1 /\
     l0{1} = l{1} /\
   l{1} = lp-1 /\ l{2} = lp /\ DKCp.l{2} = l{2} /\ C.n{1} <= G.g{1} <= C.n{1} + C.q{1} /\
     DKCp.b{2} /\
@@ -3026,29 +3083,30 @@ while{2} (={glob A, real, p, G.g} /\
   (forall k, G.g{1} <= k < C.n{1} + C.q{1} => !mem DKCp.used{2} (tweak k (R.t{2}.[C.aa{1}.[k]] ^^ false) (R.t{2}.[C.bb{1}.[k]] ^^ false)) /\ !mem DKCp.used{2} (tweak k (R.t{2}.[C.aa{1}.[k]] ^^ true) (R.t{2}.[C.bb{1}.[k]] ^^ false)) /\ !mem DKCp.used{2} (tweak k (R.t{2}.[C.aa{1}.[k]] ^^ false) (R.t{2}.[C.bb{1}.[k]] ^^ true)) /\ !mem DKCp.used{2} (tweak k (R.t{2}.[C.aa{1}.[k]] ^^ true) (R.t{2}.[C.bb{1}.[k]] ^^ true))) /\
   (forall k, 0 <= k < C.n{1} => !mem DKCp.used{2} (tweak k C.x{2}.[k] R.t{2}.[0])) /\
   (forall k, 0 <= k < C.n{1} + C.q{1} => DKCp.kpub{2}.[(k, R.t{2}.[k])] <> None) /\
-  (forall k, 0 <= k < C.n{1} + C.q{1} => DKCp.kpub{2}.[(k, !R.t{2}.[k])] <> None)).
-  case (! C.aa{2}.[G.g{2}] < DKCp.l{2}).
+  (forall k, 0 <= k < C.n{1} + C.q{1} => DKCp.kpub{2}.[(k, !R.t{2}.[k])] <> None)
+  
+).  case (! C.aa{2}.[G.g{2}] < DKCp.l{2}).
   rcondt{2} 3. auto.
 
-  rcondt{2} 10. progress. auto. progress. idtac=>/#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. rcondf{2} 15. auto. progress. idtac=>/#.  
+  rcondt{2} 10. progress. auto. progress. idtac=>/#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. idtac=>/#. idtac=>/#. rcondf{2} 15. auto. progress. idtac=>/#. 
     rcondt{2} 25. progress. auto. progress. rewrite ?in_fsetU ?in_fset1. cut ->: mem DKCp.used{hr}
      (tweak G.g{hr} (R.t{hr}.[C.aa{hr}.[G.g{hr}]] ^^ true)
         (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ false)) <=> false by idtac=>/#. cut ->: tweak G.g{hr} (R.t{hr}.[C.aa{hr}.[G.g{hr}]] ^^ true)
      (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ false) =
    tweak G.g{hr} (R.t{hr}.[C.aa{hr}.[G.g{hr}]] ^^ false)
-     (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ false) <=> false. by rewrite from_int_inj_fun => /#. done. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. idtac=>/#. rcondf{2} 30. auto; progress => /#. 
+     (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ false) <=> false. by rewrite from_int_inj_fun => /#. done. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. idtac=>/#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. rcondf{2} 30. auto; progress => /#.
     rcondt{2} 40. progress. auto. progress.  rewrite ?in_fsetU ?in_fset1. cut ->: mem DKCp.used{hr}
      (tweak G.g{hr} (R.t{hr}.[C.aa{hr}.[G.g{hr}]] ^^ false)
         (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ true)) <=> false by idtac=>/#. cut ->: tweak G.g{hr} (R.t{hr}.[C.aa{hr}.[G.g{hr}]] ^^ false)
      (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ true) =
    tweak G.g{hr} (R.t{hr}.[C.aa{hr}.[G.g{hr}]] ^^ false)
-     (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ false) <=> false. by rewrite from_int_inj_fun => /#. rewrite ?xor_true ?xor_false. case (R.t{hr}.[C.aa{hr}.[G.g{hr}]]); case (R.t{hr}.[C.bb{hr}.[G.g{hr}]]); rewrite from_int_inj_fun => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. idtac=> /#. rcondf{2} 45. auto; progress => /#. 
+     (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ false) <=> false. by rewrite from_int_inj_fun => /#. rewrite ?xor_true ?xor_false. case (R.t{hr}.[C.aa{hr}.[G.g{hr}]]); case (R.t{hr}.[C.bb{hr}.[G.g{hr}]]); rewrite from_int_inj_fun => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. idtac=> /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. rcondf{2} 45. auto; progress => /#.
      rcondt{2} 55. progress. auto. progress. rewrite ?in_fsetU ?in_fset1. cut ->: mem DKCp.used{hr}
      (tweak G.g{hr} (R.t{hr}.[C.aa{hr}.[G.g{hr}]] ^^ true)
         (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ true)) <=> false by idtac=>/#. cut ->: tweak G.g{hr} (R.t{hr}.[C.aa{hr}.[G.g{hr}]] ^^ true)
      (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ true) =
    tweak G.g{hr} (R.t{hr}.[C.aa{hr}.[G.g{hr}]] ^^ false)
-     (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ false) <=> false. by rewrite from_int_inj_fun => /#. rewrite ?xor_true ?xor_false. case (R.t{hr}.[C.aa{hr}.[G.g{hr}]]); case (R.t{hr}.[C.bb{hr}.[G.g{hr}]]); rewrite from_int_inj_fun; simplify bti. idtac=>/#. rewrite from_int_inj_fun => /#. idtac=>/#. rewrite from_int_inj_fun => /#. idtac=>/#. rewrite from_int_inj_fun => /#. idtac=>/#. rewrite from_int_inj_fun => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. idtac=>/#. rcondf{2} 60. auto; progress => /#. 
+     (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ false) <=> false. by rewrite from_int_inj_fun => /#. rewrite ?xor_true ?xor_false. case (R.t{hr}.[C.aa{hr}.[G.g{hr}]]); case (R.t{hr}.[C.bb{hr}.[G.g{hr}]]); rewrite from_int_inj_fun; simplify bti. idtac=>/#. rewrite from_int_inj_fun => /#. idtac=>/#. rewrite from_int_inj_fun => /#. idtac=>/#. rewrite from_int_inj_fun => /#. idtac=>/#. rewrite from_int_inj_fun => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. rcondf{2} 60. auto; progress => /#. 
 
   auto; progress.
      by rewrite Dword.lossless.
@@ -3089,31 +3147,31 @@ while{2} (={glob A, real, p, G.g} /\
       tweak G.g{2} R.t{2}.[C.aa{2}.[G.g{2}]] R.t{2}.[C.bb{2}.[G.g{2}]] <=> false by rewrite from_int_inj_fun => /#. cut ->: tweak k C.x{2}.[k] R.t{2}.[0] =
      tweak G.g{2} (! R.t{2}.[C.aa{2}.[G.g{2}]]) R.t{2}.[C.bb{2}.[G.g{2}]] <=> false by rewrite from_int_inj_fun => /#. cut ->: tweak k C.x{2}.[k] R.t{2}.[0] =
     tweak G.g{2} R.t{2}.[C.aa{2}.[G.g{2}]] (! R.t{2}.[C.bb{2}.[G.g{2}]]) <=> false by rewrite from_int_inj_fun => /#. by rewrite from_int_inj_fun => /#. 
-     
+
        rcondf{2} 3. progress. auto.
 
   case (C.bb{2}.[G.g{2}] = DKCp.l{2}).
   rcondt{2} 3. auto; progress => /#. 
 
-  rcondt{2} 10. auto. progress. idtac=>/#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. rcondf{2} 15. auto. progress. idtac=>/#.  
+  rcondt{2} 10. auto. progress. idtac=>/#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. rcondf{2} 15. auto. progress. idtac=>/#. 
     rcondt{2} 25. progress. auto. progress. rewrite ?in_fsetU ?in_fset1. cut ->: mem DKCp.used{hr}
      (tweak G.g{hr} (R.t{hr}.[C.aa{hr}.[G.g{hr}]] ^^ true)
         (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ false)) <=> false by idtac=>/#. cut ->: tweak G.g{hr} (R.t{hr}.[C.aa{hr}.[G.g{hr}]] ^^ true)
      (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ false) =
    tweak G.g{hr} (R.t{hr}.[C.aa{hr}.[G.g{hr}]] ^^ false)
-     (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ false) <=> false. by rewrite from_int_inj_fun => /#. done. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#.  rcondt{2} 30. auto; progress => /#. 
+     (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ false) <=> false. by rewrite from_int_inj_fun => /#. done. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#.  by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. rcondt{2} 30. auto; progress => /#. 
     rcondt{2} 41. progress. auto. progress.  rewrite ?in_fsetU ?in_fset1. cut ->: mem DKCp.used{hr}
      (tweak G.g{hr} (R.t{hr}.[C.aa{hr}.[G.g{hr}]] ^^ false)
         (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ true)) <=> false by idtac=>/#. cut ->: tweak G.g{hr} (R.t{hr}.[C.aa{hr}.[G.g{hr}]] ^^ false)
      (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ true) =
    tweak G.g{hr} (R.t{hr}.[C.aa{hr}.[G.g{hr}]] ^^ false)
-     (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ false) <=> false. by rewrite from_int_inj_fun => /#. rewrite ?xor_true ?xor_false. case (R.t{hr}.[C.aa{hr}.[G.g{hr}]]); case (R.t{hr}.[C.bb{hr}.[G.g{hr}]]); rewrite from_int_inj_fun => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#.  rcondf{2} 46. auto; progress => /#. 
+     (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ false) <=> false. by rewrite from_int_inj_fun => /#. rewrite ?xor_true ?xor_false. case (R.t{hr}.[C.aa{hr}.[G.g{hr}]]); case (R.t{hr}.[C.bb{hr}.[G.g{hr}]]); rewrite from_int_inj_fun => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. rcondf{2} 46. auto; progress => /#. 
      rcondt{2} 56. progress. auto. progress. rewrite ?in_fsetU ?in_fset1. cut ->: mem DKCp.used{hr}
      (tweak G.g{hr} (R.t{hr}.[C.aa{hr}.[G.g{hr}]] ^^ true)
         (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ true)) <=> false by idtac=>/#. cut ->: tweak G.g{hr} (R.t{hr}.[C.aa{hr}.[G.g{hr}]] ^^ true)
      (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ true) =
    tweak G.g{hr} (R.t{hr}.[C.aa{hr}.[G.g{hr}]] ^^ false)
-     (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ false) <=> false. by rewrite from_int_inj_fun => /#. rewrite ?xor_true ?xor_false. case (R.t{hr}.[C.aa{hr}.[G.g{hr}]]); case (R.t{hr}.[C.bb{hr}.[G.g{hr}]]); rewrite from_int_inj_fun; simplify bti. idtac=>/#. rewrite from_int_inj_fun => /#. idtac=>/#. rewrite from_int_inj_fun => /#. idtac=>/#. rewrite from_int_inj_fun => /#. idtac=>/#. rewrite from_int_inj_fun => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. rcondt{2} 61. auto; progress => /#. 
+     (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ false) <=> false. by rewrite from_int_inj_fun => /#. rewrite ?xor_true ?xor_false. case (R.t{hr}.[C.aa{hr}.[G.g{hr}]]); case (R.t{hr}.[C.bb{hr}.[G.g{hr}]]); rewrite from_int_inj_fun; simplify bti. idtac=>/#. rewrite from_int_inj_fun => /#. idtac=>/#. rewrite from_int_inj_fun => /#. idtac=>/#. rewrite from_int_inj_fun => /#. idtac=>/#. rewrite from_int_inj_fun => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. rcondt{2} 61. auto; progress => /#. 
 
   wp. rnd. wp. rnd{1}. wp. rnd. wp. auto; progress.
      by rewrite Dword.lossless.
@@ -3154,28 +3212,28 @@ while{2} (={glob A, real, p, G.g} /\
       tweak G.g{2} R.t{2}.[C.aa{2}.[G.g{2}]] R.t{2}.[C.bb{2}.[G.g{2}]] <=> false by rewrite from_int_inj_fun => /#. cut ->: tweak k C.x{2}.[k] R.t{2}.[0] =
      tweak G.g{2} (! R.t{2}.[C.aa{2}.[G.g{2}]]) R.t{2}.[C.bb{2}.[G.g{2}]] <=> false by rewrite from_int_inj_fun => /#. cut ->: tweak k C.x{2}.[k] R.t{2}.[0] =
     tweak G.g{2} R.t{2}.[C.aa{2}.[G.g{2}]] (! R.t{2}.[C.bb{2}.[G.g{2}]]) <=> false by rewrite from_int_inj_fun => /#. by rewrite from_int_inj_fun => /#. 
-     
+
     case (! C.bb{2}.[G.g{2}] <= DKCp.l{2}).
     rcondt{2} 3. auto; progress => /#. 
-    rcondt{2} 10. auto. progress. idtac=>/#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. rcondf{2} 15. auto. progress. idtac=>/#.  
+    rcondt{2} 10. auto. progress. idtac=>/#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. rcondf{2} 15. auto. progress. idtac=>/#. 
     rcondt{2} 25. progress. auto. progress. rewrite ?in_fsetU ?in_fset1. cut ->: mem DKCp.used{hr}
      (tweak G.g{hr} (R.t{hr}.[C.aa{hr}.[G.g{hr}]] ^^ true)
         (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ false)) <=> false by idtac=>/#. cut ->: tweak G.g{hr} (R.t{hr}.[C.aa{hr}.[G.g{hr}]] ^^ true)
      (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ false) =
    tweak G.g{hr} (R.t{hr}.[C.aa{hr}.[G.g{hr}]] ^^ false)
-     (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ false) <=> false. by rewrite from_int_inj_fun => /#. done. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. idtac=>/#.  rcondt{2} 30. auto; progress => /#. 
-    rcondt{2} 41. progress. auto. progress.  rewrite ?in_fsetU ?in_fset1. cut ->: mem DKCp.used{hr}
+     (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ false) <=> false. by rewrite from_int_inj_fun => /#. done. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. idtac=>/#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. rcondt{2} 30. auto; progress => /#. 
+    rcondt{2} 41. progress. auto. progress. rewrite ?in_fsetU ?in_fset1. cut ->: mem DKCp.used{hr}
      (tweak G.g{hr} (R.t{hr}.[C.aa{hr}.[G.g{hr}]] ^^ false)
         (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ true)) <=> false by idtac=>/#. cut ->: tweak G.g{hr} (R.t{hr}.[C.aa{hr}.[G.g{hr}]] ^^ false)
      (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ true) =
    tweak G.g{hr} (R.t{hr}.[C.aa{hr}.[G.g{hr}]] ^^ false)
-     (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ false) <=> false. by rewrite from_int_inj_fun => /#. rewrite ?xor_true ?xor_false. case (R.t{hr}.[C.aa{hr}.[G.g{hr}]]); case (R.t{hr}.[C.bb{hr}.[G.g{hr}]]); rewrite from_int_inj_fun => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. idtac=> /#. rcondf{2} 46. auto; progress => /#. 
-     rcondt{2} 56. progress. auto. progress. rewrite ?in_fsetU ?in_fset1. cut ->: mem DKCp.used{hr}
+     (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ false) <=> false. by rewrite from_int_inj_fun => /#. rewrite ?xor_true ?xor_false. case (R.t{hr}.[C.aa{hr}.[G.g{hr}]]); case (R.t{hr}.[C.bb{hr}.[G.g{hr}]]); rewrite from_int_inj_fun => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. idtac=> /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. rcondf{2} 46. auto; progress => /#. 
+    rcondt{2} 56. progress. auto. progress. rewrite ?in_fsetU ?in_fset1. cut ->: mem DKCp.used{hr}
      (tweak G.g{hr} (R.t{hr}.[C.aa{hr}.[G.g{hr}]] ^^ true)
         (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ true)) <=> false by idtac=>/#. cut ->: tweak G.g{hr} (R.t{hr}.[C.aa{hr}.[G.g{hr}]] ^^ true)
      (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ true) =
    tweak G.g{hr} (R.t{hr}.[C.aa{hr}.[G.g{hr}]] ^^ false)
-     (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ false) <=> false. by rewrite from_int_inj_fun => /#. rewrite ?xor_true ?xor_false. case (R.t{hr}.[C.aa{hr}.[G.g{hr}]]); case (R.t{hr}.[C.bb{hr}.[G.g{hr}]]); rewrite from_int_inj_fun; simplify bti. idtac=>/#. rewrite from_int_inj_fun => /#. idtac=>/#. rewrite from_int_inj_fun => /#. idtac=>/#. rewrite from_int_inj_fun => /#. idtac=>/#. rewrite from_int_inj_fun => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. idtac=>/#. rcondt{2} 61. auto; progress => /#. 
+     (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ false) <=> false. by rewrite from_int_inj_fun => /#. rewrite ?xor_true ?xor_false. case (R.t{hr}.[C.aa{hr}.[G.g{hr}]]); case (R.t{hr}.[C.bb{hr}.[G.g{hr}]]); rewrite from_int_inj_fun; simplify bti. idtac=>/#. rewrite from_int_inj_fun => /#. idtac=>/#. rewrite from_int_inj_fun => /#. idtac=>/#. rewrite from_int_inj_fun => /#. idtac=>/#. rewrite from_int_inj_fun => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. idtac=>/#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. rcondt{2} 61. auto; progress => /#. 
 
   wp. rnd. wp. rnd{1}. wp. rnd. wp. auto; progress.
   by rewrite Dword.lossless.
@@ -3216,27 +3274,27 @@ while{2} (={glob A, real, p, G.g} /\
       tweak G.g{2} R.t{2}.[C.aa{2}.[G.g{2}]] R.t{2}.[C.bb{2}.[G.g{2}]] <=> false by rewrite from_int_inj_fun => /#. cut ->: tweak k C.x{2}.[k] R.t{2}.[0] =
      tweak G.g{2} (! R.t{2}.[C.aa{2}.[G.g{2}]]) R.t{2}.[C.bb{2}.[G.g{2}]] <=> false by rewrite from_int_inj_fun => /#. cut ->: tweak k C.x{2}.[k] R.t{2}.[0] =
     tweak G.g{2} R.t{2}.[C.aa{2}.[G.g{2}]] (! R.t{2}.[C.bb{2}.[G.g{2}]]) <=> false by rewrite from_int_inj_fun => /#. by rewrite from_int_inj_fun => /#. 
-     
+
      rcondf{2} 3. auto; progress => /#. 
-     rcondt{2} 10. auto. progress. idtac=>/#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. rcondf{2} 15. auto. progress. idtac=>/#.  
+     rcondt{2} 10. auto. progress. idtac=>/#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. rcondf{2} 15. auto. progress. idtac=>/#. 
     rcondt{2} 25. progress. auto. progress. rewrite ?in_fsetU ?in_fset1. cut ->: mem DKCp.used{hr}
      (tweak G.g{hr} (R.t{hr}.[C.aa{hr}.[G.g{hr}]] ^^ true)
         (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ false)) <=> false by idtac=>/#. cut ->: tweak G.g{hr} (R.t{hr}.[C.aa{hr}.[G.g{hr}]] ^^ true)
      (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ false) =
    tweak G.g{hr} (R.t{hr}.[C.aa{hr}.[G.g{hr}]] ^^ false)
-     (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ false) <=> false. by rewrite from_int_inj_fun => /#. done. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. idtac=>/#. rcondt{2} 30. auto; progress => /#. 
+     (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ false) <=> false. by rewrite from_int_inj_fun => /#. done. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. idtac=>/#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. rcondt{2} 30. auto; progress => /#. 
     rcondt{2} 41. progress. auto. progress.  rewrite ?in_fsetU ?in_fset1. cut ->: mem DKCp.used{hr}
      (tweak G.g{hr} (R.t{hr}.[C.aa{hr}.[G.g{hr}]] ^^ false)
         (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ true)) <=> false by idtac=>/#. cut ->: tweak G.g{hr} (R.t{hr}.[C.aa{hr}.[G.g{hr}]] ^^ false)
      (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ true) =
    tweak G.g{hr} (R.t{hr}.[C.aa{hr}.[G.g{hr}]] ^^ false)
-     (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ false) <=> false. by rewrite from_int_inj_fun => /#. rewrite ?xor_true ?xor_false. case (R.t{hr}.[C.aa{hr}.[G.g{hr}]]); case (R.t{hr}.[C.bb{hr}.[G.g{hr}]]); rewrite from_int_inj_fun => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. idtac=>/#. rcondt{2} 46. auto; progress => /#. 
+     (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ false) <=> false. by rewrite from_int_inj_fun => /#. rewrite ?xor_true ?xor_false. case (R.t{hr}.[C.aa{hr}.[G.g{hr}]]); case (R.t{hr}.[C.bb{hr}.[G.g{hr}]]); rewrite from_int_inj_fun => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. idtac=>/#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. rcondt{2} 46. auto; progress => /#. 
      rcondt{2} 57. progress. auto. progress. rewrite ?in_fsetU ?in_fset1. cut ->: mem DKCp.used{hr}
      (tweak G.g{hr} (R.t{hr}.[C.aa{hr}.[G.g{hr}]] ^^ true)
         (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ true)) <=> false by idtac=>/#. cut ->: tweak G.g{hr} (R.t{hr}.[C.aa{hr}.[G.g{hr}]] ^^ true)
      (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ true) =
    tweak G.g{hr} (R.t{hr}.[C.aa{hr}.[G.g{hr}]] ^^ false)
-     (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ false) <=> false. by rewrite from_int_inj_fun => /#. rewrite ?xor_true ?xor_false. case (R.t{hr}.[C.aa{hr}.[G.g{hr}]]); case (R.t{hr}.[C.bb{hr}.[G.g{hr}]]); rewrite from_int_inj_fun; simplify bti. idtac=>/#. rewrite from_int_inj_fun => /#. idtac=>/#. rewrite from_int_inj_fun => /#. idtac=>/#. rewrite from_int_inj_fun => /#. idtac=>/#. rewrite from_int_inj_fun => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. idtac=>/#. rcondt{2} 62. auto; progress => /#. 
+     (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ false) <=> false. by rewrite from_int_inj_fun => /#. rewrite ?xor_true ?xor_false. case (R.t{hr}.[C.aa{hr}.[G.g{hr}]]); case (R.t{hr}.[C.bb{hr}.[G.g{hr}]]); rewrite from_int_inj_fun; simplify bti. idtac=>/#. rewrite from_int_inj_fun => /#. idtac=>/#. rewrite from_int_inj_fun => /#. idtac=>/#. rewrite from_int_inj_fun => /#. idtac=>/#. rewrite from_int_inj_fun => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. idtac=>/#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. rcondt{2} 62. auto; progress => /#. 
 
     auto. progress.
      by idtac=>/#.
@@ -3276,7 +3334,7 @@ while{2} (={glob A, real, p, G.g} /\
       tweak G.g{2} R.t{2}.[C.aa{2}.[G.g{2}]] R.t{2}.[C.bb{2}.[G.g{2}]] <=> false by rewrite from_int_inj_fun => /#. cut ->: tweak k C.x{2}.[k] R.t{2}.[0] =
      tweak G.g{2} (! R.t{2}.[C.aa{2}.[G.g{2}]]) R.t{2}.[C.bb{2}.[G.g{2}]] <=> false by rewrite from_int_inj_fun => /#. cut ->: tweak k C.x{2}.[k] R.t{2}.[0] =
     tweak G.g{2} R.t{2}.[C.aa{2}.[G.g{2}]] (! R.t{2}.[C.bb{2}.[G.g{2}]]) <=> false by rewrite from_int_inj_fun => /#. by rewrite from_int_inj_fun => /#. 
-     
+
   auto. progress.
   by idtac=>/#. by idtac=>/#.
   by rewrite size_offun max_ler => /#.
@@ -3288,7 +3346,9 @@ while{2} (={glob A, real, p, G.g} /\
   by rewrite in_fset0.
   by rewrite in_fset0.
   by rewrite in_fset0. by rewrite in_fset0. idtac=>/#. idtac=>/#. idtac=>/#. idtac=>/#. idtac=>/#. idtac=>/#. idtac=>/#. idtac=>/#. idtac=>/#. 
-       simplify encode; congr; apply fun_ext; rewrite /(==) => x. congr. simplify inputK fst snd. rewrite ?filterP. simplify. case (0 <= x < C.n{2}) => hc. simplify. cut ->: mem (dom R.xx{1}) (x, C.x{2}.[x]) by rewrite in_dom => /#. cut ->: mem (dom xx_R) (x, C.x{2}.[x]) by rewrite in_dom => /#. simplify => /#. idtac=>/#. 
+
+ 
+simplify encode; congr; apply fun_ext; rewrite /(==) => x. congr. simplify inputK fst snd. rewrite ?filterP. simplify. case (0 <= x < C.n{2}) => hc. simplify. cut ->: mem (dom R.xx{1}) (x, C.x{2}.[x]) by rewrite in_dom => /#. cut ->: mem (dom xx_R) (x, C.x{2}.[x]) by rewrite in_dom => /#. simplify => /#. idtac=>/#. 
   by idtac=>/#.
   rcondf {1} 1. by auto.
 
@@ -3298,16 +3358,16 @@ wp. while {2} (={glob A} /\ query{1} = query_ind{2} /\ l{1} = lp - 1 /\ l{2} = l
  progress. idtac=>/#. idtac=>/#. idtac=>/#.
 qed.
 
-lemma GameHybrid_l_sim (A <: EncSecurity.Adv_IND_t{DKC_Adv,DKCp,DKC}) lp:
+lemma GameHybrid_l_sim (A <: EncSecurity.Adv_IND_t{DKC_Adv,DKCp,DKC_O}) lp:
   islossless A.gen_query =>
   islossless A.get_challenge =>
   0 <= lp < boundl =>
-  equiv [ GameHybrid(A).garble ~ DKCSecurity.Game(DKC, DKC_Adv(A)).game:
+  equiv [ GameHybrid(A).garble ~ DKCSecurity.Game(DKC_O, DKC_Adv(A)).game:
     ={glob A} /\ l{1} = lp /\ l{2} = lp /\ !b{2} ==> res{1} <> res{2}].
 proof.
  move => Agen_ll Aget_ll hl.
   proc => //.
-  inline DKC.initialize DKC_Adv(A,DKC).get_challenge.
+  inline DKC_O.initialize DKC_Adv(A,DKC_O).get_challenge.
   swap{2} 16 -15.
   seq 1 1 : (={glob A} /\ l{1} = lp /\ l{2} = lp /\ !b{2} /\ query{1} = query_ind{2}); first by call (_ : true).
 
@@ -3352,8 +3412,11 @@ proof.
       (forall k, 0 <= k < C.n{1} + C.q{1} => DKCp.kpub{2}.[(k, R.t{2}.[k])] <> None) /\
       (forall k, 0 <= k < C.n{1} + C.q{1} => DKCp.kpub{2}.[(k, !R.t{2}.[k])] <> None)).
     
-      inline RandomInit.init AdvInit(DKC).init.
+      inline RandomInit.init AdvInit(DKC_O).init.
 
+    splitwhile{2} 12 : i < DKCSecurity.bound - 1.
+    swap{2} 22 -9. swap{2} 21 -12. swap{2} 19 -13. swap{2} 23 -7.
+    
       transitivity{2} {
         b0 = b;
         l0 = l;
@@ -3364,10 +3427,14 @@ proof.
         DKCp.l = l0;
         DKCp.used = fset0;
         DKCp.kpub = map0;
+
+        useVisible = true;
+      
+        R.t = offun (fun (_ : int) => false) (C.n + C.q);
       
         i = 0;
 
-        while (i < C.n + C.q) {
+        while (i < C.n + C.q + 1) {
           DKCp.kpub.[(i, false)] = SomeGarble.W.zeros;
           DKCp.kpub.[(i, true)] = SomeGarble.W.zeros;
           i = i + 1;
@@ -3389,10 +3456,7 @@ proof.
           }
           i = i + 1;
         }
-        
-        useVisible = true;
-        
-        R.t = offun (fun (_ : int) => false) (C.n + C.q);
+
         i = 0;
         while (i < C.n + C.q) {
           trnd =$ {0,1};
@@ -3401,6 +3465,23 @@ proof.
           R.t.[i] = trnd;
           i = i + 1;
         }
+        
+        while (i < C.n + C.q + 1) {
+          if (i = lp) {
+            DKCp.lsb = ${0,1};
+            DKCp.ksec = $Dword.dwordLsb (DKCp.lsb);
+            DKCp.kpub.[(i,DKCp.lsb)] = witness;
+            DKCp.kpub.[(i,!DKCp.lsb)] = $Dword.dwordLsb (!DKCp.lsb); (* can never return or encrypt this key *)
+          }
+          else {
+            tok1 = $Dword.dwordLsb (false);
+            tok2 = $Dword.dwordLsb (true);
+            DKCp.kpub.[(i, false)] = tok1;
+            DKCp.kpub.[(i, true)] = tok2;
+          }
+          i = i + 1;
+        }
+        
         R.t.[DKCp.l] = !DKCp.lsb;
       }
       ( (={glob A, real, p} /\
@@ -3462,7 +3543,7 @@ proof.
 
         ={glob A, real, p, R.t, DKCp.b, l, DKCp.l, DKCp.kpub, b, DKCp.lsb, DKCp.ksec, query_ind} /\
           !DKCp.b{2} /\ 
-          !b{2} /\ i{1} = i1{2} /\ 
+          !b{2} /\ 
           DKCp.b{2} = b{2} /\
         EncSecurity.queryValid_IND query_ind{1} /\
         ={glob C} /\
@@ -3479,11 +3560,34 @@ proof.
 
           progress. exists (glob A){2}. exists C.aa{2}. exists C.bb{2}. exists (((C.n{2}, C.m{2}, C.q{2}, C.aa{2}, C.bb{2}), C.gg{2})). exists (C.gg{2}). exists C.m{2}. exists C.n{2}.  exists C.q{2}. exists C.v{2}. exists (C.x{2}).      exists (DKCp.b{2}). exists (b{2}). exists l{1}. exists (p{2}). exists (query_ind{2}).  exists (real{2}). by progress. by progress.  
 
-      swap{2} 13 -7. swap{2} 14 -5. fusion{2} 14!1 @ 1,4.
-      
       wp.
+      while{2} (={glob A, real, p} /\ C.n{2} + C.q{2} <= i{2} <= C.n{2} + C.q{2} + 1 /\ 
+    query{1} = query_ind{2} /\ ={useVisible} /\ useVisible{2} /\
+      DKCp.l{2} = lp /\ l{2} = lp /\
+    l{1} = lp /\ !DKCp.b{2} /\ !b{2} /\ DKCp.b{2} = b{2} /\
+      EncSecurity.queryValid_IND query{1} /\ size R.t{1} = C.n{1} + C.q{1} /\
+    ={glob C} /\ size R.t{1} = size R.t{2} /\ size R.t{1} = C.n{1} + C.q{1} /\
+      size C.v{1} = C.n{1} + C.q{1} /\ 
+      C.f{1} = ((C.n{1}, C.m{1}, C.q{1}, C.aa{1}, C.bb{1}), C.gg{1}) /\
+      validInputsP (C.f{1}, C.x{1}) /\
+    (forall (i1 : int), 0 <= i1 < C.n{2} => C.v{2}.[i1] = C.x{2}.[i1]) /\
+    (forall (i1 : int),
+      C.n{2} <= i1 < C.n{2} + C.q{2} =>
+      C.v{2}.[i1] =
+      oget C.gg{2}.[(i1, C.v{2}.[C.aa{2}.[i1]], C.v{2}.[C.bb{2}.[i1]])]) /\
+    (forall k, 0 <= k < C.n{1} + C.q{1} => k <> lp => R.t{1}.[k] = R.t{2}.[k]) /\
+    (forall k, 0 <= k < C.n{1} + C.q{1} => k = lp => R.t{1}.[k] = !DKCp.lsb{2}) /\
+    (forall k, 0 <= k < C.n{1} + C.q{1} => R.xx{1}.[(k, C.v{1}.[k])] = DKCp.kpub{2}.[(k, R.t{1}.[k])]) /\
+    (forall k, 0 <= k < C.n{1} + C.q{1} => k <> lp => R.xx{1}.[(k, !C.v{1}.[k])] = DKCp.kpub{2}.[(k, !R.t{1}.[k])]) /\
+    (forall k, 0 <= k < C.n{1} + C.q{1} => k = lp => oget R.xx{1}.[(k,!C.v{1}.[k])] = DKCp.ksec{2}) /\ DKCp.used{2} = fset0 /\
+      (forall k, 0 <= k < C.n{1} + C.q{1} + 1 => DKCp.kpub{2}.[(k, R.t{2}.[k])] <> None) /\
+      (forall k, 0 <= k < C.n{1} + C.q{1} + 1 => DKCp.kpub{2}.[(k, !R.t{2}.[k])] <> None)) (C.n{2}+C.q{2}+1-i{2}).
+
+    progress. auto. rcondf 1. auto. progress. idtac=>/#. auto. progress. by smt. by smt. idtac=>/#. idtac=>/#. by rewrite !getP => /#. by rewrite !getP => /#. by rewrite !getP => /#. by rewrite !getP => /#. by idtac=>/#. 
+
+    fusion{2} 14!1 @ 1,4.
       
-  while (={glob A, real, p, i} /\
+      while (={glob A, real, p,i} /\ 
     query{1} = query_ind{2} /\ ={useVisible} /\ useVisible{2} /\
       0 <= i{1} <= C.n{1} + C.q{1} /\ DKCp.l{2} = lp /\ l{2} = lp /\
     l{1} = lp /\ !DKCp.b{2} /\ !b{2} /\ DKCp.b{2} = b{2} /\
@@ -3502,14 +3606,12 @@ proof.
     (forall k, 0 <= k < i{1} => R.xx{1}.[(k, C.v{1}.[k])] = DKCp.kpub{2}.[(k, R.t{1}.[k])]) /\
     (forall k, 0 <= k < i{1} => k <> lp => R.xx{1}.[(k, !C.v{1}.[k])] = DKCp.kpub{2}.[(k, !R.t{1}.[k])]) /\
     (forall k, 0 <= k < i{1} => k = lp => oget R.xx{1}.[(k,!C.v{1}.[k])] = DKCp.ksec{2}) /\ DKCp.used{2} = fset0 /\
-      (forall k, 0 <= k < C.n{1} + C.q{1} => DKCp.kpub{2}.[(k, R.t{2}.[k])] <> None) /\
-      (forall k, 0 <= k < C.n{1} + C.q{1} => DKCp.kpub{2}.[(k, !R.t{2}.[k])] <> None)).
-  
-    if{2}; last first.
+      (forall k, 0 <= k < C.n{1} + C.q{1} + 1 => DKCp.kpub{2}.[(k, R.t{2}.[k])] <> None) /\
+      (forall k, 0 <= k < C.n{1} + C.q{1} + 1 => DKCp.kpub{2}.[(k, !R.t{2}.[k])] <> None)). if{2}; last first.
 
   case ((i < C.n + C.q - C.m){1}).
     swap{2} 5 -4.
-      seq 1 1 : ((((={glob A, real, p, i} /\
+        seq 1 1 : ((((={glob A, real, p, i} /\
      query{1} = query_ind{2} /\
      ={useVisible} /\
      useVisible{2} /\
@@ -3545,22 +3647,22 @@ proof.
      (forall (k : int),
        0 <= k < i{1} =>
      k = lp => oget R.xx{1}.[(k, ! C.v{1}.[k])] = DKCp.ksec{2}) /\ DKCp.used{2} = fset0 /\
-      (forall k, 0 <= k < C.n{1} + C.q{1} => DKCp.kpub{2}.[(k, R.t{2}.[k])] <> None) /\
-      (forall k, 0 <= k < C.n{1} + C.q{1} => DKCp.kpub{2}.[(k, !R.t{2}.[k])] <> None) /\
-    i{1} < C.n{1} + C.q{1} /\ i{2} < C.n{2} + C.q{2}) /\
+      (forall k, 0 <= k < C.n{1} + C.q{1} + 1 => DKCp.kpub{2}.[(k, R.t{2}.[k])] <> None) /\
+      (forall k, 0 <= k < C.n{1} + C.q{1} + 1 => DKCp.kpub{2}.[(k, !R.t{2}.[k])] <> None) /\
+    i{1} < C.n{1} + C.q{1} /\ i{2} < C.n{2} + C.q{2} + 1) /\
    i{2} <> lp) /\
-  i{1} < C.n{1} + C.q{1} - C.m{1} /\ ={trnd})). by auto. 
+  i{1} < C.n{1} + C.q{1} - C.m{1} /\ ={trnd})). auto; progress => /#.  
 
-   case (trnd{1} = false). case (C.v{1}.[i{1}] = false). wp. rnd. rnd. wp. ((auto; progress; first 6 by idtac=>/#); first 3 by rewrite ?size_set); first 7 by rewrite ?getP H ?get_set //= => /#. 
+case (trnd{1} = false). case (C.v{1}.[i{1}] = false). wp. rnd. rnd. wp. skip. ((auto; progress; first 6 by idtac=>/#); first 3 by rewrite ?size_set); first 7 by rewrite ?getP H ?get_set //= => /#. 
 
     wp. rnd. rnd. wp. ((auto; progress; first 6 by idtac=>/#); first 3 by rewrite ?size_set); first 7 by rewrite ?getP H ?get_set //= => /#. 
 
     case (C.v{1}.[i{1}] = false). wp. swap{2} 2-1. rnd. rnd. wp. ((auto; progress; first 6 by idtac=>/#); first 3 by rewrite ?size_set); first 7 by rewrite ?getP H ?get_set //= => /#. 
 
-     wp. swap{2} 2-1. rnd. rnd. wp. ((auto; progress; first 6 by idtac=>/#); first 3 by rewrite ?size_set); first 7 by rewrite ?getP H ?get_set //= => /#. 
+     wp. swap{2} 2-1. rnd. rnd. wp. ((auto; progress; first 6 by idtac=>/#); first 3 by rewrite ?size_set); first 7 by rewrite ?getP H ?get_set //= => /#.
 
      swap{2} 5 -4.
-      seq 1 1 : ((((={glob A, real, p, i} /\
+        seq 1 1 : ((((={glob A, real, p, i} /\
      query{1} = query_ind{2} /\
      ={useVisible} /\
      useVisible{2} /\ DKCp.l{2} = lp /\
@@ -3596,19 +3698,19 @@ proof.
      (forall (k : int),
        0 <= k < i{1} =>
      k = lp => oget R.xx{1}.[(k, ! C.v{1}.[k])] = DKCp.ksec{2}) /\ DKCp.used{2} = fset0 /\
-      (forall k, 0 <= k < C.n{1} + C.q{1} => DKCp.kpub{2}.[(k, R.t{2}.[k])] <> None) /\
-      (forall k, 0 <= k < C.n{1} + C.q{1} => DKCp.kpub{2}.[(k, !R.t{2}.[k])] <> None) /\
-    i{1} < C.n{1} + C.q{1} /\ i{2} < C.n{2} + C.q{2}) /\
+      (forall k, 0 <= k < C.n{1} + C.q{1} + 1 => DKCp.kpub{2}.[(k, R.t{2}.[k])] <> None) /\
+      (forall k, 0 <= k < C.n{1} + C.q{1} + 1 => DKCp.kpub{2}.[(k, !R.t{2}.[k])] <> None) /\
+    i{1} < C.n{1} + C.q{1} /\ i{2} < C.n{2} + C.q{2} + 1) /\
    i{2} <> lp) /\
-  ! i{1} < C.n{1} + C.q{1} - C.m{1} /\ ={trnd})). by auto. 
+  ! i{2} < C.n{2} + C.q{2} - C.m{2} /\ ={trnd})). by auto; progress => /#. 
 
-case (trnd{1} = false). case (C.v{1}.[i{1}] = false). wp. rnd. rnd. wp. ((auto; progress; first 6 by idtac=>/#); first 3 by rewrite ?size_set); first 7 by rewrite ?getP H ?get_set //= => /#.
+case (trnd{1} = false). case (C.v{1}.[i{1}] = false). wp. rnd. rnd. wp. ((auto; progress; first 6 by idtac=>/#); first 3 by rewrite ?size_set); first 7 by rewrite ?getP H ?get_set //= => /#. 
 
     swap{2} 2-1. wp. rnd. rnd. wp. ((auto; progress; first 6 by idtac=>/#); first 3 by rewrite ?size_set); first 7 by rewrite ?getP H ?get_set //= => /#. 
 
-    case (C.v{1}.[i{1}] = false). wp. rnd. rnd. wp. ((auto; progress; first 6 by idtac=>/#); first 3 by rewrite ?size_set); first 7 by rewrite ?getP H ?get_set //= => /#. 
+    case (C.v{1}.[i{1}] = false). wp. rnd. rnd. wp. ((auto; progress; first 6 by idtac=>/#); first 3 by rewrite ?size_set); first 7 by rewrite ?getP H ?get_set //= => /#.
 
-     wp. swap{2} 2-1. rnd. rnd. wp. ((auto; progress; first 6 by idtac=>/#); first 3 by rewrite ?size_set); first 7 by rewrite ?getP H ?get_set //= => /#. 
+     wp. swap{2} 2-1. rnd. rnd. wp. ((auto; progress; first 6 by idtac=>/#); first 3 by rewrite ?size_set); first 7 by rewrite ?getP H ?get_set //= => /#.
 
       wp. rnd{2}. swap{2} 2 2. rnd. rnd. wp. rnd (fun b, !b). 
       auto; progress. by rewrite ?DBool.dboolb. idtac=>/#. idtac=>/#. idtac=>/#. idtac=>/#. idtac=>/#. by rewrite DBool.dbool_ll.
@@ -3645,10 +3747,10 @@ case (trnd{1} = false). case (C.v{1}.[i{1}] = false). wp. rnd. rnd. wp. ((auto; 
     C.n{2} <= i1_0 < C.n{2} + C.q{2} =>
     C.v{2}.[i1_0] =
     oget C.gg{2}.[(i1_0, C.v{2}.[C.aa{2}.[i1_0]], C.v{2}.[C.bb{2}.[i1_0]])]) /\
-  0 <= i{2} <= C.n{2} + C.q{2} /\
+  0 <= i{2} <= C.n{2} + C.q{2} + 1 /\
   (forall k, 0 <= k < i{2} => DKCp.kpub{2}.[(k, false)] = Some SomeGarble.W.zeros) /\
   (forall k, 0 <= k < i{2} => DKCp.kpub{2}.[(k, true)] = Some SomeGarble.W.zeros)
-) (C.n{2} + C.q{2} - i{2}).
+) (C.n{2} + C.q{2} + 1 - i{2}).
 
  auto. progress; expect 5 by rewrite ?getP => /#. 
 
@@ -3658,24 +3760,44 @@ case (trnd{1} = false). case (C.v{1}.[i{1}] = false). wp. rnd. rnd. wp. ((auto; 
         by idtac=>/#.
         by rewrite ?map0P => /#. by rewrite ?map0P => /#. 
         by rewrite ?map0P. idtac=>/#.  idtac=>/#.
-        
+        idtac=>/#. idtac=>/#. idtac=>/#. idtac=>/#. idtac=>/#. idtac=>/#. idtac=>/#. idtac=>/#. 
         rewrite ?get_set //= => /#.
-        idtac=>/#.
+        idtac=>/#. 
         rewrite get_set //= => /#. 
-        rewrite get_set //= => /#.  
+        rewrite get_set //= => /#. idtac=>/#. 
+        (*rewrite !get_set. idtac=>/#. cut ->: k = l{2} <=> false by done. simplify. idtac=>/#. idtac=>/#.*)
         rewrite ?getP //= => /#.
         rewrite ?getP //= => /#. 
-    rewrite ?getP //= => /#. 
-      wp.
-      while (={glob A, real, p, R.t, DKCp.b, l, DKCp.l, DKCp.kpub, DKCp.ksec, DKCp.lsb, b, query_ind} /\
-      DKCSecurity.bound = C.n{1} + C.q{1} /\ l{1} = lp /\ DKCp.l{2} = lp /\
-   i{1} = i1{2} /\ lsb1{2} = DKCp.lsb{2} /\
+
+wp; while (={glob A, real, p, R.t, DKCp.b, l, DKCp.l, DKCp.kpub, b, DKCp.lsb,
+      DKCp.ksec, query_ind, i} /\ C.n{1} + C.q{1} <= i{1} <= C.n{1} + C.q{1} + 1 /\
+  !DKCp.b{2} /\ l{1} = lp /\ DKCp.l{2} = lp /\
+  !b{2} /\ DKCSecurity.bound = C.n{1} + C.q{1} + 1 /\
+  DKCp.b{2} = b{2} /\
+  (EncSecurity.queryValid_IND query_ind{1}) /\
+  ={glob C} /\
+  size C.v{1} = C.n{1} + C.q{1} /\
+  C.f{1} = ((C.n{1}, C.m{1}, C.q{1}, C.aa{1}, C.bb{1}), C.gg{1}) /\
+  validInputsP (C.f{1}, C.x{1}) /\
+  (forall (i0_0 : int), 0 <= i0_0 < C.n{2} => C.v{2}.[i0_0] = C.x{2}.[i0_0]) /\
+  (forall (i0_0 : int),
+     C.n{2} <= i0_0 < C.n{2} + C.q{2} =>
+     C.v{2}.[i0_0] =
+     oget C.gg{2}.[(i0_0, C.v{2}.[C.aa{2}.[i0_0]], C.v{2}.[C.bb{2}.[i0_0]])]) /\
+   DKCp.used{2} = fset0). 
+
+rcondf{1} 1. auto => /#.
+rcondf{2} 1. auto => /#. 
+auto; progress => /#.
+
+   while (={glob A, real, p, R.t, DKCp.b, l, DKCp.l, DKCp.kpub, DKCp.ksec, DKCp.lsb, b, query_ind} /\
+      DKCSecurity.bound = C.n{1} + C.q{1} + 1 /\ l{1} = lp /\ DKCp.l{2} = lp /\
+   i{1} = i1{2} /\ 
   i{1} = i1{2} /\ 0 <= i{1} <= C.n{1} + C.q{1} /\
   !DKCp.b{2} /\ ={useVisible} /\ useVisible{1} /\
   !b{2} /\ size R.t{1} = size R.t{2} /\
   i{1} = i1{2} /\ size R.t{1} = C.n{1} + C.q{1} /\
   DKCp.b{2} = b{2} /\ DKCp.b{1} = b{1} /\
-  boundl = SomeGarble.bound /\
   EncSecurity.queryValid_IND query_ind{1} /\
   ={glob C} /\
   size C.v{1} = C.n{1} + C.q{1} /\
@@ -3692,12 +3814,11 @@ case (trnd{1} = false). case (C.v{1}.[i{1}] = false). wp. rnd. rnd. wp. ((auto; 
 
       wp.  
       while (={glob A, real, p, i, DKCp.kpub, DKCp.b, l, DKCp.l, DKCp.ksec, DKCp.lsb, b, query_ind} /\
-      DKCSecurity.bound = C.n{1} + C.q{1} /\ l{1} = lp /\ DKCp.l{2} = lp /\
+      DKCSecurity.bound = C.n{1} + C.q{1} + 1 /\ l{1} = lp /\ DKCp.l{2} = lp /\
    0 <= i{1} <= C.n{1} + C.q{1} /\
   !DKCp.b{2} /\ 
   !b{2} /\
   DKCp.b{2} = b{2} /\
-  boundl = SomeGarble.bound /\
   EncSecurity.queryValid_IND query_ind{1} /\
   ={glob C} /\
   size C.v{1} = C.n{1} + C.q{1} /\
@@ -3710,17 +3831,16 @@ case (trnd{1} = false). case (C.v{1}.[i{1}] = false). wp. rnd. rnd. wp. ((auto; 
      oget C.gg{2}.[(i0_0, C.v{2}.[C.aa{2}.[i0_0]], C.v{2}.[C.bb{2}.[i0_0]])]) /\ DKCp.used{2} = fset0).
 
     if. progress. 
-      auto; progress; first 4 by idtac=>/#.
-    auto; progress; first 4 by idtac=>/#. 
+      auto; progress; first 4 by idtac=>/#. idtac=>/#.
+    auto; progress; first 4 by idtac=>/#. idtac=>/#.
 
     wp.
     while (={glob A, real, p, DKCp.b, b, query_ind, i, DKCp.kpub, DKCp.b, DKCp.ksec, DKCp.lsb, b, query_ind} /\
-   ={query_ind} /\ 0 <= i{2} <= C.n{2} + C.q{2} /\ l{1} = lp /\ DKCp.l{2} = lp /\
-   DKCSecurity.bound = C.n{1} + C.q{1} /\
+   ={query_ind} /\ 0 <= i{2} <= C.n{2} + C.q{2} + 1 /\ l{1} = lp /\ DKCp.l{2} = lp /\
+   DKCSecurity.bound = C.n{1} + C.q{1} + 1/\
    !DKCp.b{2} /\ !b{2} /\ DKCp.b{2} = b{2} /\
   (EncSecurity.queryValid_IND query_ind{1}) /\
   ={glob C} /\
-  boundl = SomeGarble.bound /\
   size C.v{1} = C.n{1} + C.q{1} /\
   C.f{1} = ((C.n{1}, C.m{1}, C.q{1}, C.aa{1}, C.bb{1}), C.gg{1}) /\
   validInputsP (C.f{1}, C.x{1}) /\
@@ -3736,10 +3856,9 @@ case (trnd{1} = false). case (C.v{1}.[i{1}] = false). wp. rnd. rnd. wp. ((auto; 
   progress. auto; progress; expect 6 by rewrite ?getP => /#. 
 
 
-    auto; progress; first 10 by idtac=>/#.
-      by rewrite size_offun max_ler => /#.
+    auto; progress; first 11 by idtac=>/#.
+      by rewrite size_offun max_ler => /#. idtac=>/#. idtac=>/#. idtac=>/#. idtac=>/#. idtac=>/#. 
       rewrite get_set //= => /#.  
-
 
 (******)
 (* END OF RANDOM GENERATION *)
@@ -3753,7 +3872,7 @@ case (trnd{1} = false). case (C.v{1}.[i{1}] = false). wp. rnd. rnd. wp. ((auto; 
 
 while{2} (={glob A, real, p, G.g} /\
     query{1} = query_ind{2} /\
-    DKCSecurity.bound = C.n{1} + C.q{1} /\
+    DKCSecurity.bound = C.n{1} + C.q{1} + 1 /\
     l{1} = lp /\ l{2} = lp /\ DKCp.l{2} = l{2} /\
     0 <= i0{2} <= C.n{2} /\
     !DKCp.b{2} /\
@@ -3797,7 +3916,7 @@ while{2} (={glob A, real, p, G.g} /\
 
     while (={glob A, real, p, G.g} /\
     query{1} = query_ind{2} /\
-    DKCSecurity.bound = C.n{1} + C.q{1} /\
+    DKCSecurity.bound = C.n{1} + C.q{1} + 1 /\
     l0{1} = l{1} /\
   l{1} = lp /\ l{2} = lp /\ DKCp.l{2} = l{2} /\ C.n{1} <= G.g{1} <= C.n{1} + C.q{1} /\
     !DKCp.b{2} /\
@@ -3833,25 +3952,25 @@ while{2} (={glob A, real, p, G.g} /\
 case (!C.aa{2}.[G.g{2}] <= DKCp.l{2}).
   rcondt{2} 3. auto. progress => /#.
 
-  rcondt{2} 10. progress. auto. progress. idtac=>/#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. rcondf{2} 15. auto. progress. idtac=>/#.  
+  rcondt{2} 10. progress. auto. progress. idtac=>/#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. rcondf{2} 15. auto. progress. idtac=>/#.
     rcondt{2} 25. progress. auto. progress. rewrite ?in_fsetU ?in_fset1. cut ->: mem DKCp.used{hr}
      (tweak G.g{hr} (R.t{hr}.[C.aa{hr}.[G.g{hr}]] ^^ true)
         (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ false)) <=> false by idtac=>/#. cut ->: tweak G.g{hr} (R.t{hr}.[C.aa{hr}.[G.g{hr}]] ^^ true)
      (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ false) =
    tweak G.g{hr} (R.t{hr}.[C.aa{hr}.[G.g{hr}]] ^^ false)
-     (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ false) <=> false. by rewrite from_int_inj_fun => /#. done. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. idtac=>/#. rcondf{2} 30. auto; progress => /#. 
+     (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ false) <=> false. by rewrite from_int_inj_fun => /#. done. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. idtac=>/#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. rcondf{2} 30. auto; progress => /#. 
     rcondt{2} 40. progress. auto. progress.  rewrite ?in_fsetU ?in_fset1. cut ->: mem DKCp.used{hr}
      (tweak G.g{hr} (R.t{hr}.[C.aa{hr}.[G.g{hr}]] ^^ false)
         (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ true)) <=> false by idtac=>/#. cut ->: tweak G.g{hr} (R.t{hr}.[C.aa{hr}.[G.g{hr}]] ^^ false)
      (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ true) =
    tweak G.g{hr} (R.t{hr}.[C.aa{hr}.[G.g{hr}]] ^^ false)
-     (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ false) <=> false. by rewrite from_int_inj_fun => /#. rewrite ?xor_true ?xor_false. case (R.t{hr}.[C.aa{hr}.[G.g{hr}]]); case (R.t{hr}.[C.bb{hr}.[G.g{hr}]]); rewrite from_int_inj_fun => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. idtac=> /#. rcondf{2} 45. auto; progress. cut ->: l{m} = C.aa{hr}.[G.g{hr}] <=> false by idtac=> /#. cut ->: l{m} = C.bb{hr}.[G.g{hr}] <=> false by idtac=>/#. by simplify.
+     (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ false) <=> false. by rewrite from_int_inj_fun => /#. rewrite ?xor_true ?xor_false. case (R.t{hr}.[C.aa{hr}.[G.g{hr}]]); case (R.t{hr}.[C.bb{hr}.[G.g{hr}]]); rewrite from_int_inj_fun => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. idtac=> /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. rcondf{2} 45. auto; progress. cut ->: l{m} = C.aa{hr}.[G.g{hr}] <=> false by idtac=> /#. cut ->: l{m} = C.bb{hr}.[G.g{hr}] <=> false by idtac=>/#. by simplify.
      rcondt{2} 55. progress. auto. progress. rewrite ?in_fsetU ?in_fset1. cut ->: mem DKCp.used{hr}
      (tweak G.g{hr} (R.t{hr}.[C.aa{hr}.[G.g{hr}]] ^^ true)
         (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ true)) <=> false by idtac=>/#. cut ->: tweak G.g{hr} (R.t{hr}.[C.aa{hr}.[G.g{hr}]] ^^ true)
      (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ true) =
    tweak G.g{hr} (R.t{hr}.[C.aa{hr}.[G.g{hr}]] ^^ false)
-     (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ false) <=> false. by rewrite from_int_inj_fun => /#. rewrite ?xor_true ?xor_false. case (R.t{hr}.[C.aa{hr}.[G.g{hr}]]); case (R.t{hr}.[C.bb{hr}.[G.g{hr}]]); rewrite from_int_inj_fun; simplify bti. idtac=>/#. rewrite from_int_inj_fun => /#. idtac=>/#. rewrite from_int_inj_fun => /#. idtac=>/#. rewrite from_int_inj_fun => /#. idtac=>/#. rewrite from_int_inj_fun => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. idtac=>/#. rcondf{2} 60. auto; progress. cut ->: l{m} = C.aa{hr}.[G.g{hr}] <=> false by idtac=> /#. cut ->: l{m} = C.bb{hr}.[G.g{hr}] <=> false by idtac=>/#. by simplify. 
+     (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ false) <=> false. by rewrite from_int_inj_fun => /#. rewrite ?xor_true ?xor_false. case (R.t{hr}.[C.aa{hr}.[G.g{hr}]]); case (R.t{hr}.[C.bb{hr}.[G.g{hr}]]); rewrite from_int_inj_fun; simplify bti. idtac=>/#. rewrite from_int_inj_fun => /#. idtac=>/#. rewrite from_int_inj_fun => /#. idtac=>/#. rewrite from_int_inj_fun => /#. idtac=>/#. rewrite from_int_inj_fun => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. idtac=>/#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. rcondf{2} 60. auto; progress. cut ->: l{m} = C.aa{hr}.[G.g{hr}] <=> false by idtac=> /#. cut ->: l{m} = C.bb{hr}.[G.g{hr}] <=> false by idtac=>/#. by simplify. 
 
   auto; progress.
      by rewrite Dword.lossless.
@@ -3896,25 +4015,25 @@ case (!C.aa{2}.[G.g{2}] <= DKCp.l{2}).
   case (C.aa{2}.[G.g{2}] = DKCp.l{2}).
   rcondt{2} 3. auto.   
 
-  rcondt{2} 10. progress. auto. progress. idtac=>/#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. rcondf{2} 15. auto. progress. idtac=>/#.  
+  rcondt{2} 10. progress. auto. progress. idtac=>/#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. rcondf{2} 15. auto. progress. idtac=>/#.  
     rcondt{2} 25. progress. auto. progress. rewrite ?in_fsetU ?in_fset1. cut ->: mem DKCp.used{hr}
      (tweak G.g{hr} (R.t{hr}.[C.aa{hr}.[G.g{hr}]] ^^ true)
         (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ false)) <=> false by idtac=>/#. cut ->: tweak G.g{hr} (R.t{hr}.[C.aa{hr}.[G.g{hr}]] ^^ true)
      (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ false) =
    tweak G.g{hr} (R.t{hr}.[C.aa{hr}.[G.g{hr}]] ^^ false)
-     (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ false) <=> false. by rewrite from_int_inj_fun => /#. done. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. idtac=>/#. rcondt{2} 30. auto; progress. by move : H9; simplify validInputsP valid_circuitP fst snd => /#.
+     (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ false) <=> false. by rewrite from_int_inj_fun => /#. done. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. idtac=>/#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. rcondt{2} 30. auto; progress. by move : H9; simplify validInputsP valid_circuitP fst snd => /#.
     rcondt{2} 41. progress. auto. progress.  rewrite ?in_fsetU ?in_fset1. cut ->: mem DKCp.used{hr}
      (tweak G.g{hr} (R.t{hr}.[C.aa{hr}.[G.g{hr}]] ^^ false)
         (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ true)) <=> false by idtac=>/#. cut ->: tweak G.g{hr} (R.t{hr}.[C.aa{hr}.[G.g{hr}]] ^^ false)
      (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ true) =
    tweak G.g{hr} (R.t{hr}.[C.aa{hr}.[G.g{hr}]] ^^ false)
-     (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ false) <=> false. by rewrite from_int_inj_fun => /#. rewrite ?xor_true ?xor_false. case (R.t{hr}.[C.aa{hr}.[G.g{hr}]]); case (R.t{hr}.[C.bb{hr}.[G.g{hr}]]); rewrite from_int_inj_fun => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. idtac=> /#. rcondf{2} 46. auto; progress. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. 
+     (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ false) <=> false. by rewrite from_int_inj_fun => /#. rewrite ?xor_true ?xor_false. case (R.t{hr}.[C.aa{hr}.[G.g{hr}]]); case (R.t{hr}.[C.bb{hr}.[G.g{hr}]]); rewrite from_int_inj_fun => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. idtac=> /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. rcondf{2} 46. auto; progress. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. 
      rcondt{2} 56. progress. auto. progress. rewrite ?in_fsetU ?in_fset1. cut ->: mem DKCp.used{hr}
      (tweak G.g{hr} (R.t{hr}.[C.aa{hr}.[G.g{hr}]] ^^ true)
         (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ true)) <=> false by idtac=>/#. cut ->: tweak G.g{hr} (R.t{hr}.[C.aa{hr}.[G.g{hr}]] ^^ true)
      (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ true) =
    tweak G.g{hr} (R.t{hr}.[C.aa{hr}.[G.g{hr}]] ^^ false)
-     (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ false) <=> false. by rewrite from_int_inj_fun => /#. rewrite ?xor_true ?xor_false. case (R.t{hr}.[C.aa{hr}.[G.g{hr}]]); case (R.t{hr}.[C.bb{hr}.[G.g{hr}]]); rewrite from_int_inj_fun; simplify bti. idtac=>/#. rewrite from_int_inj_fun => /#. idtac=>/#. rewrite from_int_inj_fun => /#. idtac=>/#. rewrite from_int_inj_fun => /#. idtac=>/#. rewrite from_int_inj_fun => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. idtac=>/#. rcondt{2} 61. auto; progress. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. 
+     (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ false) <=> false. by rewrite from_int_inj_fun => /#. rewrite ?xor_true ?xor_false. case (R.t{hr}.[C.aa{hr}.[G.g{hr}]]); case (R.t{hr}.[C.bb{hr}.[G.g{hr}]]); rewrite from_int_inj_fun; simplify bti. idtac=>/#. rewrite from_int_inj_fun => /#. idtac=>/#. rewrite from_int_inj_fun => /#. idtac=>/#. rewrite from_int_inj_fun => /#. idtac=>/#. rewrite from_int_inj_fun => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. idtac=>/#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. rcondt{2} 61. auto; progress. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. 
 
   wp. rnd. wp. rnd{1}. wp. rnd. wp. auto; progress.
      by rewrite Dword.lossless.
@@ -3961,25 +4080,25 @@ case (!C.aa{2}.[G.g{2}] <= DKCp.l{2}).
   case (C.bb{2}.[G.g{2}] = DKCp.l{2}).
   rcondt{2} 3. auto; progress => /#. 
 
-  rcondt{2} 10. progress. auto. progress. idtac=>/#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. rcondf{2} 15. auto. progress. idtac=>/#.  
+  rcondt{2} 10. progress. auto. progress. idtac=>/#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. rcondf{2} 15. auto. progress. idtac=>/#.  
     rcondt{2} 25. progress. auto. progress. rewrite ?in_fsetU ?in_fset1. cut ->: mem DKCp.used{hr}
      (tweak G.g{hr} (R.t{hr}.[C.aa{hr}.[G.g{hr}]] ^^ true)
         (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ false)) <=> false by idtac=>/#. cut ->: tweak G.g{hr} (R.t{hr}.[C.aa{hr}.[G.g{hr}]] ^^ true)
      (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ false) =
    tweak G.g{hr} (R.t{hr}.[C.aa{hr}.[G.g{hr}]] ^^ false)
-     (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ false) <=> false. by rewrite from_int_inj_fun => /#. done. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. idtac=>/#. rcondt{2} 30. auto; progress. 
+     (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ false) <=> false. by rewrite from_int_inj_fun => /#. done. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. idtac=>/#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. rcondt{2} 30. auto; progress. 
     rcondt{2} 41. progress. auto. progress.  rewrite ?in_fsetU ?in_fset1. cut ->: mem DKCp.used{hr}
      (tweak G.g{hr} (R.t{hr}.[C.aa{hr}.[G.g{hr}]] ^^ false)
         (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ true)) <=> false by idtac=>/#. cut ->: tweak G.g{hr} (R.t{hr}.[C.aa{hr}.[G.g{hr}]] ^^ false)
      (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ true) =
    tweak G.g{hr} (R.t{hr}.[C.aa{hr}.[G.g{hr}]] ^^ false)
-     (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ false) <=> false. by rewrite from_int_inj_fun => /#. rewrite ?xor_true ?xor_false. case (R.t{hr}.[C.aa{hr}.[G.g{hr}]]); case (R.t{hr}.[C.bb{hr}.[G.g{hr}]]); rewrite from_int_inj_fun => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. idtac=> /#. rcondt{2} 46. auto; progress. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. 
+     (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ false) <=> false. by rewrite from_int_inj_fun => /#. rewrite ?xor_true ?xor_false. case (R.t{hr}.[C.aa{hr}.[G.g{hr}]]); case (R.t{hr}.[C.bb{hr}.[G.g{hr}]]); rewrite from_int_inj_fun => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. idtac=> /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. rcondt{2} 46. auto; progress. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. 
      rcondt{2} 57. progress. auto. progress. rewrite ?in_fsetU ?in_fset1. cut ->: mem DKCp.used{hr}
      (tweak G.g{hr} (R.t{hr}.[C.aa{hr}.[G.g{hr}]] ^^ true)
         (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ true)) <=> false by idtac=>/#. cut ->: tweak G.g{hr} (R.t{hr}.[C.aa{hr}.[G.g{hr}]] ^^ true)
      (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ true) =
    tweak G.g{hr} (R.t{hr}.[C.aa{hr}.[G.g{hr}]] ^^ false)
-     (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ false) <=> false. by rewrite from_int_inj_fun => /#. rewrite ?xor_true ?xor_false. case (R.t{hr}.[C.aa{hr}.[G.g{hr}]]); case (R.t{hr}.[C.bb{hr}.[G.g{hr}]]); rewrite from_int_inj_fun; simplify bti. idtac=>/#. rewrite from_int_inj_fun => /#. idtac=>/#. rewrite from_int_inj_fun => /#. idtac=>/#. rewrite from_int_inj_fun => /#. idtac=>/#. rewrite from_int_inj_fun => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. idtac=>/#. rcondt{2} 62. auto; progress.  
+     (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ false) <=> false. by rewrite from_int_inj_fun => /#. rewrite ?xor_true ?xor_false. case (R.t{hr}.[C.aa{hr}.[G.g{hr}]]); case (R.t{hr}.[C.bb{hr}.[G.g{hr}]]); rewrite from_int_inj_fun; simplify bti. idtac=>/#. rewrite from_int_inj_fun => /#. idtac=>/#. rewrite from_int_inj_fun => /#. idtac=>/#. rewrite from_int_inj_fun => /#. idtac=>/#. rewrite from_int_inj_fun => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. idtac=>/#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. rcondt{2} 62. auto; progress.  
 
        auto; progress.
      by idtac=>/#.
@@ -4024,25 +4143,25 @@ case (!C.aa{2}.[G.g{2}] <= DKCp.l{2}).
   case (! C.bb{2}.[G.g{2}] <= DKCp.l{2}).
 
      rcondt{2} 3. auto. progress. idtac=>/#. idtac=>/#. 
-     rcondt{2} 10. progress. auto. progress. idtac=>/#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. rcondf{2} 15. auto. progress. idtac=>/#.  
+     rcondt{2} 10. progress. auto. progress. idtac=>/#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. rcondf{2} 15. auto. progress. idtac=>/#.  
     rcondt{2} 25. progress. auto. progress. rewrite ?in_fsetU ?in_fset1. cut ->: mem DKCp.used{hr}
      (tweak G.g{hr} (R.t{hr}.[C.aa{hr}.[G.g{hr}]] ^^ true)
         (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ false)) <=> false by idtac=>/#. cut ->: tweak G.g{hr} (R.t{hr}.[C.aa{hr}.[G.g{hr}]] ^^ true)
      (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ false) =
    tweak G.g{hr} (R.t{hr}.[C.aa{hr}.[G.g{hr}]] ^^ false)
-     (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ false) <=> false. by rewrite from_int_inj_fun => /#. done. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. rcondt{2} 30. auto; progress. 
+     (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ false) <=> false. by rewrite from_int_inj_fun => /#. done. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. rcondt{2} 30. auto; progress. 
     rcondt{2} 41. progress. auto. progress.  rewrite ?in_fsetU ?in_fset1. cut ->: mem DKCp.used{hr}
      (tweak G.g{hr} (R.t{hr}.[C.aa{hr}.[G.g{hr}]] ^^ false)
         (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ true)) <=> false by idtac=>/#. cut ->: tweak G.g{hr} (R.t{hr}.[C.aa{hr}.[G.g{hr}]] ^^ false)
      (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ true) =
    tweak G.g{hr} (R.t{hr}.[C.aa{hr}.[G.g{hr}]] ^^ false)
-     (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ false) <=> false. by rewrite from_int_inj_fun => /#. rewrite ?xor_true ?xor_false. case (R.t{hr}.[C.aa{hr}.[G.g{hr}]]); case (R.t{hr}.[C.bb{hr}.[G.g{hr}]]); rewrite from_int_inj_fun => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. idtac=> /#. rcondf{2} 46. auto; progress. by move : H9; simplify validInputsP valid_circuitP fst snd => /#.
+     (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ false) <=> false. by rewrite from_int_inj_fun => /#. rewrite ?xor_true ?xor_false. case (R.t{hr}.[C.aa{hr}.[G.g{hr}]]); case (R.t{hr}.[C.bb{hr}.[G.g{hr}]]); rewrite from_int_inj_fun => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. idtac=> /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. rcondf{2} 46. auto; progress. by move : H9; simplify validInputsP valid_circuitP fst snd => /#.
      rcondt{2} 56. progress. auto. progress. rewrite ?in_fsetU ?in_fset1. cut ->: mem DKCp.used{hr}
      (tweak G.g{hr} (R.t{hr}.[C.aa{hr}.[G.g{hr}]] ^^ true)
         (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ true)) <=> false by idtac=>/#. cut ->: tweak G.g{hr} (R.t{hr}.[C.aa{hr}.[G.g{hr}]] ^^ true)
      (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ true) =
    tweak G.g{hr} (R.t{hr}.[C.aa{hr}.[G.g{hr}]] ^^ false)
-     (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ false) <=> false. by rewrite from_int_inj_fun => /#. rewrite ?xor_true ?xor_false. case (R.t{hr}.[C.aa{hr}.[G.g{hr}]]); case (R.t{hr}.[C.bb{hr}.[G.g{hr}]]); rewrite from_int_inj_fun; simplify bti. idtac=>/#. rewrite from_int_inj_fun => /#. idtac=>/#. rewrite from_int_inj_fun => /#. idtac=>/#. rewrite from_int_inj_fun => /#. idtac=>/#. rewrite from_int_inj_fun => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. idtac=>/#. rcondt{2} 61. auto; progress.  
+     (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ false) <=> false. by rewrite from_int_inj_fun => /#. rewrite ?xor_true ?xor_false. case (R.t{hr}.[C.aa{hr}.[G.g{hr}]]); case (R.t{hr}.[C.bb{hr}.[G.g{hr}]]); rewrite from_int_inj_fun; simplify bti. idtac=>/#. rewrite from_int_inj_fun => /#. idtac=>/#. rewrite from_int_inj_fun => /#. idtac=>/#. rewrite from_int_inj_fun => /#. idtac=>/#. rewrite from_int_inj_fun => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. idtac=>/#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. rcondt{2} 61. auto; progress.  
 
     wp. rnd. wp. rnd{1}. wp. rnd. wp. auto; progress.
      by rewrite Dword.lossless.
@@ -4085,26 +4204,25 @@ case (!C.aa{2}.[G.g{2}] <= DKCp.l{2}).
     tweak G.g{2} R.t{2}.[C.aa{2}.[G.g{2}]] (! R.t{2}.[C.bb{2}.[G.g{2}]]) <=> false by rewrite from_int_inj_fun => /#. by rewrite from_int_inj_fun => /#. 
      
 rcondf{2} 3. auto. progress => /#. 
-rcondt{2} 10. progress. auto. progress. idtac=>/#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. rcondf{2} 15. auto. progress. idtac=>/#.  
+rcondt{2} 10. progress. auto. progress. idtac=>/#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. rcondf{2} 15. auto. progress. idtac=>/#.  
     rcondt{2} 25. progress. auto. progress. rewrite ?in_fsetU ?in_fset1. cut ->: mem DKCp.used{hr}
      (tweak G.g{hr} (R.t{hr}.[C.aa{hr}.[G.g{hr}]] ^^ true)
         (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ false)) <=> false by idtac=>/#. cut ->: tweak G.g{hr} (R.t{hr}.[C.aa{hr}.[G.g{hr}]] ^^ true)
      (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ false) =
    tweak G.g{hr} (R.t{hr}.[C.aa{hr}.[G.g{hr}]] ^^ false)
-     (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ false) <=> false. by rewrite from_int_inj_fun => /#. done. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. rcondt{2} 30. auto; progress. 
+     (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ false) <=> false. by rewrite from_int_inj_fun => /#. done. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. rcondt{2} 30. auto; progress. 
     rcondt{2} 41. progress. auto. progress. rewrite ?in_fsetU ?in_fset1. cut ->: mem DKCp.used{hr}
      (tweak G.g{hr} (R.t{hr}.[C.aa{hr}.[G.g{hr}]] ^^ false)
         (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ true)) <=> false by idtac=>/#. cut ->: tweak G.g{hr} (R.t{hr}.[C.aa{hr}.[G.g{hr}]] ^^ false)
      (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ true) =
    tweak G.g{hr} (R.t{hr}.[C.aa{hr}.[G.g{hr}]] ^^ false)
-     (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ false) <=> false. by rewrite from_int_inj_fun => /#. rewrite ?xor_true ?xor_false. case (R.t{hr}.[C.aa{hr}.[G.g{hr}]]); case (R.t{hr}.[C.bb{hr}.[G.g{hr}]]); rewrite from_int_inj_fun => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. rcondt{2} 46. auto; progress. 
+     (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ false) <=> false. by rewrite from_int_inj_fun => /#. rewrite ?xor_true ?xor_false. case (R.t{hr}.[C.aa{hr}.[G.g{hr}]]); case (R.t{hr}.[C.bb{hr}.[G.g{hr}]]); rewrite from_int_inj_fun => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. rcondt{2} 46. auto; progress. 
      rcondt{2} 57. progress. auto. progress. rewrite ?in_fsetU ?in_fset1. cut ->: mem DKCp.used{hr}
      (tweak G.g{hr} (R.t{hr}.[C.aa{hr}.[G.g{hr}]] ^^ true)
         (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ true)) <=> false by idtac=>/#. cut ->: tweak G.g{hr} (R.t{hr}.[C.aa{hr}.[G.g{hr}]] ^^ true)
      (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ true) =
    tweak G.g{hr} (R.t{hr}.[C.aa{hr}.[G.g{hr}]] ^^ false)
-     (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ false) <=> false. by rewrite from_int_inj_fun => /#. rewrite ?xor_true ?xor_false. case (R.t{hr}.[C.aa{hr}.[G.g{hr}]]); case (R.t{hr}.[C.bb{hr}.[G.g{hr}]]); rewrite from_int_inj_fun; simplify bti. idtac=>/#. rewrite from_int_inj_fun => /#. idtac=>/#. rewrite from_int_inj_fun => /#. idtac=>/#. rewrite from_int_inj_fun => /#. idtac=>/#. rewrite from_int_inj_fun => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. rcondt{2} 62. auto. progress. 
-
+     (R.t{hr}.[C.bb{hr}.[G.g{hr}]] ^^ false) <=> false. by rewrite from_int_inj_fun => /#. rewrite ?xor_true ?xor_false. case (R.t{hr}.[C.aa{hr}.[G.g{hr}]]); case (R.t{hr}.[C.bb{hr}.[G.g{hr}]]); rewrite from_int_inj_fun; simplify bti. idtac=>/#. rewrite from_int_inj_fun => /#. idtac=>/#. rewrite from_int_inj_fun => /#. idtac=>/#. rewrite from_int_inj_fun => /#. idtac=>/#. rewrite from_int_inj_fun => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. rcondt{2} 62. auto. progress. 
 
      auto; progress.
      by idtac=>/#.
@@ -4145,8 +4263,6 @@ rcondt{2} 10. progress. auto. progress. idtac=>/#. by move : H9; simplify validI
      tweak G.g{2} (! R.t{2}.[C.aa{2}.[G.g{2}]]) R.t{2}.[C.bb{2}.[G.g{2}]] <=> false by rewrite from_int_inj_fun => /#. cut ->: tweak k C.x{2}.[k] R.t{2}.[0] =
     tweak G.g{2} R.t{2}.[C.aa{2}.[G.g{2}]] (! R.t{2}.[C.bb{2}.[G.g{2}]]) <=> false by rewrite from_int_inj_fun => /#. by rewrite from_int_inj_fun => /#. 
 
-
-
   auto. progress.
   by idtac=>/#. by idtac=>/#.
   by rewrite size_offun max_ler => /#.
@@ -4175,11 +4291,11 @@ qed.
     require import Sum.
 
 
-lemma reductionSimplified (A <: EncSecurity.Adv_IND_t{Rand,R,C,DKC_Adv,DKCp,DKC}) &m:
+lemma reductionSimplified (A <: EncSecurity.Adv_IND_t{Rand,R,C,DKC_Adv,DKCp,DKC_O}) &m:
     islossless A.gen_query =>
     islossless A.get_challenge =>
   Pr[GameHybrid(A).garble(-1) @ &m : res] - Pr[GameHybrid(A).garble(bound-1) @ &m : res] =
-  Mrplus.sum (fun i, (Pr[DKCSecurity.Game(DKC, DKC_Adv(A)).game(true,i)@ &m:res] - Pr[DKCSecurity.Game(DKC, DKC_Adv(A)).game(false,i)@ &m:!res])) (intval 0 (bound-1)).
+  Mrplus.sum (fun i, (Pr[DKCSecurity.Game(DKC_O, DKC_Adv(A)).game(true,i)@ &m:res] - Pr[DKCSecurity.Game(DKC_O, DKC_Adv(A)).game(false,i)@ &m:!res])) (intval 0 (bound-1)).
 proof.
 move => Agen_ll Aget_ll.
 
@@ -4211,14 +4327,14 @@ Pr[GameHybrid(A).garble(x - 1) @ &m : res] =
       Pr[GameHybrid(A).garble(i - 1) @ &m : res] -
       Pr[GameHybrid(A).garble(i) @ &m : res])
    (intval 0 (SomeGarble.bound - 1)) = Mrplus.sum (fun (i : int) =>
-      Pr[DKCSecurity.Game(DKC, DKC_Adv(A)).game(true,i) @ &m : res] -
-      Pr[DKCSecurity.Game(DKC, DKC_Adv(A)).game(false,i) @ &m : !res]) (intval 0 (SomeGarble.bound - 1)).
+      Pr[DKCSecurity.Game(DKC_O, DKC_Adv(A)).game(true,i) @ &m : res] -
+      Pr[DKCSecurity.Game(DKC_O, DKC_Adv(A)).game(false,i) @ &m : !res]) (intval 0 (SomeGarble.bound - 1)).
 
     rewrite (Mrplus.sum_eq (fun (i : int) =>
       Pr[GameHybrid(A).garble(i - 1) @ &m : res] -
       Pr[GameHybrid(A).garble(i) @ &m : res]) (fun (i : int) => 
-      Pr[DKCSecurity.Game(DKC, DKC_Adv(A)).game(true,i) @ &m : res] -
-      Pr[DKCSecurity.Game(DKC, DKC_Adv(A)).game(false,i) @ &m : !res]) (intval 0 (SomeGarble.bound - 1))).
+      Pr[DKCSecurity.Game(DKC_O, DKC_Adv(A)).game(true,i) @ &m : res] -
+      Pr[DKCSecurity.Game(DKC_O, DKC_Adv(A)).game(false,i) @ &m : !res]) (intval 0 (SomeGarble.bound - 1))).
 
         move => x. rewrite intval_def. progress. congr. byequiv (GameHybrid_l1_sim (A) (x) Agen_ll Aget_ll _). idtac=>/#. done. done. congr. byequiv (GameHybrid_l_sim (A) (x) Agen_ll Aget_ll _). idtac=>/#. done. smt. done. done.
   qed.

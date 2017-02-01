@@ -28,6 +28,9 @@ theory DKCSecurity.
 
   const bound : int.
   axiom bound_pos : 1 < bound.
+
+  const boundl : int.
+  axiom boundl_pos : 1 < boundl < bound.
   
   (* i * j * pos * tweak *)
   type query_DKC = bool * (int * bool) * (int * bool) * (int * bool) * tweak_t.
