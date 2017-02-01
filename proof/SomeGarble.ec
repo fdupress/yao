@@ -2314,7 +2314,7 @@ proof. by move => AgenL AgetL; rewrite (GameHybridBound_independent A &m) //. qe
     G.pp.[(G.g, R.t.[G.a] ^^ alpha, R.t.[G.b] ^^ betha)] = zz;
   }
   
-  proc garble() : unit = {
+  proc garble(l:int) : unit = {
     var tok, yy : word;
 
     G.yy = Array.offun (fun x, SomeGarble.W.zeros) (C.n + C.q);
@@ -2328,7 +2328,7 @@ proof. by move => AgenL AgetL; rewrite (GameHybridBound_independent A &m) //. qe
       G.a = C.aa.[G.g];
       G.b = C.bb.[G.g];
 
-      if (!(G.a < DKCp.l)) {
+      if (!(G.a < l)) {
          query_garble(false, false);
          query_garble(true, false);
          query_garble(false, true);
@@ -2336,7 +2336,7 @@ proof. by move => AgenL AgetL; rewrite (GameHybridBound_independent A &m) //. qe
       }
 
       else {
-        if ((G.a < DKCp.l) /\ !(G.b < DKCp.l)) {
+        if ((G.a < l) /\ !(G.b < l)) {
           query_garble(false, false);
           query_garble_dummy(true,false);
           query_garble(false,true);
@@ -2380,12 +2380,12 @@ module DKC_Adv (A : EncSecurity.Adv_IND_t, O : DKC_AdvOracle) = {
       p = if real then snd query_ind else fst query_ind;
       CircuitInit.init(p);
       AdvInit(O).init(true, lsb,l);
-      AdvInit(O).garble();
+      AdvInit(O).garble(l);
 
       i = 0;
       while (i < C.n) {
         twe = tweak i C.x.[i] R.t.[0]; 
-        (ki,kj,zz) = O.encrypt(false, (i, R.t.[i]), (C.n, R.t.[DKCp.l]), (C.n+C.q, R.t.[0]), twe);
+        (ki,kj,zz) = O.encrypt(false, (i, R.t.[i]), (C.n, R.t.[l]), (C.n+C.q, R.t.[0]), twe);
         R.xx.[(i, C.x.[i])] = ki;
         i = i + 1;
       }
@@ -2441,7 +2441,7 @@ proof.
 
     while (0 <= C.n /\ 0 <= C.q /\ C.n <= G.g <= C.n + C.q) (C.n + C.q - G.g).
   progress.
-  case (! C.aa.[G.g] < DKCp.l). rcondt 3. by auto.
+  case (! C.aa.[G.g] < l). rcondt 3. by auto.
   wp. 
     call (_ : true). by wp; call encrypt_ll; wp.
   call (_ : true). by wp; call encrypt_ll; wp.
@@ -2449,7 +2449,7 @@ proof.
   call (_ : true). by wp; call encrypt_ll; wp.
   auto. progress => /#.
   rcondf 3. by auto.
-  case (C.aa.[G.g] < DKCp.l /\ ! C.bb.[G.g] < DKCp.l). rcondt 3. by auto.
+  case (C.aa.[G.g] < l /\ ! C.bb.[G.g] < l). rcondt 3. by auto.
 wp. 
     call (_ : true). by wp; call encrypt_ll; wp.
   call (_ : true). by wp; call encrypt_ll; wp.
@@ -2527,10 +2527,12 @@ proof.
         by move : H0; rewrite /queryValid_IND /valid_plain /validInputs /validInputsP ?valid_wireinput /valid_circuitP /fst /snd; case realL. 
         (*by simplify validBound; case realL => /#.*)
 
-    seq 1 16 : (={glob A, real, p} /\
+    inline RandomInit.init AdvInit(DKC_O).init.
+    
+    seq 5 23 : (={glob A, real, p} /\
       query{1} = query_ind{2} /\
       l{1} = lp-1 /\ l{2} = lp /\ DKCp.l{2} = l{2} /\ DKCp.b{2} /\ b{2} /\ DKCp.b{2} = b{2} /\
-      EncSecurity.queryValid_IND query{1} /\ 
+      EncSecurity.queryValid_IND query{1} /\ l1{2} = l{2} /\
       ={glob C} /\ 
       size C.v{1} = C.n{1} + C.q{1} /\
       C.f{1} = ((C.n{1}, C.m{1}, C.q{1}, C.aa{1}, C.bb{1}), C.gg{1}) /\
@@ -2546,13 +2548,11 @@ proof.
       (forall k, 0 <= k < C.n{1} + C.q{1} => k <> lp => R.xx{1}.[(k, !C.v{1}.[k])] = DKCp.kpub{2}.[(k, !R.t{2}.[k])]) /\
         oget R.xx{1}.[(lp, !C.v{1}.[lp])] = DKCp.ksec{2} /\ DKCp.used{2} = fset0 /\
       (forall k, 0 <= k < C.n{1} + C.q{1} => DKCp.kpub{2}.[(k, R.t{2}.[k])] <> None) /\
-      (forall k, 0 <= k < C.n{1} + C.q{1} => DKCp.kpub{2}.[(k, !R.t{2}.[k])] <> None));    
-      inline RandomInit.init AdvInit(DKC_O).init.
+      (forall k, 0 <= k < C.n{1} + C.q{1} => DKCp.kpub{2}.[(k, !R.t{2}.[k])] <> None)).    
+      
 
     splitwhile{2} 12 : i < DKCSecurity.bound - 1.
     swap{2} 22 -9. swap{2} 21 -12. swap{2} 19 -13. swap{2} 23 -7.
-
-    
     
       transitivity{2} {
         b0 = b;
@@ -2618,8 +2618,15 @@ proof.
           }
           i = i + 1;
         }
+
+        lsb = DKCp.lsb;
+        lsb0 = lsb;
+        l1 = l;
+        lsb1 = lsb0;
+        l2 = l1;
+        R.xx = map0;
+        R.t.[l2] = !lsb;
         
-        R.t.[DKCp.l] = !DKCp.lsb;
       }
       ( (={glob A, real, p} /\
           query{1} = query_ind{2} /\
@@ -2643,7 +2650,8 @@ proof.
           DKCp.b{2} /\
           b{2} /\ DKCp.l{2} = l{2} /\
           DKCp.b{2} = b{2} /\
-        EncSecurity.queryValid_IND query{1} /\
+          EncSecurity.queryValid_IND query{1} /\
+        l1{2} = l{2} /\
         ={glob C} /\
           size C.v{1} = C.n{1} + C.q{1} /\
           C.f{1} = ((C.n{1}, C.m{1}, C.q{1}, C.aa{1}, C.bb{1}), C.gg{1}) /\
@@ -2681,6 +2689,7 @@ proof.
           DKCp.b{2} /\ 
           b{2} /\ 
           DKCp.b{2} = b{2} /\
+        l1{2} = DKCp.l{2} /\
         EncSecurity.queryValid_IND query_ind{1} /\
         ={glob C} /\
           size C.v{1} = C.n{1} + C.q{1} /\
@@ -2699,7 +2708,7 @@ proof.
       wp.
       while{2} (={glob A, real, p} /\ C.n{2} + C.q{2} <= i{2} <= C.n{2} + C.q{2} + 1 /\ 
     query{1} = query_ind{2} /\ ={useVisible} /\ useVisible{2} /\
-      DKCp.l{2} = lp /\ l{2} = lp /\
+      DKCp.l{2} = lp /\ l{2} = lp /\ 
     l{1} = lp-1 /\ DKCp.b{2} /\ b{2} /\ DKCp.b{2} = b{2} /\
       EncSecurity.queryValid_IND query{1} /\ size R.t{1} = C.n{1} + C.q{1} /\
     ={glob C} /\ size R.t{1} = size R.t{2} /\ size R.t{1} = C.n{1} + C.q{1} /\
@@ -3015,6 +3024,7 @@ while{2} (={glob A, real, p, G.g} /\
     b{2} /\
     DKCp.b{2} = b{2} /\
     EncSecurity.queryValid_IND query{1} /\
+  l1{2} = l{2} /\
   ={glob C} /\ size G.yy{1} = size G.yy{2} /\ size G.yy{1} = C.n{1} + C.q{1} /\
   boundl = SomeGarble.bound /\
     size C.v{1} = C.n{1} + C.q{1} /\
@@ -3055,10 +3065,12 @@ while{2} (={glob A, real, p, G.g} /\
     DKCSecurity.bound = C.n{1} + C.q{1} + 1 /\
     l0{1} = l{1} /\
   l{1} = lp-1 /\ l{2} = lp /\ DKCp.l{2} = l{2} /\ C.n{1} <= G.g{1} <= C.n{1} + C.q{1} /\
-    DKCp.b{2} /\
+    DKCp.b{2} /\ 
     b{2} /\ l0{1} = l{1} /\
     DKCp.b{2} = b{2} /\
     EncSecurity.queryValid_IND query{1} /\
+  l1{2} = l{2} /\
+  l3{2} = l1{2} /\
   ={glob C} /\ size G.yy{1} = size G.yy{2} /\ size G.yy{1} = C.n{1} + C.q{1} /\
   boundl = SomeGarble.bound /\
     size C.v{1} = C.n{1} + C.q{1} /\
@@ -3085,8 +3097,8 @@ while{2} (={glob A, real, p, G.g} /\
   (forall k, 0 <= k < C.n{1} + C.q{1} => DKCp.kpub{2}.[(k, R.t{2}.[k])] <> None) /\
   (forall k, 0 <= k < C.n{1} + C.q{1} => DKCp.kpub{2}.[(k, !R.t{2}.[k])] <> None)
   
-).  case (! C.aa{2}.[G.g{2}] < DKCp.l{2}).
-  rcondt{2} 3. auto.
+).  case (! C.aa{2}.[G.g{2}] < l3{2}).
+  rcondt{2} 3. auto. 
 
   rcondt{2} 10. progress. auto. progress. idtac=>/#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. idtac=>/#. idtac=>/#. rcondf{2} 15. auto. progress. idtac=>/#. 
     rcondt{2} 25. progress. auto. progress. rewrite ?in_fsetU ?in_fset1. cut ->: mem DKCp.used{hr}
@@ -3148,9 +3160,9 @@ while{2} (={glob A, real, p, G.g} /\
      tweak G.g{2} (! R.t{2}.[C.aa{2}.[G.g{2}]]) R.t{2}.[C.bb{2}.[G.g{2}]] <=> false by rewrite from_int_inj_fun => /#. cut ->: tweak k C.x{2}.[k] R.t{2}.[0] =
     tweak G.g{2} R.t{2}.[C.aa{2}.[G.g{2}]] (! R.t{2}.[C.bb{2}.[G.g{2}]]) <=> false by rewrite from_int_inj_fun => /#. by rewrite from_int_inj_fun => /#. 
 
-       rcondf{2} 3. progress. auto.
+       rcondf{2} 3. auto. 
 
-  case (C.bb{2}.[G.g{2}] = DKCp.l{2}).
+  case (C.bb{2}.[G.g{2}] = l3{2}).
   rcondt{2} 3. auto; progress => /#. 
 
   rcondt{2} 10. auto. progress. idtac=>/#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. rcondf{2} 15. auto. progress. idtac=>/#. 
@@ -3213,7 +3225,7 @@ while{2} (={glob A, real, p, G.g} /\
      tweak G.g{2} (! R.t{2}.[C.aa{2}.[G.g{2}]]) R.t{2}.[C.bb{2}.[G.g{2}]] <=> false by rewrite from_int_inj_fun => /#. cut ->: tweak k C.x{2}.[k] R.t{2}.[0] =
     tweak G.g{2} R.t{2}.[C.aa{2}.[G.g{2}]] (! R.t{2}.[C.bb{2}.[G.g{2}]]) <=> false by rewrite from_int_inj_fun => /#. by rewrite from_int_inj_fun => /#. 
 
-    case (! C.bb{2}.[G.g{2}] <= DKCp.l{2}).
+    case (! C.bb{2}.[G.g{2}] <= l3{2}).
     rcondt{2} 3. auto; progress => /#. 
     rcondt{2} 10. auto. progress. idtac=>/#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. rcondf{2} 15. auto. progress. idtac=>/#. 
     rcondt{2} 25. progress. auto. progress. rewrite ?in_fsetU ?in_fset1. cut ->: mem DKCp.used{hr}
@@ -3365,7 +3377,7 @@ lemma GameHybrid_l_sim (A <: EncSecurity.Adv_IND_t{DKC_Adv,DKCp,DKC_O}) lp:
   equiv [ GameHybrid(A).garble ~ DKCSecurity.Game(DKC_O, DKC_Adv(A)).game:
     ={glob A} /\ l{1} = lp /\ l{2} = lp /\ !b{2} ==> res{1} <> res{2}].
 proof.
- move => Agen_ll Aget_ll hl.
+move => Agen_ll Aget_ll hl.
   proc => //.
   inline DKC_O.initialize DKC_Adv(A,DKC_O).get_challenge.
   swap{2} 16 -15.
@@ -3391,10 +3403,12 @@ proof.
         by move : H0; rewrite /queryValid_IND /valid_plain /validInputs /validInputsP ?valid_wireinput /valid_circuitP /fst /snd; case realL. 
         (*by simplify validBound; case realL => /#.*)
 
-    seq 1 16 : (={glob A, real, p} /\
+    inline RandomInit.init AdvInit(DKC_O).init.
+    
+    seq 5 23 : (={glob A, real, p} /\
       query{1} = query_ind{2} /\
       l{1} = lp /\ l{2} = lp /\ DKCp.l{2} = l{2} /\ !DKCp.b{2} /\ !b{2} /\ DKCp.b{2} = b{2} /\
-      EncSecurity.queryValid_IND query{1} /\ 
+      EncSecurity.queryValid_IND query{1} /\ l1{2} = l{2} /\
       ={glob C} /\ 
       size C.v{1} = C.n{1} + C.q{1} /\
       C.f{1} = ((C.n{1}, C.m{1}, C.q{1}, C.aa{1}, C.bb{1}), C.gg{1}) /\
@@ -3482,7 +3496,13 @@ proof.
           i = i + 1;
         }
         
-        R.t.[DKCp.l] = !DKCp.lsb;
+        lsb = DKCp.lsb;
+        lsb0 = lsb;
+        l1 = l;
+        lsb1 = lsb0;
+        l2 = l1;
+        R.xx = map0;
+        R.t.[l2] = !lsb;
       }
       ( (={glob A, real, p} /\
           query{1} = query_ind{2} /\
@@ -3506,7 +3526,8 @@ proof.
           !DKCp.b{2} /\
           !b{2} /\ DKCp.l{2} = l{2} /\
           DKCp.b{2} = b{2} /\
-        EncSecurity.queryValid_IND query{1} /\
+          EncSecurity.queryValid_IND query{1} /\
+        l1{2} = l{2} /\
         ={glob C} /\
           size C.v{1} = C.n{1} + C.q{1} /\
           C.f{1} = ((C.n{1}, C.m{1}, C.q{1}, C.aa{1}, C.bb{1}), C.gg{1}) /\
@@ -3545,6 +3566,7 @@ proof.
           !DKCp.b{2} /\ 
           !b{2} /\ 
           DKCp.b{2} = b{2} /\
+        l1{2} = DKCp.l{2} /\
         EncSecurity.queryValid_IND query_ind{1} /\
         ={glob C} /\
           size C.v{1} = C.n{1} + C.q{1} /\
@@ -3879,6 +3901,7 @@ while{2} (={glob A, real, p, G.g} /\
     !b{2} /\
     DKCp.b{2} = b{2} /\
     EncSecurity.queryValid_IND query{1} /\
+  l1{2} = l{2} /\
   ={glob C} /\ size G.yy{1} = size G.yy{2} /\ size G.yy{1} = C.n{1} + C.q{1} /\
   boundl = SomeGarble.bound /\
     size C.v{1} = C.n{1} + C.q{1} /\
@@ -3923,6 +3946,8 @@ while{2} (={glob A, real, p, G.g} /\
     !b{2} /\ l0{1} = l{1} /\
     DKCp.b{2} = b{2} /\
     EncSecurity.queryValid_IND query{1} /\
+  l1{2} = l{2} /\
+  l3{2} = l1{2} /\
   ={glob C} /\ size G.yy{1} = size G.yy{2} /\ size G.yy{1} = C.n{1} + C.q{1} /\
   boundl = SomeGarble.bound /\
     size C.v{1} = C.n{1} + C.q{1} /\
@@ -3949,7 +3974,7 @@ while{2} (={glob A, real, p, G.g} /\
   (forall k, 0 <= k < C.n{1} + C.q{1} => DKCp.kpub{2}.[(k, R.t{2}.[k])] <> None) /\
   (forall k, 0 <= k < C.n{1} + C.q{1} => DKCp.kpub{2}.[(k, !R.t{2}.[k])] <> None)).
 
-case (!C.aa{2}.[G.g{2}] <= DKCp.l{2}).
+case (!C.aa{2}.[G.g{2}] <= l3{2}).
   rcondt{2} 3. auto. progress => /#.
 
   rcondt{2} 10. progress. auto. progress. idtac=>/#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. rcondf{2} 15. auto. progress. idtac=>/#.
@@ -4012,7 +4037,7 @@ case (!C.aa{2}.[G.g{2}] <= DKCp.l{2}).
      tweak G.g{2} (! R.t{2}.[C.aa{2}.[G.g{2}]]) R.t{2}.[C.bb{2}.[G.g{2}]] <=> false by rewrite from_int_inj_fun => /#. cut ->: tweak k C.x{2}.[k] R.t{2}.[0] =
     tweak G.g{2} R.t{2}.[C.aa{2}.[G.g{2}]] (! R.t{2}.[C.bb{2}.[G.g{2}]]) <=> false by rewrite from_int_inj_fun => /#. by rewrite from_int_inj_fun => /#. 
      
-  case (C.aa{2}.[G.g{2}] = DKCp.l{2}).
+  case (C.aa{2}.[G.g{2}] = l3{2}).
   rcondt{2} 3. auto.   
 
   rcondt{2} 10. progress. auto. progress. idtac=>/#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. rcondf{2} 15. auto. progress. idtac=>/#.  
@@ -4077,7 +4102,7 @@ case (!C.aa{2}.[G.g{2}] <= DKCp.l{2}).
 
   rcondf{2} 3. progress. auto. progress => /#. 
 
-  case (C.bb{2}.[G.g{2}] = DKCp.l{2}).
+  case (C.bb{2}.[G.g{2}] = l3{2}).
   rcondt{2} 3. auto; progress => /#. 
 
   rcondt{2} 10. progress. auto. progress. idtac=>/#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. rcondf{2} 15. auto. progress. idtac=>/#.  
@@ -4140,7 +4165,7 @@ case (!C.aa{2}.[G.g{2}] <= DKCp.l{2}).
     tweak G.g{2} R.t{2}.[C.aa{2}.[G.g{2}]] (! R.t{2}.[C.bb{2}.[G.g{2}]]) <=> false by rewrite from_int_inj_fun => /#. by rewrite from_int_inj_fun => /#. 
 
    
-  case (! C.bb{2}.[G.g{2}] <= DKCp.l{2}).
+  case (! C.bb{2}.[G.g{2}] <= l3{2}).
 
      rcondt{2} 3. auto. progress. idtac=>/#. idtac=>/#. 
      rcondt{2} 10. progress. auto. progress. idtac=>/#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. by move : H9; simplify validInputsP valid_circuitP fst snd => /#. rcondf{2} 15. auto. progress. idtac=>/#.  
@@ -4289,15 +4314,14 @@ qed.
 
     require import OldMonoid.
     require import Sum.
-
-
-lemma reductionSimplified (A <: EncSecurity.Adv_IND_t{Rand,R,C,DKC_Adv,DKCp,DKC_O}) &m:
+    
+    lemma reductionSimplified (A <: EncSecurity.Adv_IND_t{Rand,R,C,DKC_Adv,DKCp,DKC_O,PRF.PRFr_Wrapped,Param,PRF.RandomFunction}) &m:
     islossless A.gen_query =>
     islossless A.get_challenge =>
   Pr[GameHybrid(A).garble(-1) @ &m : res] - Pr[GameHybrid(A).garble(bound-1) @ &m : res] =
-  Mrplus.sum (fun i, (Pr[DKCSecurity.Game(DKC_O, DKC_Adv(A)).game(true,i)@ &m:res] - Pr[DKCSecurity.Game(DKC_O, DKC_Adv(A)).game(false,i)@ &m:!res])) (intval 0 (bound-1)).
-proof.
-move => Agen_ll Aget_ll.
+  Mrplus.sum (fun i, (Pr[SomeDKC.PRF.IND(SomeDKC.PRF.PRFr_Wrapped,D(DKC_Adv(A))).main(i)@ &m:res] - Pr[SomeDKC.PRF.IND(SomeDKC.PRF.RandomFunction,D(DKC_Adv(A))).main(i)@ &m:res])) (intval 0 (bound-1)).
+  proof.
+  move => Agen_ll Aget_ll.
 
 (* FIRST CUT *)
   cut ->: Pr[GameHybrid(A).garble(-1) @ &m : res] - Pr[GameHybrid(A).garble(SomeGarble.bound - 1) @ &m : res] = Pr[GameHybrid(A).garble(-1) @ &m : res] - Pr[GameHybrid(A).garble(SomeGarble.bound - 1) @ &m : res] + Mrplus.sum (fun i, Pr[GameHybrid(A).garble(i) @ &m : res] - Pr[GameHybrid(A).garble(i) @ &m : res]) (intval 0 (bound-2)). simplify. rewrite (Mrplus.NatMul.sum_const (0%r) (fun (_ : int) => 0%r) (intval 0 (SomeGarble.bound - 2))). done. rewrite intval_card_0. smt. simplify. cut ->: Mrplus.NatMul.( * ) (SomeGarble.bound - 2 + 1) 0%r = 0%r. idtac=>/#. done.
@@ -4321,6 +4345,24 @@ Pr[GameHybrid(A).garble(x - 1) @ &m : res] =
       Pr[GameHybrid(A).garble(i0) @ &m : res]) (intval 0 (i + 1 - 1)) (i + 1 - 1)). smt. simplify. cut ->: i + 1 - 1 = i by idtac=>/#. cut ->: intval 0 i `\` fset1 i = intval 0 (i-1). rewrite fsetP => x. rewrite in_fsetD ?intval_def. smt. rewrite -H0. smt. smt. done.
 (* /SECOND CUT *)
 
+  (*PRF ~ DKC EQUIV *)
+  cut ->: Mrplus.sum (fun (i : int) =>
+      Pr[PRF.IND(PRF.PRFr_Wrapped, D(DKC_Adv(A))).main(i) @ &m : res] -
+      Pr[PRF.IND(PRF.RandomFunction, D(DKC_Adv(A))).main(i) @ &m : res])
+   (intval 0 (SomeGarble.bound - 1)) = Mrplus.sum (fun (i : int) =>
+      Pr[DKCSecurity.Game(DKC_O, DKC_Adv(A)).game(true,i) @ &m : res] -
+      Pr[DKCSecurity.Game(DKC_O, DKC_Adv(A)).game(false,i) @ &m : !res]) (intval 0 (SomeGarble.bound - 1)).
+    rewrite (Mrplus.sum_eq (fun (i : int) =>
+      Pr[PRF.IND(PRF.PRFr_Wrapped, D(DKC_Adv(A))).main(i) @ &m : res] -
+      Pr[PRF.IND(PRF.RandomFunction, D(DKC_Adv(A))).main(i) @ &m : res]) (fun (i : int) =>
+      Pr[Game(DKC_O, DKC_Adv(A)).game(true, i) @ &m : res] -
+      Pr[Game(DKC_O, DKC_Adv(A)).game(false, i) @ &m : !res]) (intval 0 (SomeGarble.bound - 1))).
+        move => x hmem.
+        cut ? : 0 <= x < SomeGarble.bound. rewrite intval_def in hmem => /#. 
+        simplify.
+        congr. cut ->: Pr[PRF.IND(PRF.PRFr_Wrapped, D(DKC_Adv(A))).main(x) @ &m : res] = Pr[Game(DKC_O, DKC_Adv(A)).game(true, x) @ &m : res] <=> Pr[Game(DKC_O, DKC_Adv(A)).game(true, x) @ &m : res] = Pr[PRF.IND(PRF.PRFr_Wrapped, D(DKC_Adv(A))).main(x) @ &m : res] by idtac=>/#. byequiv (true_key (x) (DKC_Adv(A))). progress. done. congr. cut ->: Pr[PRF.IND(PRF.RandomFunction, D(DKC_Adv(A))).main(x) @ &m : res] = Pr[Game(DKC_O, DKC_Adv(A)).game(false, x) @ &m : !res] <=> Pr[Game(DKC_O, DKC_Adv(A)).game(false, x) @ &m : !res] = Pr[PRF.IND(PRF.RandomFunction, D(DKC_Adv(A))).main(x) @ &m : res] by idtac=>/#. byequiv (false_key (x) (DKC_Adv(A))). progress. idtac=>/#. done.
+    (*PRF ~ DKC EQUIV *)
+  
   (* THIRD CUT *)
      cut ->: Mrplus.sum
    (fun (i : int) =>
@@ -4338,7 +4380,6 @@ Pr[GameHybrid(A).garble(x - 1) @ &m : res] =
 
         move => x. rewrite intval_def. progress. congr. byequiv (GameHybrid_l1_sim (A) (x) Agen_ll Aget_ll _). idtac=>/#. done. done. congr. byequiv (GameHybrid_l_sim (A) (x) Agen_ll Aget_ll _). idtac=>/#. done. smt. done. done.
   qed.
-
   
 (*lemma sch_is_ind (A <: EncSecurity.Adv_IND_t{Rand,R,R',G,C,DKCp,DKC,AdvInit,DKC_Adv}) &m lp:
   islossless A.gen_query =>

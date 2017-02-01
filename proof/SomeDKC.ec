@@ -348,7 +348,7 @@ theory SomeDKC.
   }.
       
   
-equiv true_key lp (A <:  Adv_DKC_t{Param,DKCp,PRFr_Wrapped}):
+equiv true_key lp (A <:  Adv_DKC_t{Param,PRFr_Wrapped,DKCp}):
     DKCSecurity.Game(DKC_O,A).game ~
     IND(PRFr_Wrapped,D(A)).main : ={glob A} /\ 0 <= lp < boundl /\ b{1} /\ l{1} = lp /\ l{2} = lp
                                ==> ={res}.
