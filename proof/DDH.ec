@@ -104,7 +104,6 @@ theory DDH.
      by skip; smt.
   qed.
 
-
   (*********************************)
   (* GENERIC ADVANTAGE DEFINITIONS *)
   (*********************************)
