@@ -249,7 +249,7 @@ move => i1 r1 i2 r2.
  
 
  
- lemma Correctness:  ES.SomeGarble.DKCSecurity.D.Correct () =>
+ lemma Correctness:  
   ProtSecurity.Correct (). 
  proof strict.
   (*move => DKCh.
@@ -622,7 +622,7 @@ wp; call ES.Rand_islossless.
 wp => //.
 qed.
 
- lemma Security : 
+(* lemma Security : 
   forall (A1 <: ProtSecurity.Adv1_t {ES.Rand, CSFE.B_OT1, CSFE.B_G, SomeOT.DDHn_A, SomeOT.ESn_A}) (A2 <: ProtSecurity.Adv2_t {ES.Rand, CSFE.B_OT2, CSFE.B_G}) &m,
    islossless A1.gen_query =>
    islossless A1.dist =>
@@ -675,3 +675,4 @@ qed.
 
  progress;smt.
  qed.
+*)
