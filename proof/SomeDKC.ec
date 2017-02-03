@@ -49,8 +49,8 @@ theory SomeDKC.
   
   lemma w2kw_kw2w w b : fst (w2kw (kw2w w b)) = w. 
   proof.
-    simplify w2kw kw2w fst.
-    case b => hc. 
+    simplify kw2w w2kw fst.
+    case b => hc.
     smt tmo=60.
     simplify.
     smt tmo=60.
@@ -106,20 +106,20 @@ theory SomeDKC.
         op dR = W.Dword.dword.
           
   clone import DKC.DKCScheme as PrfDKC with
-        type tweak_t = word,
-        type msg_t = word,
-        type key1_t = word,
-        type key2_t = word,
-        type cipher_t = word,
+        type t = word,
         op E(t,k1,k2,m) = (F (fst (w2kw k1)) t) ^ (F (fst (w2kw k2)) t) ^ m,
         op D(t,k1,k2,c) = (F (fst (w2kw k1)) t) ^ (F (fst (w2kw k2)) t) ^ c.
-                
+        
   (** DKC security definitions, instantiated with the words defined in W *)
   clone import DKCSec2.DKCSecurity with
-    (*theory WD <- W,*)
-        theory DKCScheme <- PrfDKC.
-  
+    theory DKCScheme <- PrfDKC,
+    op keys_t_d = Dword.dwordLsb,
+    op msg_t_d = Dword.dword
+  proof
+  keys_t_d_ll by smt,
+  msg_t_d_ll  by smt.
 
+    
   lemma PrfDKC_correct : PrfDKC.Correct().
   proof.
     by simplify Correct E D => t k1 k2 x; smt.
@@ -131,107 +131,7 @@ theory SomeDKC.
       the PRF oracle. If its the real oracle, then we are in the DKC
       game; otherwise, we are in a OTP world, because tweaks do not
       repeat. *)
-     
-  (*************************************)
-  (** DKC PART *)
-  (*************************************)
-  
-  (** DKC parameters *)
-  module DKCp = {
-    var b : bool
-    var ksec : word
-    var kpub : ((int * bool), word) fmap
-    var used : word fset
-    var lsb : bool
-    var l : int
-  }.
 
-  op itb (x:int) = if x = 1 then true else false.
-  
-  module DKC_O : DKC_AdvOracles = {    
-    
-    proc initialize(b : bool,l:int): bool = {
-      var i, tok1, tok2;
-      
-      DKCp.b = b;
-      DKCp.l = l;
-      DKCp.lsb = witness;
-      DKCp.ksec = witness;
-      DKCp.used = FSet.fset0;
-      DKCp.kpub = map0;
-      
-      i = 0;
-      while (i < bound) {
-        DKCp.kpub.[(i, false)] = W.zeros;
-        DKCp.kpub.[(i, true)] = W.zeros;
-        i = i + 1;
-      }
-            
-      i = 0;
-      while (i < bound) {
-        if (i = DKCp.l) {
-          DKCp.lsb = ${0,1};
-          DKCp.ksec = $Dword.dwordLsb (DKCp.lsb);
-          DKCp.kpub.[(i,DKCp.lsb)] = witness; (* can never return or encrypt this key *)
-          DKCp.kpub.[(i,!DKCp.lsb)] = $Dword.dwordLsb (!DKCp.lsb);  
-        }
-        else {
-          tok1 = $Dword.dwordLsb (false);
-          tok2 = $Dword.dwordLsb (true);
-            DKCp.kpub.[(i, false)] = tok1;
-            DKCp.kpub.[(i, true)] = tok2;
-        }
-        i = i + 1;
-      }
-      
-      return DKCp.lsb;
-    }
-    
-    proc encrypt(q:query_DKC) : answer_DKC = {
-      var aa,bb,xx : word;
-      var ib,jb,lb : int * bool;
-      var bi,bj,bl', rn: bool;
-      var t, ki, kj : word;
-      var ans : answer_DKC;
-
-      ans = bad;
-      (rn,ib,jb,lb,t) = q;
-      
-      if (!(mem DKCp.used t) /\ 0 <= ib.`1 /\ ib.`1 < jb.`1 /\ jb.`1 < lb.`1 /\ lb.`1 < bound /\ lb <> (DKCp.l,DKCp.lsb)) {
-        DKCp.used = DKCp.used `|` fset1 t; (* to do: check unicity *)
-        
-        ki = oget DKCp.kpub.[ib];
-        kj = oget DKCp.kpub.[jb];
-        
-        (aa,bb) = if (ib = (DKCp.l,DKCp.lsb)) 
-                  then (DKCp.ksec, kj) 
-                  else (if (jb = (DKCp.l,DKCp.lsb)) 
-                        then (ki, DKCp.ksec) 
-                        else (ki,kj));
-
-        xx = oget DKCp.kpub.[lb];
-        
-        if (((((DKCp.l,DKCp.lsb) = ib) || ((DKCp.l,DKCp.lsb) = jb)) /\ !DKCp.b) || rn) {
-          xx = $Dword.dword;
-        }
-        ans = (ki, kj, E t aa bb xx);
-      }
-
-      return ans;
-    }
-  }.
-
-  lemma encrypt_ll : islossless DKC_O.encrypt.
-  proof.
-    proc => //.
-    seq 2 : true => //; first by auto.
-    if.
-    case (((DKCp.l, DKCp.lsb) = ib || (DKCp.l, DKCp.lsb) = jb) /\ !DKCp.b || rn).
-      rcondt 6; first by auto. by auto; smt. 
-      rcondf 6; first 2 by auto. 
-    trivial.
-  qed.
-  
   (*************************************)
   (** PRF PART *)
   (*************************************)
@@ -311,12 +211,12 @@ theory SomeDKC.
       Param.tbl = map0;
       Param.l = l;
       
-      i = 0;
+      (*i = 0;
       while (i < bound) {
-        Param.kpub.[(i, false)] = (KW.zeros,false);
-        Param.kpub.[(i, true)] = (KW.zeros,true);
+        Param.kpub.[(i, false)] = (witness,false);
+        Param.kpub.[(i, true)] = (witness,true);
         i = i + 1;
-      }
+      }*)
 
       i = 0;
       while (i < bound) {
@@ -368,11 +268,11 @@ equiv true_key lp (A <:  Adv_DKC_t{Param,PRFr_Wrapped,DKCp}):
       ); 
       inline DKC_O.initialize D(A, PRFr_Wrapped).initialize.
 
-    splitwhile{1} 12 : i < DKCp.l. 
-    splitwhile{1} 13 : i = DKCp.l.
+    splitwhile{1} 10 : i < DKCp.l. 
+    splitwhile{1} 11 : i = DKCp.l.
 
-    splitwhile{2} 12 : i < Param.l. 
-    splitwhile{2} 13 : i = Param.l.
+    splitwhile{2} 10 : i < Param.l. 
+    splitwhile{2} 11 : i = Param.l.
     
     wp; while (={glob A} /\ 0 <= lp < bound /\ b{1} /\ (b{1}, l{1}).`2 = lp /\ l{2} = lp /\
       DKCp.used{1} = Param.used{2} /\ DKCp.used{1} = fset0 /\ DKCp.b{1} = b{1} /\ DKCp.b{1} /\
@@ -391,24 +291,16 @@ equiv true_key lp (A <:  Adv_DKC_t{Param,PRFr_Wrapped,DKCp}):
     rcondf{1} 1. auto. progress => /#.
     rcondf{2} 1. auto. progress => /#.
 
-    auto; progress; first 2 by idtac=>/#. rewrite !getP => /#. 
+    auto; progress; first 4 by idtac=>/#. rewrite !getP => /#. 
         rewrite !getP. case ((k, b1) = (i{2}, true)) => hc. rewrite !oget_some kw2w_w2kw. rewrite (Dword.lsb_dwordLsb (true) _). done. idtac=>/#. done. case ((k, b1) = (i{2}, false)) => hc'. rewrite !oget_some kw2w_w2kw. rewrite (Dword.lsb_dwordLsb (false) _). done. idtac=>/#. done. idtac=>/#.
         rewrite !getP. case ((k, b1) = (i{2}, true)) => hc. rewrite oget_some. simplify w2kw snd. rewrite (Dword.lsb_dwordLsb (true) _). done. idtac=>/#. case ((k, b1) = (i{2}, false)) => hc'. rewrite oget_some. simplify w2kw snd. rewrite (Dword.lsb_dwordLsb (false) _). done. idtac=>/#. idtac=>/#. 
-        rewrite !getP => /#. (*
-        rewrite !dom_set. rewrite !in_fsetU. case (k = i{2}) => hki. case (b1) => hb1. right. rewrite in_fset1. done. left. right. rewrite in_fset1. done. left. left. rewrite H10. idtac=>/#. done. 
-        rewrite !dom_set. rewrite !in_fsetU. case (k = i{2}) => hki. case (b1) => hb1. right. rewrite in_fset1. done. left. right. rewrite in_fset1. done. left. left. rewrite H11. idtac=>/#. done. 
-        rewrite !dom_set. rewrite !in_fsetU. left. left. rewrite H12. idtac=>/#. done.  
-        rewrite !dom_set. rewrite !in_fsetU. left. left. rewrite H13. idtac=>/#. done. 
-        move : H22. rewrite !dom_set. rewrite !in_fsetU. progress. cut ? : forall (k : int) (b : bool), mem (dom DKCp.kpub{1}) (k, b) => 0 <= k by idtac=>/#. case (b1) => hb1. elim H22. progress. elim H22. progress. rewrite (H23 k b1). done. progress. smt. progress. smt. elim H22. progress. elim H22. progress. rewrite (H23 k b1). done. progress. smt. progress. smt. 
-        move : H22. rewrite !dom_set. rewrite !in_fsetU. progress. cut ? : forall (k : int) (b : bool), mem (dom DKCp.kpub{1}) (k, b) => k < bound by idtac=>/#. case (b1) => hb1. elim H22. progress. elim H22. progress. rewrite (H24 k b1). done. progress. smt. progress. smt. elim H22. progress. elim H22. progress. rewrite (H24 k b1). done. progress. smt. progress. smt. 
-        move : H22. rewrite !dom_set. rewrite !in_fsetU. progress. cut ? : forall (k : int) (b : bool), mem (dom Param.kpub{2}) (k, b) => 0 <= k by idtac=>/#. case (b1) => hb1. elim H22. progress. elim H22. progress. rewrite (H23 k b1). done. progress. smt. progress. smt. elim H22. progress. elim H22. progress. rewrite (H23 k b1). done. progress. smt. progress. smt. 
-        move : H22. rewrite !dom_set. rewrite !in_fsetU. progress. cut ? : forall (k : int) (b : bool), mem (dom Param.kpub{2}) (k, b) => k < bound by idtac=>/#. case (b1) => hb1. elim H22. progress. elim H22. progress. rewrite (H24 k b1). done. progress. smt. progress. smt. elim H22. progress. elim H22. progress. rewrite (H24 k b1). done. progress. smt. progress. smt. *)
+        rewrite !getP => /#.
 
-    rcondt{1} 13. auto. while (0 <= i <= DKCp.l). if. auto => /#. auto => /#. wp. while true. auto. auto. progress;smt. rcondt{1} 13. progress. while (0 <= i <= DKCp.l). if. auto => /#. auto => /#. wp. while true. auto. auto. progress;smt. rcondf{1} 18. progress. auto. while (0 <= i <= DKCp.l). if. auto => /#. auto => /#. wp. while true. auto. auto. progress;smt.
+    rcondt{1} 11. auto. while (0 <= i <= DKCp.l). if. auto => /#. auto => /#. wp. auto. progress;smt. rcondt{1} 11. progress. while (0 <= i <= DKCp.l). if. auto => /#. auto => /#. wp. auto. progress;smt. rcondf{1} 16. progress. auto. while (0 <= i <= DKCp.l). if. auto => /#. auto => /#. wp. auto. progress;smt.
     
-    rcondt{2} 13. auto. while (0 <= i <= Param.l). if. auto => /#. auto => /#. wp. while true. auto. auto. progress;smt. rcondt{2} 13. progress. while (0 <= i <= Param.l). if. auto => /#. auto => /#. wp. while true. auto. auto. progress;smt. rcondf{2} 18. progress. auto. while (0 <= i <= Param.l). if. auto => /#. auto => /#. wp. while true. auto. auto. progress;smt. 
+    rcondt{2} 11. auto. while (0 <= i <= Param.l). if. auto => /#. auto => /#. wp. auto. progress;smt. rcondt{2} 11. progress. while (0 <= i <= Param.l). if. auto => /#. auto => /#. wp. auto. progress;smt. rcondf{2} 16. progress. auto. while (0 <= i <= Param.l). if. auto => /#. auto => /#. wp. auto. progress;smt.
 
-    swap{2} 1 12.
+    swap{2} 1 10.
     wp. rnd (fun w, fst (w2kw' w)) (fun w, kw2w' w (!Param.lsb{2})). wp. rnd (fun w, fst (w2kw' w)) (fun w, kw2w' w (Param.lsb{2})). rnd.
 
     while (={glob A} /\ 0 <= lp < bound /\ b{1} /\ (b{1}, l{1}).`2 = lp /\ l{2} = lp /\
@@ -417,70 +309,37 @@ equiv true_key lp (A <:  Adv_DKC_t{Param,PRFr_Wrapped,DKCp}):
       DKCp.lsb{1} = Param.lsb{2} /\
       Param.tbl{2} = map0 /\
       i{1} = i{2} /\ 0 <= i{1} <= DKCp.l{1} /\
-      (*oget Param.kpub{2}.[(Param.l{2},Param.lsb{2})] = (witness,witness) /\
-      oget DKCp.kpub{1}.[(DKCp.l{1},DKCp.lsb{1})] = witness /\*)
-      (*snd (oget Param.kpub{2}.[(Param.l{2},Param.lsb{2})]) = Param.lsb{2} /\*)
+
       (forall k b, 0 <= k < i{1} => k <> Param.l{2} => oget DKCp.kpub{1}.[(k,b)] = kw2w (fst (oget Param.kpub{2}.[(k,b)])) b) /\
       (forall k b, 0 <= k < i{1} => snd (oget Param.kpub{2}.[(k,b)]) = b) /\
-      (forall k, 0 <= k < i{1} => k = Param.l{2} => oget DKCp.kpub{1}.[(k,!Param.lsb{2})] = kw2w (fst (oget Param.kpub{2}.[(k,!Param.lsb{2})])) (!Param.lsb{2})) 
-      (*(forall k b, 0 <= k < i{1} => k <> Param.l{2} => mem (dom DKCp.kpub{1}) (k,b)) /\
-      (forall k b, 0 <= k < i{1} => k <> Param.l{2} => mem (dom Param.kpub{2}) (k,b)) /\
-      (forall k, 0 <= k < i{1} => k = Param.l{2} => mem (dom DKCp.kpub{1}) (k, !Param.lsb{2})) /\
-      (forall k, 0 <= k < i{1} => k = Param.l{2} => mem (dom Param.kpub{2}) (k, !Param.lsb{2})) /\
-      (forall k b, mem (dom DKCp.kpub{1}) (k,b) => 0 <= k < bound) /\
-      (forall k b, mem (dom Param.kpub{2}) (k,b) => 0 <= k < bound)*)).
+      (forall k, 0 <= k < i{1} => k = Param.l{2} => oget DKCp.kpub{1}.[(k,!Param.lsb{2})] = kw2w (fst (oget Param.kpub{2}.[(k,!Param.lsb{2})])) (!Param.lsb{2})) ).
 
     rcondf{1} 1. auto. progress => /#.
     rcondf{2} 1. auto. progress => /#.
 
-    auto. progress; first 2 by idtac=>/#.  
+    auto. progress; first 4 by idtac=>/#.  
     rewrite !getP. case ((k, b1) = (i{2}, true)) => hc. rewrite !oget_some kw2w_w2kw. rewrite (Dword.lsb_dwordLsb (true) _). done. idtac=>/#. done. case ((k, b1) = (i{2}, false)) => hc'. rewrite !oget_some kw2w_w2kw. rewrite (Dword.lsb_dwordLsb (false) _). done. idtac=>/#. done. idtac=>/#.
         rewrite !getP. case ((k, b1) = (i{2}, true)) => hc. rewrite oget_some. simplify w2kw snd. rewrite (Dword.lsb_dwordLsb (true) _). done. idtac=>/#. case ((k, b1) = (i{2}, false)) => hc'. rewrite oget_some. simplify w2kw snd. rewrite (Dword.lsb_dwordLsb (false) _). done. idtac=>/#. idtac=>/#. 
         rewrite !getP => /#.  
 
-        (*rewrite !dom_set. rewrite !in_fsetU. case (k = i{2}) => hki. case (b1) => hb1. right. rewrite in_fset1. done. left. right. rewrite in_fset1. done. left. left. rewrite H8. idtac=>/#. done. 
-        rewrite !dom_set. rewrite !in_fsetU. case (k = i{2}) => hki. case (b1) => hb1. right. rewrite in_fset1. done. left. right. rewrite in_fset1. done. left. left. rewrite H9. idtac=>/#. done. 
-        rewrite !dom_set. rewrite !in_fsetU. left. left. rewrite H10. idtac=>/#. done.  
-        rewrite !dom_set. rewrite !in_fsetU. left. left. rewrite H11. idtac=>/#. done.
     
-        move : H22. rewrite !dom_set. rewrite !in_fsetU. progress. cut ? : forall (k : int) (b : bool), mem (dom DKCp.kpub{1}) (k, b) => 0 <= k by idtac=>/#. case (b1) => hb1. elim H22. progress. elim H22. progress. rewrite (H23 k b1). done. progress. smt. progress. smt. elim H22. progress. elim H22. progress. rewrite (H23 k b1). done. progress. smt. progress. smt. 
-        move : H22. rewrite !dom_set. rewrite !in_fsetU. progress. cut ? : forall (k : int) (b : bool), mem (dom DKCp.kpub{1}) (k, b) => k < bound by idtac=>/#. case (b1) => hb1. elim H22. progress. elim H22. progress. rewrite (H24 k b1). done. progress. smt. progress. smt. elim H22. progress. elim H22. progress. rewrite (H24 k b1). done. progress. smt. progress. smt. 
-        move : H22. rewrite !dom_set. rewrite !in_fsetU. progress. cut ? : forall (k : int) (b : bool), mem (dom Param.kpub{2}) (k, b) => 0 <= k by idtac=>/#. case (b1) => hb1. elim H22. progress. elim H22. progress. rewrite (H23 k b1). done. progress. smt. progress. smt. elim H22. progress. elim H22. progress. rewrite (H23 k b1). done. progress. smt. progress. smt. 
-        move : H22. rewrite !dom_set. rewrite !in_fsetU. progress. cut ? : forall (k : int) (b : bool), mem (dom Param.kpub{2}) (k, b) => k < bound by idtac=>/#. case (b1) => hb1. elim H22. progress. elim H22. progress. rewrite (H24 k b1). done. progress. smt. progress. smt. elim H22. progress. elim H22. progress. rewrite (H24 k b1). done. progress. smt. progress. smt. *)
-
-    
-    wp; while (={glob A} /\ 0 <= lp < bound /\ b{1} /\ ={i} /\ 0 <= i{1} <= bound /\ (b{1}, l{1}).`2 = lp /\ l{2} = lp /\
+  (*  wp; while (={glob A} /\ 0 <= lp < bound /\ b{1} /\ ={i} /\ 0 <= i{1} <= bound /\ (b{1}, l{1}).`2 = lp /\ l{2} = lp /\
       DKCp.used{1} = Param.used{2} /\ DKCp.used{1} = fset0 /\ DKCp.b{1} = b{1} /\ DKCp.b{1} /\
       DKCp.l{1} = Param.l{2} /\ DKCp.l{1} = lp /\ Param.l{2} = l0{2} /\ DKCp.l{1} = l{1} /\
       DKCp.lsb{1} = Param.lsb{2} /\
       Param.tbl{2} = map0 /\ 
-      (forall k, 0 <= k < i{1} => oget DKCp.kpub{1}.[(k,false)] = W.zeros) /\
-      (forall k, 0 <= k < i{1} => oget DKCp.kpub{1}.[(k,true)] = W.zeros) /\
-      (forall k, 0 <= k < i{1} => oget Param.kpub{2}.[(k,false)] = (KW.zeros, false)) /\
-      (forall k, 0 <= k < i{1} => oget Param.kpub{2}.[(k,true)] = (KW.zeros, true))
-      (*(forall k b, 0 <= k < i{1} => mem (dom DKCp.kpub{1}) (k,b)) /\
-      (forall k b, 0 <= k < i{1} => mem (dom Param.kpub{2}) (k,b)) /\
-      (forall k b, mem (dom DKCp.kpub{1}) (k,b) => 0 <= k < i{1}) /\
-      (forall k b, mem (dom Param.kpub{2}) (k,b) => 0 <= k < i{1})*)).
-      auto; progress; expect 6 by by rewrite ?getP => /#. 
-(*        rewrite !dom_set. rewrite !in_fsetU. case (k = i{2}) => hki. case (b1) => hb1. right. rewrite in_fset1. done. left. right. rewrite in_fset1. done. left. left. rewrite H9. idtac=>/#. 
-        rewrite !dom_set. rewrite !in_fsetU. case (k = i{2}) => hki. case (b1) => hb1. right. rewrite in_fset1. done. left. right. rewrite in_fset1. done. left. left. rewrite H10. idtac=>/#. 
-    
-       move : H15. rewrite !dom_set. rewrite !in_fsetU. progress. cut ? : forall (k : int) (b : bool), mem (dom DKCp.kpub{1}) (k, b) => 0 <= k by idtac=>/#. case (b1) => hb1. elim H15. progress. elim H15. progress. rewrite (H16 k b1). done. progress. smt. progress. smt. elim H15. progress. elim H15. progress. rewrite (H16 k b1). done. progress. smt. progress. smt. 
-        move : H15. rewrite !dom_set. rewrite !in_fsetU. progress. cut ? : forall (k : int) (b : bool), mem (dom DKCp.kpub{1}) (k, b) => k < i{2} + 1 by idtac=>/#. case (b1) => hb1. elim H15. progress. elim H15. progress. rewrite (H17 k b1). done. progress. smt. progress. smt. elim H15. progress. elim H15. progress. rewrite (H17 k b1). done. progress. smt. progress. smt. 
-        move : H15. rewrite !dom_set. rewrite !in_fsetU. progress. cut ? : forall (k : int) (b : bool), mem (dom Param.kpub{2}) (k, b) => 0 <= k by idtac=>/#. case (b1) => hb1. elim H15. progress. elim H15. progress. rewrite (H16 k b1). done. progress. smt. progress. smt. elim H15. progress. elim H15. progress. rewrite (H16 k b1). done. progress. smt. progress. smt. 
-        move : H15. rewrite !dom_set. rewrite !in_fsetU. progress. cut ? : forall (k : int) (b : bool), mem (dom Param.kpub{2}) (k, b) => k < i{2} + 1 by idtac=>/#. case (b1) => hb1. elim H15. progress. elim H15. progress. rewrite (H17 k b1). done. progress. smt. progress. smt. elim H15. progress. elim H15. progress. rewrite (H17 k b1). done. progress. smt. progress. smt. *)
+      (forall k, 0 <= k < i{1} => oget DKCp.kpub{1}.[(k,false)] = witness) /\
+      (forall k, 0 <= k < i{1} => oget DKCp.kpub{1}.[(k,true)] = witness) /\
+      (forall k, 0 <= k < i{1} => oget Param.kpub{2}.[(k,false)] = (witness, false)) /\
+      (forall k, 0 <= k < i{1} => oget Param.kpub{2}.[(k,true)] = (witness, true))).
+      auto; progress; expect 6 by by rewrite ?getP => /#. *)
+
 
     auto; progress; last 3 by idtac=>/#.
         by smt. 
-        by smt.
         by rewrite map0P =>/#.
         by rewrite map0P =>/#.
         by rewrite map0P =>/#.
-        by rewrite map0P =>/#.
-        by idtac=>/#.
-        by idtac=>/#.
-        by idtac=>/#.
         by rewrite w2kw'_kw2w'. 
         rewrite KW.Dword.mu_x_def Dword.dwordLsb_mu_x. cut ->: getlsb (kw2w' kR (lsbL)) = lsbL <=> true. simplify kw2w'. rewrite get_setlsb. done. done. 
         by smt.
@@ -496,21 +355,7 @@ equiv true_key lp (A <:  Adv_DKC_t{Param,PRFr_Wrapped,DKCp}):
         by rewrite !getP => /#. 
         by rewrite !getP => /#. 
         by rewrite !getP => /#. 
-        rewrite !getP. case ((l{1}, !lsbL) = (i_R0, !lsbL)) => hc. rewrite !oget_some. smt. case ((l{1}, !lsbL) = (i_R0, lsbL)) => hc'. smt. idtac=>/#. 
-        (*rewrite !dom_set. rewrite !in_fsetU. case (k = i_R0) => hki. case (b1 = !lsbL) => hb1. right. rewrite in_fset1. done. left. right. rewrite in_fset1. idtac=>/#. left. left. rewrite H29. idtac=>/#. done.
-        rewrite !dom_set. rewrite !in_fsetU. case (k = i_R0) => hki. case (b1 = !lsbL) => hb1. right. rewrite in_fset1. done. left. right. rewrite in_fset1. idtac=>/#. left. left. rewrite H30. idtac=>/#. done.
-        by smt. 
-        by smt.
-
-        move : H47. rewrite !dom_set. rewrite !in_fsetU. progress. cut ? : forall (k : int) (b : bool), mem (dom kpub_L0) (k, b) => 0 <= k by idtac=>/#. case (b1) => hb1. elim H47. progress. elim H47. progress. rewrite (H48 k b1). done. progress. smt. progress. smt. elim H47. progress. elim H47. progress. rewrite (H48 k b1). done. progress. smt. progress. smt. 
-        move : H47. rewrite !dom_set. rewrite !in_fsetU. progress. cut ? : forall (k : int) (b : bool), mem (dom kpub_L0) (k, b) => k < bound by idtac=>/#. case (b1) => hb1. elim H47. progress. elim H47. progress. rewrite (H49 k b1). done. progress. smt. progress. smt. elim H47. progress. elim H47. progress. rewrite (H49 k b1). done. progress. smt. progress. smt. 
-        move : H47. rewrite !dom_set. rewrite !in_fsetU. progress. cut ? : forall (k : int) (b : bool), mem (dom kpub_R0) (k, b) => 0 <= k by idtac=>/#. case (b1) => hb1. elim H47. progress. elim H47. progress. rewrite (H48 k b1). done. progress. smt. progress. smt. elim H47. progress. elim H47. progress. rewrite (H48 k b1). done. progress. smt. progress. smt. 
-        move : H47. rewrite !dom_set. rewrite !in_fsetU. progress. cut ? : forall (k : int) (b : bool), mem (dom kpub_R0) (k, b) => k < bound by idtac=>/#. case (b1) => hb1. elim H47. progress. elim H47. progress. rewrite (H49 k b1). done. progress. smt. progress. smt. elim H47. progress. elim H47. progress. rewrite (H49 k b1). done. progress. smt. progress. smt. 
-    
-by idtac=>/#.
-by idtac=>/#.
-by idtac=>/#.
-by idtac=>/#.*)
+        rewrite !getP. case ((l{1}, !lsbL) = (i_R, !lsbL)) => hc. rewrite !oget_some. smt. case ((l{1}, !lsbL) = (i_R, lsbL)) => hc'. smt. idtac=>/#. 
 
         wp. 
 
@@ -526,7 +371,6 @@ by idtac=>/#.*)
   Param.tbl{2} = map0 /\
   oget DKCp.kpub{1}.[(DKCp.l{1}, DKCp.lsb{1})] =
         kw2w (fst (oget Param.kpub{2}.[(Param.l{2}, Param.lsb{2})])) Param.lsb{2} /\
-      (*snd (oget Param.kpub{2}.[(Param.l{2}, Param.lsb{2})]) = Param.lsb{2} /\*)
   (forall (k : int) (b0 : bool),
      0 <= k < bound =>
      k <> Param.l{2} =>
@@ -539,21 +383,7 @@ by idtac=>/#.*)
     0 <= k < bound =>
     k = Param.l{2} =>
     oget DKCp.kpub{1}.[(k, !Param.lsb{2})] =
-    kw2w (fst (oget Param.kpub{2}.[(k, !Param.lsb{2})])) (!Param.lsb{2}))
-  (*(forall (k : int) (b0 : bool),
-     0 <= k < bound => k <> Param.l{2} => mem (dom DKCp.kpub{1}) (k, b0)) /\
-  (forall (k : int) (b0 : bool),
-     0 <= k < bound => k <> Param.l{2} => mem (dom Param.kpub{2}) (k, b0)) /\
-  (forall (k : int),
-     0 <= k < bound =>
-     k = Param.l{2} => mem (dom DKCp.kpub{1}) (k, !Param.lsb{2})) /\
-  (forall (k : int),
-     0 <= k < bound =>
-     k = Param.l{2} => mem (dom Param.kpub{2}) (k, !Param.lsb{2})) /\
-  (forall (k : int) (b0 : bool),
-     mem (dom DKCp.kpub{1}) (k, b0) => 0 <= k < bound) /\
-  (forall (k : int) (b0 : bool),
-    mem (dom Param.kpub{2}) (k, b0) => 0 <= k < bound)*)).
+    kw2w (fst (oget Param.kpub{2}.[(k, !Param.lsb{2})])) (!Param.lsb{2}))).
 
     proc.
     case (! mem DKCp.used{1} q{1}.`5 /\ 0 <= q{1}.`2.`1 /\
@@ -576,7 +406,8 @@ by idtac=>/#.*)
         rcondt{2} 9. progress. auto. 
         inline PRFr_Wrapped.f. 
         wp. rnd. wp. skip. progress. 
-        by rewrite H14 H3 => /#.   
+          by smt.
+          by rewrite H14 H3 => /#.   
 
           cut ->: q{2}.`3 = (q{2}.`3.`1,q{2}.`3.`2) by idtac=>/#. rewrite H4 => /#. 
           simplify PrfDKC.E. simplify PRF.F. rewrite H14 /=. congr. congr. congr. rewrite w2kw_kw2w => /#. cut ->: q{2}.`3 = (q{2}.`3.`1,q{2}.`3.`2) by idtac=>/#. rewrite H4. idtac=>/#. idtac=>/#. rewrite w2kw_kw2w =>/#. 
@@ -585,15 +416,16 @@ by idtac=>/#.*)
         rcondf{2} 9. progress. auto. rcondt{2} 9. progress. auto. 
         inline PRFr_Wrapped.f.
         wp. rnd. wp. skip. progress.
+        by smt.
         cut ->: q{2}.`2 = (q{2}.`2.`1,q{2}.`2.`2) by idtac=>/#. rewrite H4 => /#.
         by rewrite H15 H3 => /#. 
         simplify PrfDKC.E. simplify PRF.F. cut ->: q{2}.`2 = (Param.l{2}, Param.lsb{2}) <=> false by idtac=>/#. rewrite H15 /=. congr. congr. congr. cut ->: q{2}.`2 = (q{2}.`2.`1,q{2}.`2.`2) by idtac=>/#. rewrite H4. idtac=>/#. idtac=>/#. rewrite w2kw_kw2w =>/#. rewrite w2kw_kw2w => /#. 
 
     rcondf{2} 9. progress. auto. 
     rcondf{2} 9. auto.
-    (*case (q{2}.`2.`1 = Param.l{2}).*)    
     inline PRFr_Wrapped.f.
     wp. rnd. wp. skip. progress.
+      by smt.
       by idtac=>/#.
       by idtac=>/#.
       cut ->: q{2}.`2 = (Param.l{2}, Param.lsb{2}) <=> false by idtac=>/#. cut ->: q{2}.`3 = (Param.l{2}, Param.lsb{2}) <=> false by idtac=>/#. simplify. simplify E. congr. congr. congr. cut ->: q{2}.`2 = (q{2}.`2.`1,q{2}.`2.`2) by idtac=>/#. by smt. by smt. 
@@ -618,14 +450,13 @@ by idtac=>/#.*)
     case (q{2}.`3 = (Param.l{2}, Param.lsb{2})).
         rcondf{2} 8. progress. auto. rcondt{2} 8. progress. auto. 
         inline PRFr_Wrapped.f.
-        wp. skip. progress.
+        wp. skip. progress. 
         cut ->: q{2}.`2 = (q{2}.`2.`1,q{2}.`2.`2) by idtac=>/#. rewrite H4 => /#.
         by rewrite H15 H3 => /#. 
         simplify PrfDKC.E. simplify PRF.F. cut ->: q{2}.`2 = (Param.l{2}, Param.lsb{2}) <=> false by idtac=>/#. rewrite H15 /=. congr. congr. congr. cut ->: q{2}.`2 = (q{2}.`2.`1,q{2}.`2.`2) by idtac=>/#. rewrite H4. idtac=>/#. idtac=>/#. rewrite w2kw_kw2w =>/#. rewrite w2kw_kw2w => /#. idtac=>/#.
 
     rcondf{2} 8. progress. auto. 
     rcondf{2} 8. auto.
-    (*case (q{2}.`2.`1 = Param.l{2}).*)    
     inline PRFr_Wrapped.f. 
     wp. skip. progress.
       by idtac=>/#.
@@ -665,11 +496,11 @@ equiv false_key lp (A <:  Adv_DKC_t{Param,DKCp,PRFr_Wrapped,RandomFunction}):
     );   
       inline DKC_O.initialize D(A, RandomFunction).initialize.
 
-        splitwhile{1} 12 : i < DKCp.l. 
-        splitwhile{1} 13 : i = DKCp.l.
-    
-        splitwhile{2} 12 : i < Param.l. 
-        splitwhile{2} 13 : i = Param.l.
+        splitwhile{1} 10 : i < DKCp.l. 
+    splitwhile{1} 11 : i = DKCp.l.
+
+    splitwhile{2} 10 : i < Param.l. 
+    splitwhile{2} 11 : i = Param.l.
     
         wp; while (={glob A} /\ 0 <= lp < bound /\ !b{1} /\ (b{1}, l{1}).`2 = lp /\ l{2} = lp /\
       DKCp.used{1} = Param.used{2} /\ DKCp.used{1} = fset0 /\ DKCp.b{1} = b{1} /\ !DKCp.b{1} /\
@@ -677,10 +508,7 @@ equiv false_key lp (A <:  Adv_DKC_t{Param,DKCp,PRFr_Wrapped,RandomFunction}):
       DKCp.lsb{1} = Param.lsb{2} /\ getlsb DKCp.ksec{1} = DKCp.lsb{1} /\
       Param.tbl{2} = map0 /\
       i{1} = i{2} /\ DKCp.l{1} < i{1} <= bound /\
-      (*oget Param.kpub{2}.[(Param.l{2},Param.lsb{2})] = (witness,witness) /\
-      oget DKCp.kpub{1}.[(DKCp.l{1},DKCp.lsb{1})] = witness /\*)
       oget DKCp.kpub{1}.[(DKCp.l{1},DKCp.lsb{1})] = kw2w (fst (oget Param.kpub{2}.[(Param.l{2},Param.lsb{2})])) Param.lsb{2} /\
-      (*snd (oget Param.kpub{2}.[(Param.l{2},Param.lsb{2})]) = Param.lsb{2} /\*)
       (forall k b, 0 <= k < i{1} => k <> Param.l{2} => oget DKCp.kpub{1}.[(k,b)] = kw2w (fst (oget Param.kpub{2}.[(k,b)])) b) /\
       (forall k b, 0 <= k < i{1} => snd (oget Param.kpub{2}.[(k,b)]) = b) /\
       (forall k, 0 <= k < i{1} => k = Param.l{2} => oget DKCp.kpub{1}.[(k,!Param.lsb{2})] = kw2w (fst (oget Param.kpub{2}.[(k,!Param.lsb{2})])) (!Param.lsb{2}))).
@@ -688,15 +516,15 @@ equiv false_key lp (A <:  Adv_DKC_t{Param,DKCp,PRFr_Wrapped,RandomFunction}):
         rcondf{1} 1. auto. progress => /#.
     rcondf{2} 1. auto. progress => /#.
 
-    auto; progress; first 2 by idtac=>/#. rewrite !getP => /#. 
+    auto; progress; first 4 by idtac=>/#. rewrite !getP => /#. 
         rewrite !getP. case ((k, b1) = (i{2}, true)) => hc. rewrite !oget_some kw2w_w2kw. rewrite (Dword.lsb_dwordLsb (true) _). done. idtac=>/#. done. case ((k, b1) = (i{2}, false)) => hc'. rewrite !oget_some kw2w_w2kw. rewrite (Dword.lsb_dwordLsb (false) _). done. idtac=>/#. done. idtac=>/#.
         rewrite !getP. case ((k, b1) = (i{2}, true)) => hc. rewrite oget_some. simplify w2kw snd. rewrite (Dword.lsb_dwordLsb (true) _). done. idtac=>/#. case ((k, b1) = (i{2}, false)) => hc'. rewrite oget_some. simplify w2kw snd. rewrite (Dword.lsb_dwordLsb (false) _). done. idtac=>/#. idtac=>/#. 
         rewrite !getP => /#. 
 
 
-    rcondt{1} 13. auto. while (0 <= i <= DKCp.l). if. auto => /#. auto => /#. wp. while true. auto. auto. progress;smt. rcondt{1} 13. progress. while (0 <= i <= DKCp.l). if. auto => /#. auto => /#. wp. while true. auto. auto. progress;smt. rcondf{1} 18. progress. auto. while (0 <= i <= DKCp.l). if. auto => /#. auto => /#. wp. while true. auto. auto. progress;smt. 
+    rcondt{1} 11. auto. while (0 <= i <= DKCp.l). if. auto => /#. auto => /#. wp. auto. progress;smt. rcondt{1} 11. progress. while (0 <= i <= DKCp.l). if. auto => /#. auto => /#. wp. auto. progress;smt. rcondf{1} 16. progress. auto. while (0 <= i <= DKCp.l). if. auto => /#. auto => /#. wp. auto. progress;smt.
     
-    rcondt{2} 13. auto. while (0 <= i <= Param.l). if. auto => /#. auto => /#. wp. while true. auto. auto. progress;smt. rcondt{2} 13. progress. while (0 <= i <= Param.l). if. auto => /#. auto => /#. wp. while true. auto. auto. progress;smt. rcondf{2} 18. progress. auto. while (0 <= i <= Param.l). if. auto => /#. auto => /#. wp. while true. auto. auto. progress;smt. 
+    rcondt{2} 11. auto. while (0 <= i <= Param.l). if. auto => /#. auto => /#. wp. auto. progress;smt. rcondt{2} 11. progress. while (0 <= i <= Param.l). if. auto => /#. auto => /#. wp. auto. progress;smt. rcondf{2} 16. progress. auto. while (0 <= i <= Param.l). if. auto => /#. auto => /#. wp. auto. progress;smt.
 
     wp. rnd (fun w, fst (w2kw' w)) (fun w, kw2w' w (!Param.lsb{2})). wp. rnd{1}. rnd.
     
@@ -706,9 +534,6 @@ equiv false_key lp (A <:  Adv_DKC_t{Param,DKCp,PRFr_Wrapped,RandomFunction}):
       DKCp.lsb{1} = Param.lsb{2} /\
       Param.tbl{2} = map0 /\
       i{1} = i{2} /\ 0 <= i{1} <= DKCp.l{1} /\
-      (*oget Param.kpub{2}.[(Param.l{2},Param.lsb{2})] = (witness,witness) /\
-      oget DKCp.kpub{1}.[(DKCp.l{1},DKCp.lsb{1})] = witness /\*)
-      (*snd (oget Param.kpub{2}.[(Param.l{2},Param.lsb{2})]) = Param.lsb{2} /\*)
       (forall k b, 0 <= k < i{1} => k <> Param.l{2} => oget DKCp.kpub{1}.[(k,b)] = kw2w (fst (oget Param.kpub{2}.[(k,b)])) b) /\
       (forall k b, 0 <= k < i{1} => snd (oget Param.kpub{2}.[(k,b)]) = b) /\
       (forall k, 0 <= k < i{1} => k = Param.l{2} => oget DKCp.kpub{1}.[(k,!Param.lsb{2})] = kw2w (fst (oget Param.kpub{2}.[(k,!Param.lsb{2})])) (!Param.lsb{2}))).
@@ -716,32 +541,16 @@ equiv false_key lp (A <:  Adv_DKC_t{Param,DKCp,PRFr_Wrapped,RandomFunction}):
     rcondf{1} 1. auto. progress => /#.
     rcondf{2} 1. auto. progress => /#.
 
-    auto. progress; first 2 by idtac=>/#.  
+    auto. progress; first 4 by idtac=>/#.  
     rewrite !getP. case ((k, b1) = (i{2}, true)) => hc. rewrite !oget_some kw2w_w2kw. rewrite (Dword.lsb_dwordLsb (true) _). done. idtac=>/#. done. case ((k, b1) = (i{2}, false)) => hc'. rewrite !oget_some kw2w_w2kw. rewrite (Dword.lsb_dwordLsb (false) _). done. idtac=>/#. done. idtac=>/#.
         rewrite !getP. case ((k, b1) = (i{2}, true)) => hc. rewrite oget_some. simplify w2kw snd. rewrite (Dword.lsb_dwordLsb (true) _). done. idtac=>/#. case ((k, b1) = (i{2}, false)) => hc'. rewrite oget_some. simplify w2kw snd. rewrite (Dword.lsb_dwordLsb (false) _). done. idtac=>/#. idtac=>/#. 
         rewrite !getP => /#.  
     
-    wp; while (={glob A} /\ 0 <= lp < bound /\ !b{1} /\ ={i} /\ 0 <= i{1} <= bound /\ (b{1}, l{1}).`2 = lp /\ l{2} = lp /\
-      DKCp.used{1} = Param.used{2} /\ DKCp.used{1} = fset0 /\ DKCp.b{1} = b{1} /\ !DKCp.b{1} /\
-      DKCp.l{1} = Param.l{2} /\ DKCp.l{1} = lp /\ Param.l{2} = l0{2} /\ DKCp.l{1} = l{1} /\
-      DKCp.lsb{1} = Param.lsb{2} /\
-      Param.tbl{2} = map0 /\ 
-      (forall k, 0 <= k < i{1} => oget DKCp.kpub{1}.[(k,false)] = W.zeros) /\
-      (forall k, 0 <= k < i{1} => oget DKCp.kpub{1}.[(k,true)] = W.zeros) /\
-      (forall k, 0 <= k < i{1} => oget Param.kpub{2}.[(k,false)] = (KW.zeros, false)) /\
-      (forall k, 0 <= k < i{1} => oget Param.kpub{2}.[(k,true)] = (KW.zeros, true))).
-      auto; progress; expect 6 by by rewrite ?getP => /#. 
-
     auto; progress; last 3 by idtac=>/#.
         by smt.
-        by smt.
         by rewrite map0P =>/#.
         by rewrite map0P =>/#.
         by rewrite map0P =>/#.
-        by rewrite map0P =>/#.
-        by idtac=>/#.
-        by idtac=>/#.
-        by idtac=>/#.
         by rewrite Dword.dwordLsb_lossless. 
         by rewrite w2kw'_kw2w'.
         rewrite KW.Dword.mu_x_def Dword.dwordLsb_mu_x. cut ->: getlsb (kw2w' kiR (!lsbL)) = !lsbL <=> true. simplify kw2w'. rewrite get_setlsb. done. done. 
@@ -753,7 +562,7 @@ equiv false_key lp (A <:  Adv_DKC_t{Param,DKCp,PRFr_Wrapped,RandomFunction}):
         by rewrite !getP => /#. 
         by rewrite !getP => /#. 
         by rewrite !getP => /#. 
-        rewrite !getP. case ((l{1}, !lsbL) = (i_R0, !lsbL)) => hc. rewrite !oget_some. smt. case ((l{1}, !lsbL) = (i_R0, lsbL)) => hc'. smt. idtac=>/#. 
+        rewrite !getP. case ((l{1}, !lsbL) = (i_R, !lsbL)) => hc. rewrite !oget_some. smt. case ((l{1}, !lsbL) = (i_R, lsbL)) => hc'. smt. idtac=>/#. 
     wp.
 
     call (_ : 
@@ -825,14 +634,14 @@ equiv false_key lp (A <:  Adv_DKC_t{Param,DKCp,PRFr_Wrapped,RandomFunction}):
       by rewrite -aux_xorwK.
       cut ->: q{2}.`2 = (q{2}.`2.`1,q{2}.`2.`2) by idtac=>/#. rewrite H3 => /#.
       by rewrite H14 H2 => /#.         
-      cut ->: q{2}.`2 = (Param.l{2}, getlsb DKCp.ksec{1}) <=> false by idtac=>/#. simplify PrfDKC.E fst; rewrite H14 /= getP /= oget_some; smt. 
+      cut ->: q{2}.`2 = (Param.l{2}, getlsb DKCp.ksec{1}) <=> false by idtac=>/#. simplify PrfDKC.E fst; rewrite H14 /= getP /= oget_some; smt tmo=10. 
       by rewrite dom_set.  
 
       rcondf{2} 9. progress. auto. rcondf{2} 9. progress. auto.
       inline RandomFunction.f.
       rcondt{2} 10. auto.  
     wp. rnd{2}. wp. rnd. wp. skip. progress. 
-      by smt.
+      by smt. by smt.
       cut ->: q{2}.`2 = (q{2}.`2.`1,q{2}.`2.`2) by idtac=>/#. smt tmo=10.
       cut ->: q{2}.`3 = (q{2}.`3.`1,q{2}.`3.`2) by idtac=>/#. smt tmo=10. 
       cut ->: q{2}.`2 = (Param.l{2}, getlsb DKCp.ksec{1}) <=> false by idtac=>/#. cut ->: q{2}.`3 = (Param.l{2}, getlsb DKCp.ksec{1}) <=> false by idtac=>/#. simplify. simplify E. congr. congr. congr. cut ->: q{2}.`2 = (q{2}.`2.`1,q{2}.`2.`2) by idtac=>/#. by smt. by smt. 

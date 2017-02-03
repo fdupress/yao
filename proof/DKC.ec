@@ -18,29 +18,35 @@ require import Pair.
 *)
 theory DKCScheme.
 
+  (* "Global" type of the DKC. 
+  For a better formalisation, we are defining a DKC theory
+  in which all the types involved will be the same.
+
+  All the types should be equal to this DKC type "t" (that will
+  be define to be of "word" type).
+
+  With this, we can keep the rest of the theory intact.
+  *)
+  type t.
+
   (** Tweak *)
-  type tweak_t.
+  type tweak_t = t.
 
   (** Keys *)
-  type key1_t.
-  type key2_t.
-
-  (** Keys distribution *)
-  op key1_t_d : key1_t distr.
-  op key2_t_d : key2_t distr.
+  type keys_t = t.  
   
   (** Plaintext *)
-  type msg_t.
-
+  type msg_t = t.
+  
   (** Ciphertext *)
-  type cipher_t.
+  type cipher_t = t.
 
   (** Permutation E *)
-  op E: tweak_t -> key1_t -> key2_t -> msg_t -> cipher_t.
+  op E: tweak_t -> keys_t -> keys_t -> msg_t -> cipher_t.
 
   (** Permutation D *)
-  op D: tweak_t  -> key1_t -> key2_t -> cipher_t -> msg_t.
-
+  op D: tweak_t  -> keys_t -> keys_t -> cipher_t -> msg_t.
+  
   (** Correctness assertion *)
   (**
     The DKC encryption scheme is correct iff 

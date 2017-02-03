@@ -19,13 +19,6 @@ require import ArrayExt.
 theory DKCSecurity.
   clone import DKCScheme.
 
-  (*clone export DKC as D with
-    type tweak_t = word,
-    type key1_t = word,
-    type key2_t = word,
-    type msg_t = word,
-    type cipher_t = word.*)
-
   const bound : int.
   axiom bound_pos : 1 < bound.
 
@@ -35,12 +28,9 @@ theory DKCSecurity.
   (* i * j * pos * tweak *)
   type query_DKC = bool * (int * bool) * (int * bool) * (int * bool) * tweak_t.
 
-  op queryValid_DKC(query : query_DKC) =
-    0 <= fst query.`2 < bound /\
-    0 <= fst query.`3 < bound /\
-    0 <= fst query.`4 < bound.
+  (* Desirable to have some op/pred attesting the validity of a DKC query *)
   
-  type answer_DKC = key1_t * key2_t * cipher_t.
+  type answer_DKC = keys_t * keys_t * cipher_t.
 
   op bad : answer_DKC.
 
@@ -55,37 +45,38 @@ theory DKCSecurity.
     proc encrypt(q : query_DKC) : answer_DKC
   }.
   
-  (*module DKCp = {
+  (** DKC parameters *)
+  module DKCp = {
     var b : bool
-    var ksec : word
-    var kpub : ((int * bool), word) fmap
-    var used : word fset
+    var ksec : keys_t
+    var kpub : ((int * bool), keys_t) fmap
+    var used : tweak_t fset
     var lsb : bool
     var l : int
   }.
 
-  
+  op keys_t_d : bool -> keys_t distr.
+  axiom keys_t_d_ll b : is_lossless (keys_t_d b).
 
-  op itb (x:int) = if x = 1 then true else false.
+  op msg_t_d : msg_t distr.
+  axiom msg_t_d_ll : is_lossless msg_t_d.
   
-  module DKCM : DKC_t = {    
+  module DKC_O : DKC_AdvOracles = {    
     
     proc initialize(b : bool,l:int): bool = {
       var i, tok1, tok2;
-
-      DKCp.lsb = witness;
-      DKCp.ksec = witness;
       
       DKCp.b = b;
       DKCp.l = l;
-      
+      DKCp.lsb = witness;
+      DKCp.ksec = witness;
       DKCp.used = FSet.fset0;
       DKCp.kpub = map0;
       
       (*i = 0;
       while (i < bound) {
-        DKCp.kpub.[(i, false)] = WD.zeros;
-        DKCp.kpub.[(i, true)] = WD.zeros;
+        DKCp.kpub.[(i, false)] = witness;
+        DKCp.kpub.[(i, true)] = witness;
         i = i + 1;
       }*)
             
@@ -93,33 +84,35 @@ theory DKCSecurity.
       while (i < bound) {
         if (i = DKCp.l) {
           DKCp.lsb = ${0,1};
-          DKCp.ksec = $Dword.dwordLsb (DKCp.lsb);
+          DKCp.ksec = $keys_t_d DKCp.lsb;
           DKCp.kpub.[(i,DKCp.lsb)] = witness; (* can never return or encrypt this key *)
-          DKCp.kpub.[(i,!DKCp.lsb)] = $Dword.dwordLsb (!DKCp.lsb);  
+          DKCp.kpub.[(i,!DKCp.lsb)] = $keys_t_d (!DKCp.lsb);  
         }
         else {
-          tok1 = $Dword.dwordLsb (false);
-          tok2 = $Dword.dwordLsb (true);
+          tok1 = $keys_t_d false;
+          tok2 = $keys_t_d true;
             DKCp.kpub.[(i, false)] = tok1;
             DKCp.kpub.[(i, true)] = tok2;
         }
         i = i + 1;
       }
-     
+      
       return DKCp.lsb;
     }
     
     proc encrypt(q:query_DKC) : answer_DKC = {
-      var aa,bb,xx : word;
+      var aa,bb : keys_t;
+      var xx : msg_t;
       var ib,jb,lb : int * bool;
       var bi,bj,bl', rn: bool;
-      var t, ki, kj : word;
+      var ki, kj : keys_t;
+      var t : tweak_t;
       var ans : answer_DKC;
 
       ans = bad;
       (rn,ib,jb,lb,t) = q;
       
-      if (!(mem DKCp.used t) && ib.`1 < jb.`1 && jb.`1 < lb.`1 && lb <> (DKCp.l,DKCp.lsb)) {
+      if (!(mem DKCp.used t) /\ 0 <= ib.`1 /\ ib.`1 < jb.`1 /\ jb.`1 < lb.`1 /\ lb.`1 < bound /\ lb <> (DKCp.l,DKCp.lsb)) {
         DKCp.used = DKCp.used `|` fset1 t; (* to do: check unicity *)
         
         ki = oget DKCp.kpub.[ib];
@@ -134,14 +127,14 @@ theory DKCSecurity.
         xx = oget DKCp.kpub.[lb];
         
         if (((((DKCp.l,DKCp.lsb) = ib) || ((DKCp.l,DKCp.lsb) = jb)) /\ !DKCp.b) || rn) {
-          xx = $Dword.dword;
+          xx = $msg_t_d;
         }
         ans = (ki, kj, E t aa bb xx);
       }
 
       return ans;
     }
-  }.*)
+  }.
 
   module Game(O:DKC_AdvOracles, A:Adv_DKC_t) = {
 
@@ -171,29 +164,18 @@ theory DKCSecurity.
   (* Lossnessness properties *)
   (***************************)
 
-  (*lemma encrypt_ll : islossless DKC.encrypt.
+  lemma encrypt_ll : islossless DKC_O.encrypt.
   proof.
     proc => //.
     seq 2 : true => //; first by auto.
     if.
     case (((DKCp.l, DKCp.lsb) = ib || (DKCp.l, DKCp.lsb) = jb) /\ !DKCp.b || rn).
-      rcondt 6; first by auto. by auto; smt. 
+      rcondt 6; first by auto.
+        by auto; rewrite msg_t_d_ll. 
       rcondf 6; first 2 by auto. 
     trivial.
   qed.
-
-  lemma init_ll : islossless DKC.initialize.
-  proof.
-    proc => //.
-    while (0 <= i <= bound) (bound - i).
-      auto; progress; if.
-      (auto; progress; first 4 by smt); last 2 by idtac=>/#. 
-      (auto; progress; first 2 by smt); last 3 by idtac=>/#.
-    wp; while (0 <= i <= bound) (bound - i).
-      auto; progress; expect 3 by idtac=>/#.
-    by auto; progress; smt.
-  qed.*)
-      
+  
   lemma game_ll (O<: DKC_AdvOracles) (A <: Adv_DKC_t) :
     islossless A(O).get_challenge =>
     islossless O.initialize =>  
