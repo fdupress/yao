@@ -18,8 +18,8 @@ theory Concrete.
     theory WS <- W.
   clone import EffSch.EfficientScheme as ES with
     theory W <- W.
-  
-   (* Definition of leakage for both PFE and SFE protocols *)
+    
+      (* Definition of leakage for both PFE and SFE protocols *)
    op pfe_or_sfe : bool.
 
    import ES.ProjScheme.
@@ -77,11 +77,25 @@ theory Concrete.
 end Concrete.
 import Concrete.
 import ES.ProjScheme.
+
+extraction "SFE.ml_tmp" 
+  op p1_stage1,
+  op p1_stage2,
+  op p2_stage1,
+  op p2_stage2
+  with
+  theory Array = "EcIArray",
+  theory Prime_field = "Prime_field",
+  theory Cyclic_group_prime = "Cyclic_group_prime",
+  theory W = "Word",
+  theory ES.SomeGarble.SomeDKC.PRF = "PRF",
+  theory Concrete.SomeOT.ESn.H = "Hash".
+
 (*********************************
   Correctness and Security proofs
 **********************************)
 
-  (* summarises the concrete protocol *)
+ (* (* summarises the concrete protocol *)
   op conc_prot (i1 :bool array) (r1:rand1_t)
                (i2:Sch.Scheme.fun_t * bool array) (r2:rand2_t) : conv_t* (Sch.Scheme.output_t * unit) =
     let (st2, m1) = p2_stage1 i2 r2 in
@@ -675,4 +689,4 @@ qed.
 
  progress;smt.
  qed.
-*)
+*)*)
