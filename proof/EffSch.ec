@@ -39,12 +39,12 @@ theory EfficientScheme.
       if (!x1) /\ ( x2) then ft else
       if ( x1) /\ (!x2) then tf else
       tt.
-    
+
     (* a b g should be in range 0 .. n + q - 1 to index tokens *)
     op enc (x:tokens_t) (f:bool tupleGate_t) (a b g:int) (x1 x2:bool) : word =
       let xx1 = (getlsb (getTok x a true) = x1) in (* correct token has matching lsb *)
       let xx2 = (getlsb (getTok x b true) = x2) in (* correct token has matching lsb *)
-      SomeGarble.DKCSecurity.D.E
+      SomeGarble.SomeDKC.PrfDKC.E
         (SomeGarble.Tweak.tweak g x1 x2) (* tweak is calculated with n offset wrt gate number *)
         (getTok x a xx1)
         (getTok x b xx2)
@@ -137,7 +137,7 @@ theory EfficientScheme.
       let a = getlsb aA in
       let b = getlsb bB in
       let t = SomeGarble.Tweak.tweak (n + g) a b in (* tweak takes gate number in 0 range n + q - 1 *)
-      SomeGarble.DKCSecurity.D.D t aA bB (evalTupleGate ((snd ff).[g]) a b).
+      SomeGarble.SomeDKC.PrfDKC.D t aA bB (evalTupleGate ((snd ff).[g]) a b).
 
     (* OK to be called from appendInit if size = gate count *)
     op garbMap (x:tokens_t) (f:bool funct_t) (g:int): word tupleGate_t =
@@ -364,7 +364,7 @@ theory EfficientScheme.
     cut Antisymm: forall (x y : int), x <= y => y <= x => x = y by idtac=>/#.
     apply Antisymm.
       cut: forall y, mem xs y => y.`1 < size x.
-         by move=> y; rewrite /xs  !in_fsetU=> h; smt.
+         by move=> y; rewrite /xs  !in_fsetU=> h; smt tmo=10.
     elim/fset_ind xs. smt. progress. rewrite (foldC (x0) _ _ _). progress. smt.
       rewrite in_fsetU in_fset1. by right. 
     cut ->: (s `|` fset1 x0) `\` fset1 x0 = s by smt. simplify.
@@ -548,7 +548,7 @@ else
     simplify init_gates.
     rewrite offunE; first smt.
     simplify evalTupleGate.
-    rewrite (_: g - n + n = g); first by smt. progress. smt tmo=15.
+    rewrite (_: g - n + n = g); first by smt. progress. smt tmo=25.
   qed.
 
   lemma array_map2 (n q:int) (x:('a * 'a * 'a * 'a) array):
@@ -597,7 +597,7 @@ else
     progress; apply arrayP; split; first by smt.
     move=> i; rewrite size_append // size_offun ?size_sub; first 3 by smt.
     by move => i_bnd; case (i < n); move => H; rewrite /functD_topo_valid /=; progress;
-       [rewrite get_append_left | rewrite get_append_right]; smt tmo=30. 
+       [rewrite get_append_left | rewrite get_append_right]; smt tmo=60. 
     smt.
     move => i; rewrite size_append // size_offun ?size_sub; first 3 smt.
     move => i_bnd; case (i < n); move => H; rewrite /functD_topo_valid /=; progress;
@@ -974,12 +974,12 @@ else
     simplify r' randFormat.
     case (size (randDE r) < n + q).
       by rewrite offunE ?fst_pair ?snd_pair ?get_setlsb;smt.
-      by (rewrite get_mapi /=;first smt tmo=10);case (aa.[g] < n + q - m); rewrite !get_setlsb //.
+      by (rewrite get_mapi /=;first smt tmo=20);case (aa.[g] < n + q - m); rewrite !get_setlsb //.
     cut h2 : getlsb (r'.[bb.[g]].`2) = !getlsb (r'.[bb.[g]].`1).
     simplify r' randFormat.
     case (size (randDE r) < n + q).
       by rewrite offunE ?fst_pair ?snd_pair ?get_setlsb;smt.
-      by (rewrite get_mapi /=;first smt);case (bb.[g] < n + q - m);rewrite !get_setlsb //.
+      by (rewrite get_mapi /=;first smt tmo=30);case (bb.[g] < n + q - m);rewrite !get_setlsb //.
     rewrite h1 h2.
     by rewrite /Bool.(^^) /snd; case a; case b; case (getlsb (r'.[aa.[g]]).`1); case (getlsb (r'.[bb.[g]]).`1);
        move=> //=; smt.
@@ -1086,7 +1086,7 @@ else
       rewrite get_append; first by rewrite size_append size_offun max_ler => /#. rewrite size_offun max_ler => /#.
       rewrite get_append; first by rewrite size_append size_offun max_ler => /#. rewrite size_offun max_ler => /#.
       rewrite !get_append; first 2 by rewrite !size_append !size_offun !max_ler => /#. rewrite size_offun max_ler => /#.
-      smt tmo=20. smt tmo=20.
+      smt tmo=30. smt tmo=30.
       
     cut := H7 (size i) false false _;smt tmo=10. 
       cut := H8 (i0 + size i) _; first by smt.
@@ -1168,16 +1168,17 @@ else
   qed.
   
 (* Begin Correction Lemma *)
-  lemma sch_correct: SomeGarble.DKCSecurity.D.Correct () => ProjScheme.Sch.Scheme.Correct ().
+  lemma sch_correct: ProjScheme.Sch.Scheme.Correct ().
   proof.
-    move=> h.
+  cut : SomeGarble.SomeDKC.PrfDKC.Correct () by rewrite SomeGarble.SomeDKC.PrfDKC_correct.
+  move=> prf_correct.
     rewrite /ProjScheme.Sch.Scheme.Correct=> r fn i h1 h2.
     cut := valids fn i r _ _=> //.
     do 12 ! (move => [?]); move => ?.
     move : h1 h2.
     rewrite validInputs_DE validRand_DE //. 
     move => hInputs hRand.
-    cut:= SomeGarble.gsch_correct _ (randFormatD ((funED fn).`1) (randED r)) (funED fn) (inputED i) _ _=> //=.
+    cut:= SomeGarble.gsch_correct (randFormatD ((funED fn).`1) (randED r)) (funED fn) (inputED i) _ _=> //=.
     rewrite -(outputK_ED (funED fn) (randED r)).
     rewrite -(funG_ED (funED fn) (randED r)) //. 
     rewrite -(inputK_ED (funED fn) (randED r)) // fun_DEED // rand_DEED.
@@ -1518,7 +1519,7 @@ proof.
     case (i{2} = j)=> h.
       by rewrite -h //=; smt. 
       cut := H18 j _. idtac=>/#.
-  smt tmo=30. rewrite size_set => /#. 
+  smt tmo=40. rewrite size_set => /#. 
   wp.
   skip.
   move : H H0.
@@ -1577,7 +1578,7 @@ module Red(A:EncSecurity.Adv_SIM_t) : SomeGarble.Sec.EncSecurity.Adv_SIM_t = {
     return b;
   }
 }.
-
+    
 (*lemma sch_is_sim (A <: EncSecurity.Adv_SIM_t {Rand, SomeGarble.Rand, SomeGarble.DKCSecurity.DKCp, SomeGarble.C, SomeGarble.R, SomeGarble.G, SomeGarble.R', SomeGarble.DKCSecurity.DKCp}) &m l:
  islossless A.gen_query =>
  islossless A.get_challenge =>

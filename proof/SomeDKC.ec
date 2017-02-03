@@ -115,7 +115,7 @@ theory SomeDKC.
         op D(t,k1,k2,c) = (F (fst (w2kw k1)) t) ^ (F (fst (w2kw k2)) t) ^ c.
                 
   (** DKC security definitions, instantiated with the words defined in W *)
-  clone import DKCSec2.DKCSecurity with
+  clone import DKCSec.DKCSecurity with
     (*theory WD <- W,*)
         theory DKCScheme <- PrfDKC.
   
