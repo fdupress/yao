@@ -18,8 +18,8 @@ require import ArrayExt.
 require import GarbleTools.
 
 theory SomeDKC.
-  clone import ExtWord as W.
-  clone ExtWord as KW with op length = W.length - 1.
+  clone import ExtWord as WSD.
+  clone ExtWord as KW with op length = WSD.length - 1.
 
   (*************************************)
   (** AUXLIAR FUNCTIONS *)
@@ -29,22 +29,22 @@ theory SomeDKC.
   if kw = witness then witness else
                    let lsbi = if lsb then 1 else 0
                       in let kwi = (KW.to_int kw) * 2 + lsbi
-                      in W.setlsb (W.from_int kwi) lsb.
+                      in WSD.setlsb (WSD.from_int kwi) lsb.
 
   op kw2w'(kw,lsb) =
                    let lsbi = if lsb then 1 else 0
                       in let kwi = (KW.to_int kw) * 2 + lsbi
-                      in W.setlsb (W.from_int kwi) lsb.
+                      in WSD.setlsb (WSD.from_int kwi) lsb.
   
   op w2kw(w) =
-  if w = witness then (witness,W.getlsb w) else
-  let kwi = (W.to_int w) %/ 2 (* / 2 *)
-                          in let lsbi = W.getlsb w
+  if w = witness then (witness,WSD.getlsb w) else
+  let kwi = (WSD.to_int w) %/ 2 (* / 2 *)
+                          in let lsbi = WSD.getlsb w
                           in (KW.from_int kwi,lsbi).
 
   op w2kw'(w) =
-  let kwi = (W.to_int w) %/ 2 (* / 2 *)
-                          in let lsbi = W.getlsb w
+  let kwi = (WSD.to_int w) %/ 2 (* / 2 *)
+                          in let lsbi = WSD.getlsb w
                           in (KW.from_int kwi,lsbi).
   
   lemma w2kw_kw2w w b : fst (w2kw (kw2w w b)) = w. 
@@ -103,22 +103,21 @@ theory SomeDKC.
 	type R = word,
 	type K = KW.word,
         op dK = KW.Dword.dword,
-        op dR = W.Dword.dword.
+        op dR = WSD.Dword.dword.
           
   clone import DKC.DKCScheme as PrfDKC with
-        type t = word,
+    type tweak_t = word,
+    type key1_t = word,
+    type key2_t = word,
+    type msg_t = word,
+    type cipher_t = word,
         op E(t,k1,k2,m) = (F (fst (w2kw k1)) t) ^ (F (fst (w2kw k2)) t) ^ m,
         op D(t,k1,k2,c) = (F (fst (w2kw k1)) t) ^ (F (fst (w2kw k2)) t) ^ c.
         
   (** DKC security definitions, instantiated with the words defined in W *)
   clone import DKCSec2.DKCSecurity with
-    theory DKCScheme <- PrfDKC,
-    op keys_t_d = Dword.dwordLsb,
-    op msg_t_d = Dword.dword
-  proof
-  keys_t_d_ll by smt,
-  msg_t_d_ll  by smt.
-
+    theory W <- WSD,
+    theory D <- PrfDKC.
     
   lemma PrfDKC_correct : PrfDKC.Correct().
   proof.
@@ -291,7 +290,7 @@ equiv true_key lp (A <:  Adv_DKC_t{Param,PRFr_Wrapped,DKCp}):
     rcondf{1} 1. auto. progress => /#.
     rcondf{2} 1. auto. progress => /#.
 
-    auto; progress; first 4 by idtac=>/#. rewrite !getP => /#. 
+    auto; progress; first 2 by idtac=>/#. rewrite !getP => /#. 
         rewrite !getP. case ((k, b1) = (i{2}, true)) => hc. rewrite !oget_some kw2w_w2kw. rewrite (Dword.lsb_dwordLsb (true) _). done. idtac=>/#. done. case ((k, b1) = (i{2}, false)) => hc'. rewrite !oget_some kw2w_w2kw. rewrite (Dword.lsb_dwordLsb (false) _). done. idtac=>/#. done. idtac=>/#.
         rewrite !getP. case ((k, b1) = (i{2}, true)) => hc. rewrite oget_some. simplify w2kw snd. rewrite (Dword.lsb_dwordLsb (true) _). done. idtac=>/#. case ((k, b1) = (i{2}, false)) => hc'. rewrite oget_some. simplify w2kw snd. rewrite (Dword.lsb_dwordLsb (false) _). done. idtac=>/#. idtac=>/#. 
         rewrite !getP => /#.
@@ -317,23 +316,10 @@ equiv true_key lp (A <:  Adv_DKC_t{Param,PRFr_Wrapped,DKCp}):
     rcondf{1} 1. auto. progress => /#.
     rcondf{2} 1. auto. progress => /#.
 
-    auto. progress; first 4 by idtac=>/#.  
+    auto. progress; first 2 by idtac=>/#.  
     rewrite !getP. case ((k, b1) = (i{2}, true)) => hc. rewrite !oget_some kw2w_w2kw. rewrite (Dword.lsb_dwordLsb (true) _). done. idtac=>/#. done. case ((k, b1) = (i{2}, false)) => hc'. rewrite !oget_some kw2w_w2kw. rewrite (Dword.lsb_dwordLsb (false) _). done. idtac=>/#. done. idtac=>/#.
         rewrite !getP. case ((k, b1) = (i{2}, true)) => hc. rewrite oget_some. simplify w2kw snd. rewrite (Dword.lsb_dwordLsb (true) _). done. idtac=>/#. case ((k, b1) = (i{2}, false)) => hc'. rewrite oget_some. simplify w2kw snd. rewrite (Dword.lsb_dwordLsb (false) _). done. idtac=>/#. idtac=>/#. 
         rewrite !getP => /#.  
-
-    
-  (*  wp; while (={glob A} /\ 0 <= lp < bound /\ b{1} /\ ={i} /\ 0 <= i{1} <= bound /\ (b{1}, l{1}).`2 = lp /\ l{2} = lp /\
-      DKCp.used{1} = Param.used{2} /\ DKCp.used{1} = fset0 /\ DKCp.b{1} = b{1} /\ DKCp.b{1} /\
-      DKCp.l{1} = Param.l{2} /\ DKCp.l{1} = lp /\ Param.l{2} = l0{2} /\ DKCp.l{1} = l{1} /\
-      DKCp.lsb{1} = Param.lsb{2} /\
-      Param.tbl{2} = map0 /\ 
-      (forall k, 0 <= k < i{1} => oget DKCp.kpub{1}.[(k,false)] = witness) /\
-      (forall k, 0 <= k < i{1} => oget DKCp.kpub{1}.[(k,true)] = witness) /\
-      (forall k, 0 <= k < i{1} => oget Param.kpub{2}.[(k,false)] = (witness, false)) /\
-      (forall k, 0 <= k < i{1} => oget Param.kpub{2}.[(k,true)] = (witness, true))).
-      auto; progress; expect 6 by by rewrite ?getP => /#. *)
-
 
     auto; progress; last 3 by idtac=>/#.
         by smt. 
@@ -406,7 +392,6 @@ equiv true_key lp (A <:  Adv_DKC_t{Param,PRFr_Wrapped,DKCp}):
         rcondt{2} 9. progress. auto. 
         inline PRFr_Wrapped.f. 
         wp. rnd. wp. skip. progress. 
-          by smt.
           by rewrite H14 H3 => /#.   
 
           cut ->: q{2}.`3 = (q{2}.`3.`1,q{2}.`3.`2) by idtac=>/#. rewrite H4 => /#. 
@@ -416,7 +401,6 @@ equiv true_key lp (A <:  Adv_DKC_t{Param,PRFr_Wrapped,DKCp}):
         rcondf{2} 9. progress. auto. rcondt{2} 9. progress. auto. 
         inline PRFr_Wrapped.f.
         wp. rnd. wp. skip. progress.
-        by smt.
         cut ->: q{2}.`2 = (q{2}.`2.`1,q{2}.`2.`2) by idtac=>/#. rewrite H4 => /#.
         by rewrite H15 H3 => /#. 
         simplify PrfDKC.E. simplify PRF.F. cut ->: q{2}.`2 = (Param.l{2}, Param.lsb{2}) <=> false by idtac=>/#. rewrite H15 /=. congr. congr. congr. cut ->: q{2}.`2 = (q{2}.`2.`1,q{2}.`2.`2) by idtac=>/#. rewrite H4. idtac=>/#. idtac=>/#. rewrite w2kw_kw2w =>/#. rewrite w2kw_kw2w => /#. 
@@ -425,7 +409,6 @@ equiv true_key lp (A <:  Adv_DKC_t{Param,PRFr_Wrapped,DKCp}):
     rcondf{2} 9. auto.
     inline PRFr_Wrapped.f.
     wp. rnd. wp. skip. progress.
-      by smt.
       by idtac=>/#.
       by idtac=>/#.
       cut ->: q{2}.`2 = (Param.l{2}, Param.lsb{2}) <=> false by idtac=>/#. cut ->: q{2}.`3 = (Param.l{2}, Param.lsb{2}) <=> false by idtac=>/#. simplify. simplify E. congr. congr. congr. cut ->: q{2}.`2 = (q{2}.`2.`1,q{2}.`2.`2) by idtac=>/#. by smt. by smt. 
@@ -516,7 +499,7 @@ equiv false_key lp (A <:  Adv_DKC_t{Param,DKCp,PRFr_Wrapped,RandomFunction}):
         rcondf{1} 1. auto. progress => /#.
     rcondf{2} 1. auto. progress => /#.
 
-    auto; progress; first 4 by idtac=>/#. rewrite !getP => /#. 
+    auto; progress; first 2 by idtac=>/#. rewrite !getP => /#. 
         rewrite !getP. case ((k, b1) = (i{2}, true)) => hc. rewrite !oget_some kw2w_w2kw. rewrite (Dword.lsb_dwordLsb (true) _). done. idtac=>/#. done. case ((k, b1) = (i{2}, false)) => hc'. rewrite !oget_some kw2w_w2kw. rewrite (Dword.lsb_dwordLsb (false) _). done. idtac=>/#. done. idtac=>/#.
         rewrite !getP. case ((k, b1) = (i{2}, true)) => hc. rewrite oget_some. simplify w2kw snd. rewrite (Dword.lsb_dwordLsb (true) _). done. idtac=>/#. case ((k, b1) = (i{2}, false)) => hc'. rewrite oget_some. simplify w2kw snd. rewrite (Dword.lsb_dwordLsb (false) _). done. idtac=>/#. idtac=>/#. 
         rewrite !getP => /#. 
@@ -541,7 +524,7 @@ equiv false_key lp (A <:  Adv_DKC_t{Param,DKCp,PRFr_Wrapped,RandomFunction}):
     rcondf{1} 1. auto. progress => /#.
     rcondf{2} 1. auto. progress => /#.
 
-    auto. progress; first 4 by idtac=>/#.  
+    auto. progress; first 2 by idtac=>/#.  
     rewrite !getP. case ((k, b1) = (i{2}, true)) => hc. rewrite !oget_some kw2w_w2kw. rewrite (Dword.lsb_dwordLsb (true) _). done. idtac=>/#. done. case ((k, b1) = (i{2}, false)) => hc'. rewrite !oget_some kw2w_w2kw. rewrite (Dword.lsb_dwordLsb (false) _). done. idtac=>/#. done. idtac=>/#.
         rewrite !getP. case ((k, b1) = (i{2}, true)) => hc. rewrite oget_some. simplify w2kw snd. rewrite (Dword.lsb_dwordLsb (true) _). done. idtac=>/#. case ((k, b1) = (i{2}, false)) => hc'. rewrite oget_some. simplify w2kw snd. rewrite (Dword.lsb_dwordLsb (false) _). done. idtac=>/#. idtac=>/#. 
         rewrite !getP => /#.  
@@ -641,7 +624,7 @@ equiv false_key lp (A <:  Adv_DKC_t{Param,DKCp,PRFr_Wrapped,RandomFunction}):
       inline RandomFunction.f.
       rcondt{2} 10. auto.  
     wp. rnd{2}. wp. rnd. wp. skip. progress. 
-      by smt. by smt.
+      by smt. 
       cut ->: q{2}.`2 = (q{2}.`2.`1,q{2}.`2.`2) by idtac=>/#. smt tmo=10.
       cut ->: q{2}.`3 = (q{2}.`3.`1,q{2}.`3.`2) by idtac=>/#. smt tmo=10. 
       cut ->: q{2}.`2 = (Param.l{2}, getlsb DKCp.ksec{1}) <=> false by idtac=>/#. cut ->: q{2}.`3 = (Param.l{2}, getlsb DKCp.ksec{1}) <=> false by idtac=>/#. simplify. simplify E. congr. congr. congr. cut ->: q{2}.`2 = (q{2}.`2.`1,q{2}.`2.`2) by idtac=>/#. by smt. by smt. 

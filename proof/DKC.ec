@@ -17,35 +17,24 @@ require import Pair.
     using a tweak and two keys, that produce a plaintext
 *)
 theory DKCScheme.
-
-  (* "Global" type of the DKC. 
-  For a better formalisation, we are defining a DKC theory
-  in which all the types involved will be the same.
-
-  All the types should be equal to this DKC type "t" (that will
-  be define to be of "word" type).
-
-  With this, we can keep the rest of the theory intact.
-  *)
-  type t.
-
   (** Tweak *)
-  type tweak_t = t.
+  type tweak_t.
 
   (** Keys *)
-  type keys_t = t.  
+  type key1_t.
+  type key2_t.
   
   (** Plaintext *)
-  type msg_t = t.
+  type msg_t.
   
   (** Ciphertext *)
-  type cipher_t = t.
+  type cipher_t.
 
   (** Permutation E *)
-  op E: tweak_t -> keys_t -> keys_t -> msg_t -> cipher_t.
+  op E: tweak_t -> key1_t -> key2_t -> msg_t -> cipher_t.
 
   (** Permutation D *)
-  op D: tweak_t  -> keys_t -> keys_t -> cipher_t -> msg_t.
+  op D: tweak_t  -> key1_t -> key2_t -> cipher_t -> msg_t.
   
   (** Correctness assertion *)
   (**

@@ -9,6 +9,8 @@ require        ProjSch.
 require        SomeOT.
 require        Prot.
 require        ProtSec.
+require        SomeGarble.
+require        SomeDKC.
 
 import ArrayExt.
 
@@ -18,11 +20,11 @@ theory Concrete.
     theory WS <- W.
   clone import EffSch.EfficientScheme as ES with
     theory W <- W.
-    
-      (* Definition of leakage for both PFE and SFE protocols *)
-   op pfe_or_sfe : bool.
 
-   import ES.ProjScheme.
+  import ES.ProjScheme.
+    
+   (* Definition of leakage for both PFE and SFE protocols *)
+   op pfe_or_sfe : bool.
    
    op sch_phi (fn:Sch.Scheme.fun_t): Sch.Scheme.fun_t=
     if pfe_or_sfe
@@ -84,18 +86,13 @@ extraction "SFE.ml_tmp"
   op p2_stage1,
   op p2_stage2
   with
-  theory Array = "EcIArray",
-  theory Prime_field = "Prime_field",
-  theory Cyclic_group_prime = "Cyclic_group_prime",
-  theory W = "Word",
-  theory ES.SomeGarble.SomeDKC.PRF = "PRF",
-  theory Concrete.SomeOT.ESn.H = "Hash".
+  theory Array = "EcIArray".
 
 (*********************************
   Correctness and Security proofs
 **********************************)
 
- (* (* summarises the concrete protocol *)
+  (* summarises the concrete protocol *)
   op conc_prot (i1 :bool array) (r1:rand1_t)
                (i2:Sch.Scheme.fun_t * bool array) (r2:rand2_t) : conv_t* (Sch.Scheme.output_t * unit) =
     let (st2, m1) = p2_stage1 i2 r2 in
@@ -118,7 +115,7 @@ extraction "SFE.ml_tmp"
     type Protocol.conv_t = conv_t,
     op Protocol.validInputs(i1: input1_t, i2: input2_t) =
        let (fg,x2) = i2 in
-       0 < size i1 /\ Sch.Scheme.validInputs fg (i1||x2),
+       0 < size i1 <= SomeOT.max_size /\ Sch.Scheme.validInputs fg (i1||x2),
     pred Protocol.validRands(i1: input1_t, i2: input2_t, r1: rand1_t, r2: rand2_t) =
        let (fg,x2) = i2 in
        Sch.Scheme.validRand fg (snd r2),
@@ -126,10 +123,6 @@ extraction "SFE.ml_tmp"
     op Protocol.phi1 = SomeOT.OTSecurity.OTPSec.Protocol.phi1,
     op Protocol.phi2 (i2:input2_t) = (sch_phi (fst i2), size (snd i2)).
 
-    print Sch.Scheme.fun_t.
-
-    print SFE.SFE.
-    
   clone SFE.SFE as CSFE with
     type ProjScheme.token_t = W.word,
     (* Scheme *)
@@ -156,7 +149,8 @@ extraction "SFE.ml_tmp"
     type ot_conv_t = SomeOT.OTSecurity.OT.conv_t,
     op ot_prot = SomeOT.OTSecurity.OT.prot,
     op sfe_sch_phi = sch_phi,
-    op leakInterface = leakInterface.
+    op leakInterface = leakInterface,
+    op OTSecurity.OT.max_size = SomeOT.OTSecurity.OT.max_size.
     
  (* Correctness *)
 
@@ -258,31 +252,28 @@ move => i1 r1 i2 r2.
  cut -> : n - size x = size i1 by smt.
  do ! (split=> //).
  qed.
-
- print CSFE.ProjScheme.Sch.Scheme.Correct.
  
+ lemma Correctness: 
+  ProtSecurity.Correct ().
+ proof.
+ cut: ES.SomeDKC.PrfDKC.Correct () by rewrite ES.SomeDKC.PrfDKC_correct. 
+ move => DKCh. 
+ rewrite /ProtSecurity.Correct /ProtSecurity.Protocol.validInputs=> i1 r1 i2 r2.
 
- 
- lemma Correctness:  
-  ProtSecurity.Correct (). 
- proof strict.
-  (*move => DKCh.
-  rewrite /ProtSecurity.Correct /ProtSecurity.Protocol.validInputs => i1 r1 i2 r2.
-   simplify Sch.Scheme.validInputs ES.Local.validInputs.
-   simplify ProtSecurity.Protocol.f.  move => H H1.
-   rewrite (pairS i2) /=.
-  rewrite prot_trl /CSFE.ProtSecurity.Protocol.validInputs.
+   rewrite (pairS i2) /= => [H1 H2]. 
+
+   rewrite prot_trl /CSFE.ProtSecurity.Protocol.validInputs
     /CSFE.ProtSecurity.Protocol.validInputs /CSFE.ProjScheme.Sch.Scheme.validInputs /Sch.Scheme.validInputs !snd_pair ?fst_pair.
-   split. smt. move : H2. simplify Sch.Scheme.validInputs. simplify ES.Local.validInputs. smt.
+   by smt. 
   cut ->: ProtSecurity.Protocol.f = CSFE.ProtSecurity.Protocol.f by trivial.
   apply CSFE.PFE_Correctness.
-   by apply compatible.
-   by cut:= ES.sch_correct _ => //.
-   by apply OT.ot_correct.
+   by apply compatible. 
+   rewrite ES.sch_correct.
+   by apply SomeOT.ot_correct.
    by smt.
-   generalize vRands.
+   move : H2.
    simplify ProtSecurity.Protocol.validRands CSFE.ProtSecurity.Protocol.validRands CSFE.ProtSecurity.Protocol.validRands CSFE.ProjScheme.Sch.Scheme.validRand Sch.Scheme.validRand ES.ProjScheme.Sch.Scheme.validRand.
-   by rewrite !/fst /=.*) admit.
+   by rewrite !/fst /=.
  qed.
 
  (* Security *)

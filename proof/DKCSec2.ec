@@ -17,7 +17,14 @@ require ExtWord.
 require import ArrayExt.
 
 theory DKCSecurity.
-  clone import DKCScheme.
+  clone import ExtWord as W.
+
+  clone export DKC.DKCScheme as D with
+    type tweak_t = word,
+    type key1_t = word,
+    type key2_t = word,
+    type msg_t = word,
+    type cipher_t = word.
 
   const bound : int.
   axiom bound_pos : 1 < bound.
@@ -30,7 +37,7 @@ theory DKCSecurity.
 
   (* Desirable to have some op/pred attesting the validity of a DKC query *)
   
-  type answer_DKC = keys_t * keys_t * cipher_t.
+  type answer_DKC = key1_t * key2_t * cipher_t.
 
   op bad : answer_DKC.
 
@@ -48,18 +55,12 @@ theory DKCSecurity.
   (** DKC parameters *)
   module DKCp = {
     var b : bool
-    var ksec : keys_t
-    var kpub : ((int * bool), keys_t) fmap
+    var ksec : word
+    var kpub : ((int * bool), word) fmap
     var used : tweak_t fset
     var lsb : bool
     var l : int
   }.
-
-  op keys_t_d : bool -> keys_t distr.
-  axiom keys_t_d_ll b : is_lossless (keys_t_d b).
-
-  op msg_t_d : msg_t distr.
-  axiom msg_t_d_ll : is_lossless msg_t_d.
   
   module DKC_O : DKC_AdvOracles = {    
     
@@ -84,13 +85,13 @@ theory DKCSecurity.
       while (i < bound) {
         if (i = DKCp.l) {
           DKCp.lsb = ${0,1};
-          DKCp.ksec = $keys_t_d DKCp.lsb;
+          DKCp.ksec = $Dword.dwordLsb DKCp.lsb;
           DKCp.kpub.[(i,DKCp.lsb)] = witness; (* can never return or encrypt this key *)
-          DKCp.kpub.[(i,!DKCp.lsb)] = $keys_t_d (!DKCp.lsb);  
+          DKCp.kpub.[(i,!DKCp.lsb)] = $Dword.dwordLsb (!DKCp.lsb);  
         }
         else {
-          tok1 = $keys_t_d false;
-          tok2 = $keys_t_d true;
+          tok1 = $Dword.dwordLsb false;
+          tok2 = $Dword.dwordLsb true;
             DKCp.kpub.[(i, false)] = tok1;
             DKCp.kpub.[(i, true)] = tok2;
         }
@@ -101,11 +102,11 @@ theory DKCSecurity.
     }
     
     proc encrypt(q:query_DKC) : answer_DKC = {
-      var aa,bb : keys_t;
+      var aa,bb : word;
       var xx : msg_t;
       var ib,jb,lb : int * bool;
       var bi,bj,bl', rn: bool;
-      var ki, kj : keys_t;
+      var ki, kj : word;
       var t : tweak_t;
       var ans : answer_DKC;
 
@@ -127,7 +128,7 @@ theory DKCSecurity.
         xx = oget DKCp.kpub.[lb];
         
         if (((((DKCp.l,DKCp.lsb) = ib) || ((DKCp.l,DKCp.lsb) = jb)) /\ !DKCp.b) || rn) {
-          xx = $msg_t_d;
+          xx = $Dword.dword;
         }
         ans = (ki, kj, E t aa bb xx);
       }
@@ -171,7 +172,7 @@ theory DKCSecurity.
     if.
     case (((DKCp.l, DKCp.lsb) = ib || (DKCp.l, DKCp.lsb) = jb) /\ !DKCp.b || rn).
       rcondt 6; first by auto.
-        by auto; rewrite msg_t_d_ll. 
+        by auto; smt. 
       rcondf 6; first 2 by auto. 
     trivial.
   qed.

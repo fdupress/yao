@@ -13,6 +13,7 @@ require        SchSec.
 require import GarbleTools.
 require        SomeGarble.
 require        ProjSch.
+require        SomeDKC.
 
 require import ArrayExt.
 
@@ -20,8 +21,14 @@ import ForLoop.
 
 theory EfficientScheme.  
   clone import ExtWord as W.
-  clone SomeGarble.SomeGarble with theory W <- W.
-  
+
+  clone import SomeDKC.SomeDKC with
+    theory WSD <- W.
+    
+  clone import SomeGarble.SomeGarble as SG with
+    theory WSG <- W,
+    theory D <- SomeDKC.PrfDKC.
+    
   theory Local.
     (* some types reused for garbling scheme definition  *)
     type 'a tupleGate_t = 'a*'a*'a*'a.
@@ -39,13 +46,13 @@ theory EfficientScheme.
       if (!x1) /\ ( x2) then ft else
       if ( x1) /\ (!x2) then tf else
       tt.
-
+    
     (* a b g should be in range 0 .. n + q - 1 to index tokens *)
     op enc (x:tokens_t) (f:bool tupleGate_t) (a b g:int) (x1 x2:bool) : word =
       let xx1 = (getlsb (getTok x a true) = x1) in (* correct token has matching lsb *)
       let xx2 = (getlsb (getTok x b true) = x2) in (* correct token has matching lsb *)
-      SomeGarble.SomeDKC.PrfDKC.E
-        (SomeGarble.Tweak.tweak g x1 x2) (* tweak is calculated with n offset wrt gate number *)
+      PrfDKC.E
+        (SG.Tweak.tweak g x1 x2) (* tweak is calculated with n offset wrt gate number *)
         (getTok x a xx1)
         (getTok x b xx2)
         (getTok x g (evalTupleGate f xx1 xx2)).
@@ -62,7 +69,7 @@ theory EfficientScheme.
       let (n, m, q, aa, bb) = f.`1 in
       1 < n /\ 0 < m /\ 0 < q /\ m <= q /\
       size aa = q /\ size bb = q /\ size (snd f) = q /\
-      n + q - m = SomeGarble.bound /\ n + q = SomeGarble.nwires /\
+      n + q - m = SG.bound /\ n + q = SG.nwires /\
       ForLoop.range 0 q true
         (fun i b,
            b /\ 0 <= aa.[i] /\
@@ -71,7 +78,7 @@ theory EfficientScheme.
     pred validCircuitP(f:(bool funct_t)) =
       let (n, m, q, aa, bb) = f.`1 in
       1 < n /\ 0 < m /\ 0 < q /\ m <= q /\
-      n + q - m = SomeGarble.bound /\ n + q = SomeGarble.nwires /\
+      n + q - m = SG.bound /\ n + q = SG.nwires /\
       size aa = q /\ size bb = q /\ size (snd f) = q /\
       (forall i, 0 <= i < q =>
            0 <= aa.[i] /\
@@ -136,8 +143,8 @@ theory EfficientScheme.
       let bB = x.[b] in
       let a = getlsb aA in
       let b = getlsb bB in
-      let t = SomeGarble.Tweak.tweak (n + g) a b in (* tweak takes gate number in 0 range n + q - 1 *)
-      SomeGarble.SomeDKC.PrfDKC.D t aA bB (evalTupleGate ((snd ff).[g]) a b).
+      let t = SG.Tweak.tweak (n + g) a b in (* tweak takes gate number in 0 range n + q - 1 *)
+      PrfDKC.D t aA bB (evalTupleGate ((snd ff).[g]) a b).
 
     (* OK to be called from appendInit if size = gate count *)
     op garbMap (x:tokens_t) (f:bool funct_t) (g:int): word tupleGate_t =
@@ -172,7 +179,7 @@ theory EfficientScheme.
     op validInputs (fn:bool funct_t) (i:bool array) = 
       let (n, m, q, aa, bb) = fn.`1 in
       validCircuit fn /\
-      n + q <= SomeGarble.maxGates /\
+      n + q <= SG.maxGates /\
       n = size i.
 
     (* Evaluates boolean circuit *)
@@ -455,7 +462,7 @@ theory EfficientScheme.
 
   op arrayToMap2 (n q:int) (x:('a*'a*'a*'a) array) =
     if size x = q then
-      SomeGarble.init_gates n q (fun g a b, evalTupleGate x.[g-n] a b)
+      SG.init_gates n q (fun g a b, evalTupleGate x.[g-n] a b)
     else
       map0.
 
@@ -534,7 +541,7 @@ else
     rewrite /arrayToMap2 /mapToArray2=> hq h.
     apply fmapP=> y.
     elim y=> g a b. 
-    cut:= SomeGarble.get_initGates n q (fun (g : int) (a b : bool),
+    cut:= SG.get_initGates n q (fun (g : int) (a b : bool),
             evalTupleGate (init_gates q
               (fun (g1 : int) (a1 b1 : bool), oget x.[(g1+n, a1, b1)])).[g-n]
               a b)
@@ -561,7 +568,7 @@ else
     rewrite size_offun. 
     move=> i ih.
     rewrite offunE /= //; first by smt.
-    rewrite hq /= !SomeGarble.get_initGates; first 4 smt.
+    rewrite hq /= !SG.get_initGates; first 4 smt.
     cut ->: (n <= i + n < n + q) = true; first smt.
     by rewrite /evalTupleGate; smt tmo=10.
   qed.
@@ -622,11 +629,11 @@ else
     apply arrayP; split; first by smt.
     by move => i i_bound; smt tmo=30.
     apply arrayP; split; first by smt.
-    by move => i i_bound; smt tmo=30.
+    by move => i i_bound; smt tmo=40.
   qed.
   
-  op leakED (x:ProjScheme.Sch.Scheme.leak_t): SomeGarble.GSch.leak_t = topoED x.
-  op leakDE (x:SomeGarble.GSch.leak_t): ProjScheme.Sch.Scheme.leak_t = topoDE x.
+  op leakED (x:ProjScheme.Sch.Scheme.leak_t): SG.GSch.leak_t = topoED x.
+  op leakDE (x:SG.GSch.leak_t): ProjScheme.Sch.Scheme.leak_t = topoDE x.
 
   lemma leak_EDDE x: functD_topo_valid x =>
       leakED (leakDE x) = x by smt.
@@ -634,47 +641,47 @@ else
   lemma leak_DEED x: functE_topo_valid x =>
     leakDE (leakED x) = x by smt.
 
-  op inputED (x:ProjScheme.Sch.Scheme.Input.input_t): SomeGarble.GSch.Input.input_t = x.
-  op inputDE (x:SomeGarble.GSch.Input.input_t): ProjScheme.Sch.Scheme.Input.input_t = x.
+  op inputED (x:ProjScheme.Sch.Scheme.Input.input_t): SG.GSch.Input.input_t = x.
+  op inputDE (x:SG.GSch.Input.input_t): ProjScheme.Sch.Scheme.Input.input_t = x.
 
   lemma input_EDDE x: inputED (inputDE x) = x by delta.
 
   lemma input_DEED x: inputDE (inputED x) = x by delta.
 
-  op outputED (x:ProjScheme.Sch.Scheme.output_t): SomeGarble.GSch.output_t = x.
-  op outputDE (x:SomeGarble.GSch.output_t): ProjScheme.Sch.Scheme.output_t = x.
+  op outputED (x:ProjScheme.Sch.Scheme.output_t): SG.GSch.output_t = x.
+  op outputDE (x:SG.GSch.output_t): ProjScheme.Sch.Scheme.output_t = x.
 
   lemma output_EDDE x: outputED (outputDE x) = x by delta.
 
   lemma output_DEED x: outputDE (outputED x) = x by delta.
 
-  op outputKED (x:ProjScheme.Sch.Scheme.outputK_t): SomeGarble.GSch.outputK_t = x.
-  op outputKDE (x:SomeGarble.GSch.outputK_t): ProjScheme.Sch.Scheme.outputK_t = x.
+  op outputKED (x:ProjScheme.Sch.Scheme.outputK_t): SG.GSch.outputK_t = x.
+  op outputKDE (x:SG.GSch.outputK_t): ProjScheme.Sch.Scheme.outputK_t = x.
 
   lemma outputK_EDDE x: outputKED (outputKDE x) = x by delta.
 
   lemma outputK_DEED x: outputKDE (outputKED x) = x by delta.
 
-  op outputGED (x:ProjScheme.Sch.Scheme.outputG_t): SomeGarble.GSch.outputG_t = x.
-  op outputGDE (x:SomeGarble.GSch.outputG_t): ProjScheme.Sch.Scheme.outputG_t = x.
+  op outputGED (x:ProjScheme.Sch.Scheme.outputG_t): SG.GSch.outputG_t = x.
+  op outputGDE (x:SG.GSch.outputG_t): ProjScheme.Sch.Scheme.outputG_t = x.
 
   lemma outputG_EDDE x: outputGED (outputGDE x) = x by delta.
 
   lemma outputG_DEED x: outputGDE (outputGED x) = x by delta.
 
-  op inputGED (x:ProjScheme.Sch.Scheme.Input.inputG_t): SomeGarble.GSch.Input.inputG_t = x.
-  op inputGDE (x:SomeGarble.GSch.Input.inputG_t): ProjScheme.Sch.Scheme.Input.inputG_t = x.
+  op inputGED (x:ProjScheme.Sch.Scheme.Input.inputG_t): SG.GSch.Input.inputG_t = x.
+  op inputGDE (x:SG.GSch.Input.inputG_t): ProjScheme.Sch.Scheme.Input.inputG_t = x.
 
   lemma inputG_EDDE x: inputGED (inputGDE x) = x by delta.
 
   lemma inputG_DEED x: inputGDE (inputGED x) = x by delta.
 
-  op inputKED (x:ProjScheme.Sch.Scheme.Input.inputK_t): SomeGarble.GSch.Input.inputK_t =
+  op inputKED (x:ProjScheme.Sch.Scheme.Input.inputK_t): SG.GSch.Input.inputK_t =
     arrayToMap x.
-  op inputKDE (x:SomeGarble.GSch.Input.inputK_t): ProjScheme.Sch.Scheme.Input.inputK_t =
+  op inputKDE (x:SG.GSch.Input.inputK_t): ProjScheme.Sch.Scheme.Input.inputK_t =
     mapToArray x.
 
-  pred tokensD_valid (x:SomeGarble.tokens_t) =
+  pred tokensD_valid (x:SG.tokens_t) =
     (let max = 1 + fold (fun (p : int * bool) (s : int), max (p.`1) s) (-1) (dom x) in
      forall (y:int*bool), (mem (dom x) (y.`1, true) <=> 0 <= y.`1 < max) /\
                          (mem (dom x) (y.`1, false) <=> 0 <= y.`1 < max) /\ 0 <= max).
@@ -682,24 +689,24 @@ else
   lemma inputK_EDDE x: tokensD_valid x => inputKED (inputKDE x) = x by smt. 
   lemma inputK_DEED x: inputKDE (inputKED x) = x by smt.
 
-  op randED (x:ProjScheme.Sch.Scheme.rand_t): SomeGarble.GSch.rand_t = arrayToMap x.
-  op randDE (x:SomeGarble.GSch.rand_t): ProjScheme.Sch.Scheme.rand_t = mapToArray x.
+  op randED (x:ProjScheme.Sch.Scheme.rand_t): SG.GSch.rand_t = arrayToMap x.
+  op randDE (x:SG.GSch.rand_t): ProjScheme.Sch.Scheme.rand_t = mapToArray x.
 
   lemma rand_EDDE x: tokensD_valid x => randED (randDE x) = x by smt.
   lemma rand_DEED x: randDE (randED x) = x by smt.
 
-  op funED (x:ProjScheme.Sch.Scheme.fun_t): SomeGarble.GSch.fun_t =
+  op funED (x:ProjScheme.Sch.Scheme.fun_t): SG.GSch.fun_t =
     let (n, m, q, aa, bb) = x.`1 in (topoED (x.`1), arrayToMap2 n q (snd x)).
-  op funDE (x:SomeGarble.GSch.fun_t): ProjScheme.Sch.Scheme.fun_t =
+  op funDE (x:SG.GSch.fun_t): ProjScheme.Sch.Scheme.fun_t =
     let (n, m, q, aa, bb) = x.`1 in (topoDE (x.`1), mapToArray2 n q (snd x)).
 
-  pred functD_gg_valid (x:'a SomeGarble.funct_t) = let (n, m, q, aa, bb) = x.`1 in
+  pred functD_gg_valid (x:'a SG.funct_t) = let (n, m, q, aa, bb) = x.`1 in
     (forall (g:int) a b, (snd x).[(g, a, b)] <> None <=> n <= g < n + q).
 
   pred functE_gg_valid (x:'a funct_t) =  let (n, m, q, aa, bb) = x.`1 in
     size (snd x) = q.
 
-  pred functD_valid (x:'a SomeGarble.funct_t) = functD_topo_valid (x.`1) /\ functD_gg_valid x.
+  pred functD_valid (x:'a SG.funct_t) = functD_topo_valid (x.`1) /\ functD_gg_valid x.
 
   pred functE_valid (x:'a funct_t) = functE_topo_valid (x.`1) /\ functE_gg_valid x.
 
@@ -729,10 +736,10 @@ else
     by rewrite !/snd; smt.
   qed.
 
-  op funGED (x:ProjScheme.Sch.Scheme.funG_t) : SomeGarble.GSch.funG_t =
+  op funGED (x:ProjScheme.Sch.Scheme.funG_t) : SG.GSch.funG_t =
     let (n, m, q, aa, bb) = x.`1 in
     (topoED (x.`1), arrayToMap2 n q (snd x)).
-  op funGDE (x:SomeGarble.GSch.funG_t) : ProjScheme.Sch.Scheme.funG_t =
+  op funGDE (x:SG.GSch.funG_t) : ProjScheme.Sch.Scheme.funG_t =
     let (n, m, q, aa, bb) = x.`1 in
     (topoDE (x.`1), mapToArray2 n q (snd x)).
 
@@ -764,16 +771,16 @@ else
   (*end section Bijection*)
 
   (* Begin morphism *)
-  pred encode_valid (k:SomeGarble.GSch.Input.inputK_t) (i:SomeGarble.GSch.Input.input_t) = 1 + fold (fun (p:int * bool) (s:int), max (p.`1) s) (-1) (dom k) = size i.
+  pred encode_valid (k:SG.GSch.Input.inputK_t) (i:SG.GSch.Input.input_t) = 1 + fold (fun (p:int * bool) (s:int), max (p.`1) s) (-1) (dom k) = size i.
 
-  lemma encode_ED (k:SomeGarble.GSch.Input.inputK_t) (i:SomeGarble.GSch.Input.input_t) :
+  lemma encode_ED (k:SG.GSch.Input.inputK_t) (i:SG.GSch.Input.input_t) :
     encode_valid k i =>
     inputGED (ProjScheme.Sch.Scheme.Input.encode (inputKDE k) (inputDE i)) =
-     SomeGarble.GSch.Input.encode k i.
+     SG.GSch.Input.encode k i.
   proof.
     simplify inputGED ProjScheme.Sch.Scheme.Input.encode inputKDE inputDE
-             SomeGarble.GSch.Input.encode
-             SomeGarble.GSch.Input.encode
+             SG.GSch.Input.encode
+             SG.GSch.Input.encode
              mapToArray encode_valid.
     pose max:= 1 + fold (fun (p:int * bool) (s:int), max (p.`1) s) (-1) (dom k).
     move=> hmax.
@@ -787,8 +794,8 @@ else
     rewrite !offunE //=; first 2 by smt.
   qed.
 
-  lemma phi_ED (fn:bool SomeGarble.funct_t) : functD_topo_valid (fn.`1) =>
-    leakED (ProjScheme.Sch.Scheme.phi (funDE fn)) = SomeGarble.GSch.phi fn.
+  lemma phi_ED (fn:bool SG.funct_t) : functD_topo_valid (fn.`1) =>
+    leakED (ProjScheme.Sch.Scheme.phi (funDE fn)) = SG.GSch.phi fn.
   proof.
     simplify delta.
     elim fn=> topo gg /=.
@@ -806,17 +813,17 @@ else
         rewrite size_mkarray size_map size_iota max_ler; first by idtac=>/#. rewrite get_sub; first 4 by idtac=>/#. by cut ->: i - n + n = i by idtac=>/#.
   qed.
 
-  pred eval_valid (fn:'a SomeGarble.funct_t) (i:'a array) =
+  pred eval_valid (fn:'a SG.funct_t) (i:'a array) =
     let (n, m, q, aa, bb) = fn.`1 in
     0 <= q /\ size aa = n + q /\ size bb = n + q /\ size i = n /\
     (forall i0, 0 <= i0 < q => 0 <= aa.[i0 + n] < i0 + n) /\
     (forall i0, 0 <= i0 < q => 0 <= bb.[i0 + n] < i0 + n).
 
   lemma eval_ED fn i : eval_valid fn i =>
-    outputED (ProjScheme.Sch.Scheme.eval (funDE fn) (inputDE i)) = SomeGarble.GSch.eval fn i.
+    outputED (ProjScheme.Sch.Scheme.eval (funDE fn) (inputDE i)) = SG.GSch.eval fn i.
   proof.
-    simplify outputED ProjScheme.Sch.Scheme.eval funDE inputDE SomeGarble.GSch.eval
-             evalTupleGate SomeGarble.GSch.eval init_gates fst snd evalComplete extract mapToArray2
+    simplify outputED ProjScheme.Sch.Scheme.eval funDE inputDE SG.GSch.eval
+             evalTupleGate SG.GSch.eval init_gates fst snd evalComplete extract mapToArray2
              eval evalGen topoDE topoED eval_valid.
     elim fn=> topo gg /=.
     elim topo=> n m q aa bb /=.
@@ -853,10 +860,10 @@ else
   qed.
   
   lemma evalG_ED fn i : eval_valid fn i =>
-    outputGED (ProjScheme.Sch.Scheme.evalG (funGDE fn) (inputGDE i)) = SomeGarble.GSch.evalG fn i.
+    outputGED (ProjScheme.Sch.Scheme.evalG (funGDE fn) (inputGDE i)) = SG.GSch.evalG fn i.
   proof.
-    simplify outputGED ProjScheme.Sch.Scheme.evalG funGDE inputGDE SomeGarble.GSch.evalG
-             evalTupleGate SomeGarble.GSch.evalG init_gates fst snd evalComplete extract mapToArray2
+    simplify outputGED ProjScheme.Sch.Scheme.evalG funGDE inputGDE SG.GSch.evalG
+             evalTupleGate SG.GSch.evalG init_gates fst snd evalComplete extract mapToArray2
              evalG evalGen topoDE topoED eval_valid.
     elim fn=> topo gg hx /=.
     elim topo hx=> n m q aa bb /=.
@@ -872,7 +879,7 @@ else
     congr; expect 4 by rewrite !get_sub => /#. 
   qed.
 
-  pred funG_valid (fn:'a SomeGarble.funct_t) (r:(int*bool, word) fmap) =
+  pred funG_valid (fn:'a SG.funct_t) (r:(int*bool, word) fmap) =
     functD_topo_valid (fn.`1) /\
     let (n,m,q,aa,bb) = fn.`1 in 
     1 + fold (fun (p:int * bool) (s:int), max (p.`1) s) (-1) (dom r) = (n + q)%Int /\
@@ -880,7 +887,7 @@ else
       0 <= (aa.[i])%Array < n + q /\
       0 <= (bb.[i])%Array < n + q.
 
-  op randFormatD (t:topo_t) (r:SomeGarble.GSch.rand_t) = 
+  op randFormatD (t:topo_t) (r:SG.GSch.rand_t) = 
     let (n, m, q, aa, bb) = t in
     randED (randFormat (n+q)%Int m (randDE r)).
 
@@ -892,7 +899,7 @@ else
   lemma validRand_DE fn i:
     validRandD fn i =>
     ProjScheme.Sch.Scheme.validRand fn i =
-     SomeGarble.GSch.validRand (funED fn) (randFormatD (funED fn).`1 (randED i)).
+     SG.GSch.validRand (funED fn) (randFormatD (funED fn).`1 (randED i)).
   proof.
     elim fn=> t gg /=.
     elim t=> n m q aa bb /=.
@@ -905,7 +912,7 @@ else
     rewrite /randFormatD /=.
     rewrite rand_DEED /randED /randFormat.
     cut -> //=: (size i < n + q) = false by smt.
-    rewrite /SomeGarble.GSch.validRand /SomeGarble.GSch.validRand fst_pair /=.
+    rewrite /SG.GSch.validRand /SG.GSch.validRand fst_pair /=.
     rewrite leni_nq //= eq_sym eqT=> k k_bnd.
       rewrite !get_arrayToMap /=
               size_mapi leni_nq k_bnd //=
@@ -915,16 +922,16 @@ else
       case (k < n + q - m)=> k_nqm.
         rewrite snd_pair /=.
         cut ->: (n + q - m <= k) = false by smt=> //=.
-        by rewrite set_getlsb (*/SomeGarble.W.getlsb*) get_setlsb; smt.
+        by rewrite set_getlsb (*/SG.W.getlsb*) get_setlsb; smt.
         rewrite snd_pair /=.
         cut ->: (n + q - m <= k) = true by smt=> //=.
         by rewrite (*/DKCScheme.W.getlsb*) !get_setlsb.
   qed.
   
-  lemma funG_ED (fn:bool SomeGarble.funct_t) (r:(int*bool, word) fmap):
+  lemma funG_ED (fn:bool SG.funct_t) (r:(int*bool, word) fmap):
     funG_valid fn r =>
     funGED (ProjScheme.Sch.Scheme.funG (funDE fn) (randDE r)) =
-     SomeGarble.GSch.funG fn (randFormatD (fn.`1) r).
+     SG.GSch.funG fn (randFormatD (fn.`1) r).
   proof.
     elim fn=> t gg /=.
     elim t=> n m q aa bb /=.
@@ -950,19 +957,19 @@ else
     rewrite size_offun //=. rewrite max_ler; first by exact H0. simplify.
   (*
     rewrite !(_: forall (g:(int*bool*bool, word) map) (y:int*bool*bool), g.[y] = g.[y]);first 2 by trivial.*)
-    rewrite !SomeGarble.get_initGates //.
+    rewrite !SG.get_initGates //.
     case (n <= g < n + q)=> h //.
-    rewrite /garbMap /garbleGate /init_gates /SomeGarble.enc /enc /evalTupleGate /randED !snd_pair /=.
+    rewrite /garbMap /garbleGate /init_gates /SG.enc /enc /evalTupleGate /randED !snd_pair /=.
     rewrite !/fst offunE /=;first smt.
   (*  simplify "_.[_]".*)
     pose r' := randFormat (n + q) m (randDE r).
     cut h' : 0 <= g - n < q by smt.
     rewrite !get_sub // ?H1 ?H2 //.
     rewrite offunE //.
-    rewrite /evalTupleGate (*/SomeGarble.W.getlsb*) /getTok /=.
+    rewrite /evalTupleGate (*/SG.W.getlsb*) /getTok /=.
     rewrite !get_arrayToMap.
     rewrite !snd_pair.
-    rewrite (*/SomeGarble.W.getlsb*) /getTok /=.
+    rewrite (*/SG.W.getlsb*) /getTok /=.
     cut ->: size r' = n + q. simplify r'. rewrite /randFormat. cut ->: size (randDE r) < n + q <=> false by smt. simplify. rewrite size_mapi. rewrite /randDE /mapToArray. smt. 
     cut ->: 0 <= g < n + q by smt.
     cut ->: 0 <= aa.[g] < n + q by smt.
@@ -985,7 +992,7 @@ else
        move=> //=; smt.
   qed.
 
-  pred inputK_valid (fn:'a SomeGarble.funct_t) (r:SomeGarble.GSch.rand_t) = 
+  pred inputK_valid (fn:'a SG.funct_t) (r:SG.GSch.rand_t) = 
     let (n, m, q, aa, bb) = fn.`1 in
     0 <= n /\
     0 <= q /\
@@ -993,10 +1000,10 @@ else
 
   lemma inputK_ED fn r : inputK_valid fn r =>
     inputKED (ProjScheme.Sch.Scheme.inputK (funDE fn) (randDE r)) =
-     SomeGarble.GSch.inputK fn (randFormatD (fn.`1) r).
+     SG.GSch.inputK fn (randFormatD (fn.`1) r).
   proof.
     simplify inputKED funDE randED topoDE topoED Sch.Scheme.inputK
-             SomeGarble.GSch.inputK inputK SomeGarble.GSch.inputK inputK_valid.
+             SG.GSch.inputK inputK SG.GSch.inputK inputK_valid.
     elim fn=> topo gg /=.
     rewrite !fst_pair /=.
     rewrite !snd_pair /=.
@@ -1018,18 +1025,18 @@ else
 
   lemma outputK_ED fn r:
     outputKED (ProjScheme.Sch.Scheme.outputK (funDE fn) (randDE r)) =
-     SomeGarble.GSch.outputK fn (randFormatD (fn.`1) r)
+     SG.GSch.outputK fn (randFormatD (fn.`1) r)
   by smt.
 
   lemma decode_ED k y:
     outputED (ProjScheme.Sch.Scheme.decode (outputKDE k) (outputGDE y)) =
-     SomeGarble.GSch.decode k y
+     SG.GSch.decode k y
   by smt.
 
   lemma pi_sampler_ED x : functD_topo_valid (fst x) =>
-    (let y = (ProjScheme.Sch.Scheme.pi_sampler (leakDE (fst x), (outputDE (snd x)))) in (funED (fst y), snd y)) = SomeGarble.GSch.pi_sampler x.
+    (let y = (ProjScheme.Sch.Scheme.pi_sampler (leakDE (fst x), (outputDE (snd x)))) in (funED (fst y), snd y)) = SG.GSch.pi_sampler x.
   proof. 
-    simplify Sch.Scheme.pi_sampler Mtopo SomeGarble.GSch.pi_sampler SomeGarble.GSch.pi_sampler funED topoDE topoED arrayToMap2 functD_topo_valid leakDE.
+    simplify Sch.Scheme.pi_sampler Mtopo SG.GSch.pi_sampler SG.GSch.pi_sampler funED topoDE topoED arrayToMap2 functD_topo_valid leakDE.
     elim x=> t i /=.
     elim t=> n m q aa bb /=.
     simplify fst snd.
@@ -1048,8 +1055,8 @@ else
       apply fmapP=> y.
       elim y=> g a b.
       cut /= -> // :=
-        SomeGarble.get_initGates n q (fun (g : int) (a b : bool), ! g < n + q - m && i.[g - (n + q - m)]).
-      cut := SomeGarble.get_initGates n q  (fun (g0 : int) (a0 b0 : bool),
+        SG.get_initGates n q (fun (g : int) (a b : bool), ! g < n + q - m && i.[g - (n + q - m)]).
+      cut := SG.get_initGates n q  (fun (g0 : int) (a0 b0 : bool),
                evalTupleGate
                  (offun
                     (fun (g1 : int),
@@ -1062,7 +1069,7 @@ else
       move=> Hf //. 
       case (n <= g < n + q)=> h //.
       rewrite max_ler; first by assumption. simplify.
-      rewrite SomeGarble.get_initGates. smt. rewrite h. simplify.
+      rewrite SG.get_initGates. smt. rewrite h. simplify.
       rewrite offunE. smt.
                             simplify evalTupleGate. 
       case (g - n < q - m). progress. smt. smt. smt.
@@ -1070,11 +1077,11 @@ else
 
   lemma validInputs_DE fn i :
     ProjScheme.Sch.Scheme.validInputs fn i =
-     SomeGarble.GSch.validInputs (funED fn) (inputED i).
+     SG.GSch.validInputs (funED fn) (inputED i).
   proof.
-    simplify mapToArray2 SomeGarble.valid_gates SomeGarble.GSch.validInputs
+    simplify mapToArray2 SG.valid_gates SG.GSch.validInputs
              validInputs ProjScheme.Sch.Scheme.validInputs funED inputED topoED.
-    rewrite SomeGarble.valid_wireinput valid_wireinput /SomeGarble.valid_circuitP /validCircuitP.
+    rewrite SG.valid_wireinput valid_wireinput /SG.valid_circuitP /validCircuitP.
     elim fn=> topo gg /=.
     elim topo=> n m q aa bb /=.
     rewrite /= !snd_pair /= !fst_pair /=.
@@ -1094,7 +1101,7 @@ else
         by rewrite size_offun max_ler; smt. 
       cut := H8 (i0 + size i) _; first by smt.
         rewrite ?get_append 1,2: smt.
-        by rewrite size_offun max_ler; smt. 
+        +by rewrite size_offun max_ler; smt. 
       cut := H8 (i0 + size i) _;first by smt.
         rewrite ?get_append 1,2: smt.
         by rewrite size_offun max_ler; smt. 
@@ -1170,15 +1177,15 @@ else
 (* Begin Correction Lemma *)
   lemma sch_correct: ProjScheme.Sch.Scheme.Correct ().
   proof.
-  cut : SomeGarble.SomeDKC.PrfDKC.Correct () by rewrite SomeGarble.SomeDKC.PrfDKC_correct.
-  move=> prf_correct.
+  cut : PrfDKC.Correct () by rewrite PrfDKC_correct. 
+  move=> dkc_correct.
     rewrite /ProjScheme.Sch.Scheme.Correct=> r fn i h1 h2.
     cut := valids fn i r _ _=> //.
     do 12 ! (move => [?]); move => ?.
     move : h1 h2.
     rewrite validInputs_DE validRand_DE //. 
     move => hInputs hRand.
-    cut:= SomeGarble.gsch_correct (randFormatD ((funED fn).`1) (randED r)) (funED fn) (inputED i) _ _=> //=.
+    cut:= SG.gsch_correct dkc_correct (randFormatD ((funED fn).`1) (randED r)) (funED fn) (inputED i) _ _=> //=.
     rewrite -(outputK_ED (funED fn) (randED r)).
     rewrite -(funG_ED (funED fn) (randED r)) //. 
     rewrite -(inputK_ED (funED fn) (randED r)) // fun_DEED // rand_DEED.
@@ -1194,8 +1201,8 @@ else
 
   (* Begin Random equivalence *)
   module R1 = {
-    module C' = SomeGarble.C
-    module R' = SomeGarble.R
+    module C' = SG.C
+    module R' = SG.R
 
     var trnd : bool
     var tok1, tok2 : word
@@ -1207,7 +1214,7 @@ else
       tok2 = $Dword.dwordLsb (!trnd);
     }
 
-    proc gen(l:topo_t): SomeGarble.GSch.rand_t = {
+    proc gen(l:topo_t): SG.GSch.rand_t = {
       var i:int;
       var x:(int*bool, word) fmap;
       var (n, m, q, aa, bb) = l;
@@ -1227,13 +1234,13 @@ else
     }
   }.
 
-equiv Rand_R1 : SomeGarble.Rand.gen ~ R1.gen : ={l} ==> ={res}.
+equiv Rand_R1 : SG.Rand.gen ~ R1.gen : ={l} ==> ={res}.
 proof strict.
   proc.
   inline R1.genTok.
   while (
   ={i} /\
-  SomeGarble.R.xx{1} = x{2} /\
+  SG.R.xx{1} = x{2} /\
   n{1}  = n{2} /\
   m{1}  = m{2} /\
   q{1}  = q{2} /\
@@ -1434,7 +1441,7 @@ proof strict.
 by rewrite /in_dom=> x_m; smt.
 qed.
 
-equiv RandEq fn: SomeGarble.Rand.gen ~ Rand.gen:
+equiv RandEq fn: SG.Rand.gen ~ Rand.gen:
   let (n, m, q, aa, bb) = fn in
     l{1} = topoED fn /\
     l{2} = fn /\
@@ -1562,38 +1569,38 @@ qed.
   by proc; wp; call Rand_stateless; wp.
 qed.
 
-
-module Red(A:EncSecurity.Adv_SIM_t) : SomeGarble.Sec.EncSecurity.Adv_SIM_t = {
-  proc gen_query() : SomeGarble.Sec.EncSecurity.query_SIM = {
+module Red(A:EncSecurity.Adv_SIM_t) : SG.Sec.EncSecurity.Adv_SIM_t = {
+  proc gen_query() : SG.Sec.EncSecurity.query_SIM = {
     var (f, x) : EncSecurity.Encryption.plain;
     (f, x) = A.gen_query();
     return (funED f, inputED x);
   }
-  proc get_challenge(cipher : SomeGarble.Sec.EncSecurity.Encryption.cipher) : bool =
+  proc get_challenge(cipher : SG.Sec.EncSecurity.Encryption.cipher) : bool =
   {
-    var (f, y, ko) : SomeGarble.Sec.EncSecurity.Encryption.cipher;
+    var (f, y, ko) : SG.Sec.EncSecurity.Encryption.cipher;
     var b : bool;
     (f, y, ko) = cipher;
     b = A.get_challenge((funGDE f, inputGDE y, outputKDE ko));
     return b;
   }
 }.
+
     
-(*lemma sch_is_sim (A <: EncSecurity.Adv_SIM_t {Rand, SomeGarble.Rand, SomeGarble.DKCSecurity.DKCp, SomeGarble.C, SomeGarble.R, SomeGarble.G, SomeGarble.R', SomeGarble.DKCSecurity.DKCp}) &m l:
+(*lemma sch_is_sim (A <: EncSecurity.Adv_SIM_t {Rand, SG.Rand, SG.DKCSecurity.DKCp, SG.C, SG.R, SG.G, SG.R', SG.DKCSecurity.DKCp}) &m l:
  islossless A.gen_query =>
  islossless A.get_challenge =>
- 0 <= l < SomeGarble.DKCSecurity.boundl =>   
+ 0 <= l < SG.DKCSecurity.boundl =>   
   `|2%r * Pr[EncSecurity.Game_SIM(Rand,EncSecurity.SIM(Rand), A).main()@ &m:res] - 1%r| <=
-    2%r * (SomeGarble.bound)%r * `|2%r * Pr[SomeGarble.DKCSecurity.Game(SomeGarble.DKCSecurity.DKC, SomeGarble.DKC_Adv(SomeGarble.DKCSecurity.DKC, SomeGarble.Sec.EncSecurity.RedSI(Red(A)))).main(l)@ &m:res] - 1%r|.
+    2%r * (SG.bound)%r * `|2%r * Pr[SG.DKCSecurity.Game(SG.DKCSecurity.DKC, SG.DKC_Adv(SG.DKCSecurity.DKC, SG.Sec.EncSecurity.RedSI(Red(A)))).main(l)@ &m:res] - 1%r|.
 proof strict.
 move=> ll_ADVp1 ll_ADVp2. 
-cut := SomeGarble.sch_is_sim (Red(A)) &m _ _=> //.
+cut := SG.sch_is_sim (Red(A)) &m _ _=> //.
 by proc;call ll_ADVp1.
 by proc;call ll_ADVp2;wp.
-cut -> : Pr[SomeGarble.Sec.EncSecurity.Game_SIM(SomeGarble.Rand, SomeGarble.Sec.EncSecurity.SIM(SomeGarble.Rand), Red(A)).main()@ &m : res] = Pr[EncSecurity.Game_SIM(Rand, EncSecurity.SIM(Rand), A).main()@ &m : res];move=> //.
+cut -> : Pr[SG.Sec.EncSecurity.Game_SIM(SG.Rand, SG.Sec.EncSecurity.SIM(SG.Rand), Red(A)).main()@ &m : res] = Pr[EncSecurity.Game_SIM(Rand, EncSecurity.SIM(Rand), A).main()@ &m : res];move=> //.
 byequiv (_: ={glob A} ==> ={res})=> //.
 proc.
-inline Red(A).gen_query Red(A).get_challenge SomeGarble.Sec.EncSecurity.Game_SIM(SomeGarble.Rand, SomeGarble.Sec.EncSecurity.SIM(SomeGarble.Rand), Red(A)).game EncSecurity.Game_SIM(Rand, EncSecurity.SIM(Rand), A).game EncSecurity.SIM(Rand).simm SomeGarble.Sec.EncSecurity.SIM(SomeGarble.Rand).simm.
+inline Red(A).gen_query Red(A).get_challenge SG.Sec.EncSecurity.Game_SIM(SG.Rand, SG.Sec.EncSecurity.SIM(SG.Rand), Red(A)).game EncSecurity.Game_SIM(Rand, EncSecurity.SIM(Rand), A).game EncSecurity.SIM(Rand).simm SG.Sec.EncSecurity.SIM(SG.Rand).simm.
 seq 4 3 : (={glob A, b} /\
 (query{1} = (funED (query{2}.`1), inputED (snd query{2}))) /\ real{1} = real{2} ).
  wp;call (_: ={glob A} ==> ={res, glob A});first by proc true.
@@ -1605,7 +1612,7 @@ if; first smt.
   wp; call (RandEq (EncSecurity.Encryption.randfeed qu)).
   skip=> {ll_ADVp1 ll_ADVp2}.
   elim qu=> fn xx; elim fn=> tt gg; elim tt=> n m q aa bb &1 &2. 
-  simplify SomeGarble.Sec.EncSecurity.queryValid_SIM SomeGarble.Sec.EncSecurity.Encryption.valid_plain SomeGarble.Sec.EncSecurity.Encryption.randfeed EncSecurity.Encryption.randfeed Sch.Scheme.phi SomeGarble.Sec.EncSecurity.Encryption.enc SomeGarble.GSch.phi ProjScheme.Sch.Scheme.phi SomeGarble.GSch.phi EncSecurity.Encryption.enc Sch.Scheme.funG Sch.Scheme.Input.encode Sch.Scheme.outputK Sch.Scheme.inputK SomeGarble.Sec.EncSecurity.Encryption.pi_sampler SomeGarble.GSch.phi EncSecurity.Encryption.pi_sampler Sch.Scheme.pi_sampler Sch.Scheme.phi Sch.Scheme.eval EncSecurity.Encryption.leak SomeGarble.Sec.EncSecurity.Encryption.leak fst snd.
+  simplify SG.Sec.EncSecurity.queryValid_SIM SG.Sec.EncSecurity.Encryption.valid_plain SG.Sec.EncSecurity.Encryption.randfeed EncSecurity.Encryption.randfeed Sch.Scheme.phi SG.Sec.EncSecurity.Encryption.enc SG.GSch.phi ProjScheme.Sch.Scheme.phi SG.GSch.phi EncSecurity.Encryption.enc Sch.Scheme.funG Sch.Scheme.Input.encode Sch.Scheme.outputK Sch.Scheme.inputK SG.Sec.EncSecurity.Encryption.pi_sampler SG.GSch.phi EncSecurity.Encryption.pi_sampler Sch.Scheme.pi_sampler Sch.Scheme.phi Sch.Scheme.eval EncSecurity.Encryption.leak SG.Sec.EncSecurity.Encryption.leak fst snd.
   move=> [<<-] //= [[[[->> ->>]]]] //= [->> ->>] //=.
   rewrite -validInputs_DE=> vIn b.
   split.
@@ -1633,7 +1640,7 @@ if; first smt.
   wp; call (RandEq (EncSecurity.Encryption.randfeed qu)).
   wp; skip=> {ll_ADVp1 ll_ADVp2}.
   elim qu=> fn xx; elim fn=> tt gg; elim tt=> n m q aa bb &1 &2. 
-  simplify SomeGarble.Sec.EncSecurity.queryValid_SIM SomeGarble.Sec.EncSecurity.Encryption.valid_plain SomeGarble.Sec.EncSecurity.Encryption.randfeed EncSecurity.Encryption.randfeed Sch.Scheme.phi SomeGarble.Sec.EncSecurity.Encryption.enc SomeGarble.GSch.phi ProjScheme.Sch.Scheme.phi SomeGarble.GSch.phi EncSecurity.Encryption.enc Sch.Scheme.funG Sch.Scheme.Input.encode Sch.Scheme.outputK Sch.Scheme.inputK SomeGarble.Sec.EncSecurity.Encryption.pi_sampler SomeGarble.GSch.phi EncSecurity.Encryption.pi_sampler Sch.Scheme.pi_sampler Sch.Scheme.phi Sch.Scheme.eval EncSecurity.Encryption.leak SomeGarble.Sec.EncSecurity.Encryption.leak.
+  simplify SG.Sec.EncSecurity.queryValid_SIM SG.Sec.EncSecurity.Encryption.valid_plain SG.Sec.EncSecurity.Encryption.randfeed EncSecurity.Encryption.randfeed Sch.Scheme.phi SG.Sec.EncSecurity.Encryption.enc SG.GSch.phi ProjScheme.Sch.Scheme.phi SG.GSch.phi EncSecurity.Encryption.enc Sch.Scheme.funG Sch.Scheme.Input.encode Sch.Scheme.outputK Sch.Scheme.inputK SG.Sec.EncSecurity.Encryption.pi_sampler SG.GSch.phi EncSecurity.Encryption.pi_sampler Sch.Scheme.pi_sampler Sch.Scheme.phi Sch.Scheme.eval EncSecurity.Encryption.leak SG.Sec.EncSecurity.Encryption.leak.
   move=> [<<-] //= [[[[->> ->>]]]] //= [->> ->>] //=.
   rewrite !fst_pair !snd_pair -validInputs_DE=> vIn b /=.
   split.
@@ -1643,9 +1650,9 @@ if; first smt.
   move: (valids ((n,m,q,aa,bb),gg) xx result_R _ _)=> //.
   move=> [fD_tt_v] [fE_tt_v] [fE_v] [eval_v] [rD_v] [encode_v] [fG_v] [iK_v] [evalG_v] [fGE_v] [fE_phi_v] [fGE_phi_v] iK_phi_valid.
   cut -> : randED (randFormat (n + q) m result_R) = randFormatD (fst (fst
-              ((SomeGarble.GSch.pi_sampler
+              ((SG.GSch.pi_sampler
                   ((funED ((n, m, q, aa, bb), gg)).`1,
-                   (SomeGarble.GSch.eval
+                   (SG.GSch.eval
                       (funED ((n, m, q, aa, bb), gg)) (inputED xx))))))) (randED result_R)
     by rewrite /randFormatD /funED /topoED /fst rand_DEED //.
   cut H: (funED ((n, m, q, aa, bb), gg)).`1 = leakED (Sch.Scheme.phi ((n, m, q, aa, bb), gg)) by trivial.
@@ -1654,7 +1661,7 @@ if; first smt.
   pose r:= result_R.
   split.
     rewrite -eval_ED // fun_DEED // input_DEED //.
-    pose phi_ED:= (SomeGarble.GSch.pi_sampler (leakED (Sch.Scheme.phi fn),outputED (ProjScheme.Sch.Scheme.eval fn xx))).`1.
+    pose phi_ED:= (SG.GSch.pi_sampler (leakED (Sch.Scheme.phi fn),outputED (ProjScheme.Sch.Scheme.eval fn xx))).`1.
     rewrite -(funG_ED phi_ED (randED r)) 1:// rand_DEED.
     rewrite /phi_ED.
     rewrite -(pi_sampler_ED (leakED (Sch.Scheme.phi fn),outputED (ProjScheme.Sch.Scheme.eval fn xx))) 1://.
@@ -1665,7 +1672,7 @@ if; first smt.
     by rewrite funG_DEED.
   move=> H42 {H42}; split=> //.
   rewrite -eval_ED // fun_DEED // input_DEED //.
-  pose phi_ED:= (SomeGarble.GSch.pi_sampler (leakED (Sch.Scheme.phi fn),outputED (ProjScheme.Sch.Scheme.eval fn xx))).`1.
+  pose phi_ED:= (SG.GSch.pi_sampler (leakED (Sch.Scheme.phi fn),outputED (ProjScheme.Sch.Scheme.eval fn xx))).`1.
   rewrite -(inputK_ED phi_ED (randED r)) 1:// rand_DEED.
   rewrite /phi_ED.
   rewrite -(pi_sampler_ED (leakED (Sch.Scheme.phi fn),outputED (ProjScheme.Sch.Scheme.eval fn xx))) 1://.
