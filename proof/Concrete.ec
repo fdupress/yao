@@ -21,7 +21,7 @@ theory Concrete.
   clone import EffSch.EfficientScheme as ES with
     theory W <- W.
 
-  import ES.ProjScheme.
+    import ES.ProjScheme.
     
    (* Definition of leakage for both PFE and SFE protocols *)
    op pfe_or_sfe : bool.
@@ -494,8 +494,8 @@ move => i1 r1 i2 r2.
   wp; call SomeOT.S1_stateless.
   wp;skip;progress;smt.
  rcondt {1} 1; first by move => &m0; skip.
- rcondt {2} 1. move => &m0; skip. progress. move : H. simplify CSFE.OTSecurity.OTPSec.Protocol.validInputs. simplify SomeOT.OTSecurity.OTPSec.Protocol.validInputs. progress. admit.
- wp;rnd;skip;progress;smt.
+ rcondt {2} 1. move => &m0; skip. progress. (*move : H. simplify CSFE.OTSecurity.OTPSec.Protocol.validInputs. simplify SomeOT.OTSecurity.OTPSec.Protocol.validInputs. progress.*) admit.
+(* wp;rnd;skip;progress;smt.*)
  qed.
 
  lemma Connect_SomeOT_1_pr : 
@@ -627,19 +627,200 @@ wp; call ES.Rand_islossless.
 wp => //.
 qed.
 
-(* lemma Security : 
-  forall (A1 <: ProtSecurity.Adv1_t {ES.Rand, CSFE.B_OT1, CSFE.B_G, SomeOT.DDHn_A, SomeOT.ESn_A}) (A2 <: ProtSecurity.Adv2_t {ES.Rand, CSFE.B_OT2, CSFE.B_G}) &m,
+require import OldMonoid.
+require import Sum.
+require import FSet.
+require import Real.
+
+print ES.SG.DKCSecurity.
+
+lemma dummy (A <: ES.SG.Sec.EncSecurity.Adv_IND_t{ES.SG.Rand,ES.SG.R,ES.SG.C,ES.SG.DKC_Adv,ES.SG.DKCSecurity.DKCp,ES.SG.DKCSecurity.DKC_O,ES.SomeDKC.PRF.PRFr_Wrapped,ES.SomeDKC.PRF.RandomFunction,ES.SomeDKC.DKCSecurity.DKCp,ES.SomeDKC.Param}) &m:
+    islossless A.gen_query =>
+    islossless A.get_challenge =>
+equiv [ES.SG.DKCSecurity.Game(ES.SG.DKCSecurity.DKC_O, ES.SG.DKC_Adv(A)).game ~ ES.SomeDKC.DKCSecurity.Game(ES.SomeDKC.DKCSecurity.DKC_O, ES.SG.DKC_Adv(A)).game : ={l} ==> ={res}].
+proof.
+admit.
+qed.
+
+
+
+
+lemma prf_reduction eps_prf (A <: ES.SG.Sec.EncSecurity.Adv_IND_t{ES.SG.Rand,ES.SG.R,ES.SG.C,ES.SG.DKC_Adv,ES.SG.DKCSecurity.DKCp,ES.SG.DKCSecurity.DKC_O,ES.SomeDKC.PRF.PRFr_Wrapped,ES.SomeDKC.PRF.RandomFunction,ES.SomeDKC.DKCSecurity.DKCp,ES.SomeDKC.Param}) &m:
+    islossless A.gen_query =>
+    islossless A.get_challenge =>
+    (forall i, 0 <= i < ES.bound => (Pr[ES.SomeDKC.PRF.IND(ES.SomeDKC.PRF.PRFr_Wrapped,ES.SomeDKC.D(ES.SG.DKC_Adv(A))).main(i)@ &m:res] - Pr[ES.SomeDKC.PRF.IND(ES.SomeDKC.PRF.RandomFunction,ES.SomeDKC.D(ES.SG.DKC_Adv(A))).main(i)@ &m:res]) <= eps_prf) =>
+    
+  Pr[ES.SG.GameReal(A).garble() @ &m : res] - Pr[ES.SG.GameFake(A).garble() @ &m : res] <= ES.bound%r * eps_prf.
+proof.
+  move => Agen_ll Aget_ll prf_eps.
+  cut ->: Pr[ES.SG.GameReal(A).garble() @ &m : res] = Pr[ES.SG.GameHybrid(A).garble(-1) @ &m : res].
+    by byequiv (ES.SG.GameReal_GameHybrid0 A Agen_ll Aget_ll). 
+  cut ->: Pr[ES.SG.GameFake(A).garble() @ &m : res] = Pr[ES.SG.GameHybrid(A).garble(ES.bound - 1) @ &m : res].
+    by byequiv (ES.SG.GameFake_GameHybridBound A _ _).
+  rewrite (ES.SG.reductionSimplified A &m _ _) //.
+  cut ->: ES.SG.bound = ES.bound by idtac=>/#.
+  cut ->: Mrplus.sum
+   (fun (i0 : int) =>
+      Pr[ES.SG.DKCSecurity.Game(ES.SG.DKCSecurity.DKC_O, ES.SG.DKC_Adv(A)).game
+         (true, i0) @ &m : res] -
+      Pr[ES.SG.DKCSecurity.Game(ES.SG.DKCSecurity.DKC_O, ES.SG.DKC_Adv(A)).game
+         (false, i0) @ &m : !res]) (intval 0 (ES.bound - 1)) = Mrplus.sum 
+     (fun (i0 : int) =>
+       Pr[ES.SomeDKC.PRF.IND(ES.SomeDKC.PRF.PRFr_Wrapped,ES.SomeDKC.D(ES.SG.DKC_Adv(A))).main(i0)@ &m:res] -
+       Pr[ES.SomeDKC.PRF.IND(ES.SomeDKC.PRF.RandomFunction,ES.SomeDKC.D(ES.SG.DKC_Adv(A))).main(i0)@ &m:res]) (intval 0 (ES.bound - 1)).
+     rewrite (Mrplus.sum_eq (fun (i0 : int) =>
+      Pr[ES.SG.DKCSecurity.Game(ES.SG.DKCSecurity.DKC_O, ES.SG.DKC_Adv(A)).game
+         (true, i0) @ &m : res] -
+      Pr[ES.SG.DKCSecurity.Game(ES.SG.DKCSecurity.DKC_O, ES.SG.DKC_Adv(A)).game
+         (false, i0) @ &m : !res]) (fun (i0 : int) =>
+      Pr[ES.SomeDKC.PRF.IND(ES.SomeDKC.PRF.PRFr_Wrapped, ES.SomeDKC.D(ES.SG.DKC_Adv(A))).main
+         (i0) @ &m : res] -
+      Pr[ES.SomeDKC.PRF.IND(ES.SomeDKC.PRF.RandomFunction, ES.SomeDKC.D(ES.SG.DKC_Adv(A))).main
+        (i0) @ &m : res])).
+           move => x. rewrite intval_def => [[?]] ?. 
+          simplify.  congr. byequiv (dummy A &m Agen_ll Aget_ll).
+          cut ->: Pr[ES.SG.DKCSecurity.Game(ES.SG.DKCSecurity.DKC_O, ES.SG.DKC_Adv(A)).game (true, x) @ &m : res] = Pr[ES.SomeDKC.DKCSecurity.Game(ES.SomeDKC.DKCSecurity.DKC_O, ES.SG.DKC_Adv(A)).game (true, x) @ &m : res].  
+
+          byequiv. sim / true : (={glob A} /\ (glob ES.SG.DKCSecurity.DKC_O){1} = (glob ES.SG.DKCSecurity.DKC_O){2}). admit.
+
+          proc. call (_ : ={glob A}) => //. 
+  seq 1 1 : (={lsb,l,query_ind,glob A}). call (_ : true) => //. 
+  if; last first. by rnd.
+  done.
+  wp. call (_ : true) => //. wp.
+  seq 3 3 : (={glob A,real,p,query_ind,l,lsb} /\
+      (glob ES.SG.C){1} = (glob ES.SG.C){2} /\
+      ES.SG.Sec.EncSecurity.queryValid_IND query_ind{1} /\
+      size ES.SG.C.v{1} = (ES.SG.C.n + ES.SG.C.q){1} /\
+      ES.SG.C.f{1} = ((ES.SG.C.n, ES.SG.C.m, ES.SG.C.q, ES.SG.C.aa, ES.SG.C.bb), ES.SG.C.gg){1} /\
+      ES.SG.validInputsP (ES.SG.C.f, ES.SG.C.x){1} /\
+      (forall i, 0 <= i < ES.SG.C.n{2} => ES.SG.C.v{2}.[i] = ES.SG.C.x{2}.[i]) /\
+      (forall i, ES.SG.C.n <= i < ES.SG.C.n + ES.SG.C.q => ES.SG.C.v{2}.[i] = oget ES.SG.C.gg.[(i, ES.SG.C.v{2}.[ES.SG.C.aa{2}.[i]], ES.SG.C.v{2}.[ES.SG.C.bb.[i]])]){2}).
+      call CircuitInitEquiv'.
+      auto; progress. 
+        by move : H0; rewrite /queryValid_IND /valid_plain /validInputs /validInputsP ?valid_wireinput /valid_circuitP /fst /snd; case realL. 
+
+
+
+
+
+  
+
+          admit.
+          cut ? : x < ES.SomeDKC.boundl by smt.
+          byequiv (ES.SomeDKC.true_key x (ES.SG.DKC_Adv(A))). done. done.
+  
+          congr. cut ->: Pr[ES.SG.DKCSecurity.Game(ES.SG.DKCSecurity.DKC_O, ES.SG.DKC_Adv(A)).game
+   (false, x) @ &m : !res] = Pr[ES.SomeDKC.DKCSecurity.Game(ES.SomeDKC.DKCSecurity.DKC_O, ES.SG.DKC_Adv(A)).game
+   (false, x) @ &m : !res]. admit. cut ? : x < ES.SomeDKC.boundl by smt.
+     byequiv (ES.SomeDKC.false_key x (ES.SG.DKC_Adv(A))). done. idtac=>/#. 
+     done.
+
+ cut ? : 0 <= ES.bound by smt.
+ elim/intind ES.bound. 
+ 
+
+ 
+ 
+
+ rewrite /intval. simplify. rewrite List.Iota.iota0. done. rewrite -set0E. rewrite Mrplus.sum_empty. done.  move => bound hbound hind. admit.
+
+
+ cut ->: (bound + 1)%r * eps_prf = bound%r * eps_prf + eps_prf by idtac=>/#.
+ cut ->: (Mrplus.sum
+   (fun (i0 : int) =>
+      Pr[ES.SomeDKC.PRF.IND(ES.SomeDKC.PRF.PRFr_Wrapped, ES.SomeDKC.D(ES.SG.DKC_Adv(A))).main
+         (i0) @ &m : res] -
+      Pr[ES.SomeDKC.PRF.IND(ES.SomeDKC.PRF.RandomFunction, ES.SomeDKC.D(ES.SG.DKC_Adv(A))).main
+         (i0) @ &m : res]) (intval 0 (bound + 1 - 1))) = (Mrplus.sum
+   (fun (i0 : int) =>
+      Pr[ES.SomeDKC.PRF.IND(ES.SomeDKC.PRF.PRFr_Wrapped, ES.SomeDKC.D(ES.SG.DKC_Adv(A))).main
+         (i0) @ &m : res] -
+      Pr[ES.SomeDKC.PRF.IND(ES.SomeDKC.PRF.RandomFunction, ES.SomeDKC.D(ES.SG.DKC_Adv(A))).main
+        (i0) @ &m : res]) (intval 0 (bound - 1))) + Pr[ES.SomeDKC.PRF.IND(ES.SomeDKC.PRF.PRFr_Wrapped, ES.SomeDKC.D(ES.SG.DKC_Adv(A))).main
+         (bound) @ &m : res] -
+      Pr[ES.SomeDKC.PRF.IND(ES.SomeDKC.PRF.RandomFunction, ES.SomeDKC.D(ES.SG.DKC_Adv(A))).main
+        (bound) @ &m : res]. cut ->: bound + 1 - 1 = bound by idtac=>/#.
+
+      rewrite (Mrplus.sum_rm (fun (i0 : int) =>
+      Pr[ES.SomeDKC.PRF.IND(ES.SomeDKC.PRF.PRFr_Wrapped, ES.SomeDKC.D(ES.SG.DKC_Adv(A))).main
+         (i0) @ &m : res] -
+      Pr[ES.SomeDKC.PRF.IND(ES.SomeDKC.PRF.RandomFunction, ES.SomeDKC.D(ES.SG.DKC_Adv(A))).main
+         (i0) @ &m : res]) (intval 0 bound) (bound)). smt.
+
+simplify. cut ->: (intval 0 bound `\` fset1 bound) = (intval 0 (bound - 1)). rewrite fsetP. move => x. rewrite in_fsetD in_fset1 !intval_def. smt. smt. 
+
+   smt tmo=60.
+   
+           smt. admit. cut ? : Pr[ES.SomeDKC.PRF.IND(ES.SomeDKC.PRF.PRFr_Wrapped, ES.SomeDKC.D(ES.SG.DKC_Adv(A))).main
+
+rewrite (intind (fun x =>
+     (Mrplus.sum
+   (fun (i0 : int) =>
+      Pr[ES.SomeDKC.PRF.IND(ES.SomeDKC.PRF.PRFr_Wrapped, ES.SomeDKC.D(ES.SG.DKC_Adv(A))).main
+         (i0) @ &m : res] -
+      Pr[ES.SomeDKC.PRF.IND(ES.SomeDKC.PRF.RandomFunction, ES.SomeDKC.D(ES.SG.DKC_Adv(A))).main
+         (i0) @ &m : res]) (intval 0 (ES.bound - 1))) <=
+ES.bound%r * eps_prf)). 
+     
+         (bound) @ &m : res] -
+      Pr[ES.SomeDKC.PRF.IND(ES.SomeDKC.PRF.RandomFunction, ES.SomeDKC.D(ES.SG.DKC_Adv(A))).main
+         (bound) @ &m : res] <= eps_prf. smt. smt.
+
+
+     cut ->: i0 + 1 - 1 = i0 by idtac=>/#.
+ 
+
+ 
+     cut ->: Mrplus.sum (fun (i0_0 : int) =>
+      Pr[ES.SomeDKC.PRF.IND(ES.SomeDKC.PRF.PRFr_Wrapped, ES.SomeDKC.D(ES.SG.DKC_Adv(A))).main
+         (i0_0) @ &m : res] -
+      Pr[ES.SomeDKC.PRF.IND(ES.SomeDKC.PRF.RandomFunction, ES.SomeDKC.D(ES.SG.DKC_Adv(A))).main
+         (i0_0) @ &m : res]) (intval 0 (i0 + 1 - 1)) = (fun (i0_0 : int) =>
+      Pr[ES.SomeDKC.PRF.IND(ES.SomeDKC.PRF.PRFr_Wrapped, ES.SomeDKC.D(ES.SG.DKC_Adv(A))).main
+         (i0_0) @ &m : res] -
+      Pr[ES.SomeDKC.PRF.IND(ES.SomeDKC.PRF.RandomFunction, ES.SomeDKC.D(ES.SG.DKC_Adv(A))).main
+         (i0_0) @ &m : res]) (intval 0 (i0)) by idtac=>/#.
+ 
+ smt tmo=30.
+
+
+
+print SomeOT.OTSecurity. 
+print ProtSecurity.Protocol.input1_t.
+print SomeOT.OTSecurity.OTPSec.Protocol.input1_t.
+
+print ProtSecurity.Protocol.input2_t.
+print SomeOT.OTSecurity.OTPSec.Protocol.input2_t.
+print SomeOT.OTSecurity.OT.msg_t.
+
+print ES.
+
+print SomeOT.
+
+lemma Security eps_ESn eps_DDH eps_prf i : 
+  forall (A1 <: ProtSecurity.Adv1_t {ES.Rand, CSFE.B_OT1, CSFE.B_G, SomeOT.DDHn_A, SomeOT.ESn_A}) (A2 <: ProtSecurity.Adv2_t {ES.Rand, CSFE.B_OT2, CSFE.B_G}) (A <: ES.SG.Sec.EncSecurity.Adv_IND_t{ES.SG.Rand,ES.SG.R,ES.SG.C,ES.SG.DKC_Adv,ES.SomeDKC.DKCSecurity.DKCp,ES.SomeDKC.DKCSecurity.DKC_O}) &m,
    islossless A1.gen_query =>
    islossless A1.dist =>
    islossless A2.gen_query =>
    islossless A2.dist =>
-   let epsilon = `|2%r * Pr[SomeOT.ESn.Game(SomeOT.ESn_A(CSFE.B_OT1(ES.Rand ,SFE_A1(A1)))).main()@ &m:res] - 1%r| +
-                 `|2%r * Pr[DDH.DDHn.Game(SomeOT.DDHn_A(CSFE.B_OT1(ES.Rand, SFE_A1(A1)))).main() @ &m : res] - 1%r| +
-                 2%r * ((ES.SomeGarble.bound)%ES.SomeGarble + 1)%r *
-                  `|2%r * Pr[ES.SomeGarble.DKCSecurity.Game(ES.SomeGarble.DKCSecurity.DKC, ES.SomeGarble.Sec.EncSecurity.RedSI(ES.Red(CSFE.B_G(SomeOT.S, SFE_A1(A1))))).main() @ &m : res] - 1%r| in
+   `|2%r * Pr[SomeOT.ESn.Game(SomeOT.ESn_A(CSFE.B_OT1(ES.Rand ,SFE_A1(A1)))).main()@ &m:res] - 1%r| <= eps_ESn =>
+   `|2%r * Pr[DDH.DDH.Game(SomeOT.DDHn.DDHnmax.ADDH(SomeOT.DDHn.ADDHnmax(SomeOT.DDHn_A(CSFE.B_OT1(ES.Rand, SFE_A1(A1)))))).main()@ &m:res] - 1%r| <= eps_DDH =>
+    0 <= i < ES.SG.bound => 
+    (Pr[ES.SomeDKC.PRF.IND(ES.SomeDKC.PRF.PRFr_Wrapped,ES.SomeDKC.D(ES.SG.DKC_Adv(A))).main(i)@ &m:res] - Pr[ES.SomeDKC.PRF.IND(ES.SomeDKC.PRF.RandomFunction,ES.SomeDKC.D(ES.SG.DKC_Adv(A))).main(i)@ &m:res]) <= eps_prf =>
+    
+   let epsilon = eps_ESn + SomeOT.max_size%r * eps_DDH + ES.SG.bound%r * eps_prf in
    `|2%r * Pr[ProtSecurity.Game1(R1, R2, S, A1).main() @ &m : res] - 1%r| <= epsilon /\
    `|2%r * Pr[ProtSecurity.Game2(R1, R2, S, A2).main() @ &m : res] - 1%r| <= epsilon.
-   (* François: - We can replace epsilon by 0%r in the last line is it normal ? *)
+proof.
+  progress.
+
+
+
+
+      admit. qed.
+
+(*      (* François: - We can replace epsilon by 0%r in the last line is it normal ? *)
  proof strict.
  intros A1 A2 &m A1genll A1distll A2genll A2distll bound.
 
@@ -679,5 +860,4 @@ qed.
    SFE_A2distll B_OT1_gen_ll B_OT1_dist_ll B_OT2_gen_ll B_OT2_dist_ll B_G_gen_ll B_G_dist_ll.
 
  progress;smt.
- qed.
-*)*)
+ qed.*)

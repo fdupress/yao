@@ -217,17 +217,6 @@ theory ES.
     by smt.
   qed.
 
-  (** Negligeble arithmetic value *)
-  op epsilon: real.
-
-  (** Probability of winning the game is negligeble *)
-  axiom ES_assumption :
-    is_uniform dkey =>
-    is_uniform dcodom =>
-    exists (epsilon:real),
-    forall (A<:Adv_t) &m,
-    `|2%r * Pr[Game(A).main()@ &m:res] - 1%r| <= epsilon.
-
 end ES.
 
 (** 
@@ -402,14 +391,4 @@ theory ESn.
       by apply (Gamegame_lossless A).
     by smt.
   qed.
-
-  op epsilon: real.
-
-  axiom ES_assumption:
-    is_uniform dkey =>
-    is_uniform dcodom =>
-    exists (epsilon:real),
-    forall (A<:Adv_t) &m,
-    `|2%r * Pr[Game(A).main()@ &m:res] - 1%r| <= epsilon.
-
 end ESn.

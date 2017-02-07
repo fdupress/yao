@@ -19,7 +19,7 @@ require import ArrayExt.
 theory DKCSecurity.
   clone import ExtWord as W.
 
-  clone export DKC.DKCScheme as D with
+  clone import DKC.DKCScheme as D with
     type tweak_t = word,
     type key1_t = word,
     type key2_t = word,

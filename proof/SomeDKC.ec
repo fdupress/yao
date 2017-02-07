@@ -20,10 +20,16 @@ require import GarbleTools.
 theory SomeDKC.
   clone import ExtWord as WSD.
   clone ExtWord as KW with op length = WSD.length - 1.
-
+  
   (*************************************)
   (** AUXLIAR FUNCTIONS *)
   (*************************************)
+
+  const bound : int.
+  axiom bound_pos : 1 < bound.
+
+  const boundl : int.
+  axiom boundl_pos : 1 < boundl < bound.
   
   op kw2w(kw,lsb) =
   if kw = witness then witness else
@@ -45,7 +51,15 @@ theory SomeDKC.
   op w2kw'(w) =
   let kwi = (WSD.to_int w) %/ 2 (* / 2 *)
                           in let lsbi = WSD.getlsb w
-                          in (KW.from_int kwi,lsbi).
+    in (KW.from_int kwi,lsbi).
+
+  op kw2w(kw,lsb) =
+  if kw = witness then witness else
+  let lsbi = if lsb then 1 else 0
+  in let kwi = (KW.to_int kw) * 2 + lsbi
+    in WSD.setlsb (WSD.from_int kwi) lsb.
+
+  
   
   lemma w2kw_kw2w w b : fst (w2kw (kw2w w b)) = w. 
   proof.
@@ -117,7 +131,9 @@ theory SomeDKC.
   (** DKC security definitions, instantiated with the words defined in W *)
   clone import DKCSec2.DKCSecurity with
     theory W <- WSD,
-    theory D <- PrfDKC.
+    theory D <- PrfDKC,
+    op bound = bound,
+    op boundl = boundl.
     
   lemma PrfDKC_correct : PrfDKC.Correct().
   proof.
@@ -245,7 +261,6 @@ theory SomeDKC.
       return adv;
     }
   }.
-      
   
 equiv true_key lp (A <:  Adv_DKC_t{Param,PRFr_Wrapped,DKCp}):
     DKCSecurity.Game(DKC_O,A).game ~

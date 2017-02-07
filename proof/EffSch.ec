@@ -22,12 +22,22 @@ import ForLoop.
 theory EfficientScheme.  
   clone import ExtWord as W.
 
+  op bound : int.
+  axiom boundInf : 1 < bound.
+
+  op nwires : int.
+  axiom nwires_pos : 2 < nwires.
+  
   clone import SomeDKC.SomeDKC with
-    theory WSD <- W.
+  theory WSD <- W,
+  op bound = nwires + 1,
+  op boundl = EfficientScheme.bound.
     
   clone import SomeGarble.SomeGarble as SG with
     theory WSG <- W,
-    theory D <- SomeDKC.PrfDKC.
+    theory D <- SomeDKC.PrfDKC,
+    op nwires = EfficientScheme.nwires,
+    op bound = EfficientScheme.bound.
     
   theory Local.
     (* some types reused for garbling scheme definition  *)
@@ -69,7 +79,7 @@ theory EfficientScheme.
       let (n, m, q, aa, bb) = f.`1 in
       1 < n /\ 0 < m /\ 0 < q /\ m <= q /\
       size aa = q /\ size bb = q /\ size (snd f) = q /\
-      n + q - m = SG.bound /\ n + q = SG.nwires /\
+      n + q - m = bound /\ n + q = nwires /\
       ForLoop.range 0 q true
         (fun i b,
            b /\ 0 <= aa.[i] /\
@@ -78,7 +88,7 @@ theory EfficientScheme.
     pred validCircuitP(f:(bool funct_t)) =
       let (n, m, q, aa, bb) = f.`1 in
       1 < n /\ 0 < m /\ 0 < q /\ m <= q /\
-      n + q - m = SG.bound /\ n + q = SG.nwires /\
+      n + q - m = bound /\ n + q = nwires /\
       size aa = q /\ size bb = q /\ size (snd f) = q /\
       (forall i, 0 <= i < q =>
            0 <= aa.[i] /\
