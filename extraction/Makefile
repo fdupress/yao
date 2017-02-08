@@ -27,6 +27,20 @@ byte:
 native:
 	$(call do-build,src/sfeRun.native)
 
+p2stage1:
+	$(call do-build,src/p2_stage1.native)
+
+p1stage1:
+	$(call do-build,src/p1_stage1.native)
+
+p2stage2:
+	$(call do-build,src/p2_stage2.native)
+
+p1stage2:
+	$(call do-build,src/p1_stage2.native)
+
+stages: p2stage1 p1stage1 p2stage2 p1stage2
+
 clean:
 	$(OCAMLBUILD) -clean
 	rm -f sfeRun.native sfeRun.byte

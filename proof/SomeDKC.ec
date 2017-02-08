@@ -53,13 +53,6 @@ theory SomeDKC.
                           in let lsbi = WSD.getlsb w
     in (KW.from_int kwi,lsbi).
 
-  op kw2w(kw,lsb) =
-  if kw = witness then witness else
-  let lsbi = if lsb then 1 else 0
-  in let kwi = (KW.to_int kw) * 2 + lsbi
-    in WSD.setlsb (WSD.from_int kwi) lsb.
-
-  
   
   lemma w2kw_kw2w w b : fst (w2kw (kw2w w b)) = w. 
   proof.
