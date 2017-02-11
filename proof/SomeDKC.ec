@@ -302,7 +302,8 @@ equiv true_key lp (A <:  Adv_DKC_t{Param,PRFr_Wrapped,DKCp}):
         rewrite !getP. case ((k, b1) = (i{2}, true)) => hc. rewrite !oget_some kw2w_w2kw. rewrite (Dword.lsb_dwordLsb (true) _). done. idtac=>/#. done. case ((k, b1) = (i{2}, false)) => hc'. rewrite !oget_some kw2w_w2kw. rewrite (Dword.lsb_dwordLsb (false) _). done. idtac=>/#. done. idtac=>/#.
         rewrite !getP. case ((k, b1) = (i{2}, true)) => hc. rewrite oget_some. simplify w2kw snd. rewrite (Dword.lsb_dwordLsb (true) _). done. idtac=>/#. case ((k, b1) = (i{2}, false)) => hc'. rewrite oget_some. simplify w2kw snd. rewrite (Dword.lsb_dwordLsb (false) _). done. idtac=>/#. idtac=>/#. 
         rewrite !getP => /#.
-
+        idtac=>/#. idtac=>/#.
+    
     rcondt{1} 11. auto. while (0 <= i <= DKCp.l). if. auto => /#. auto => /#. wp. auto. progress;smt. rcondt{1} 11. progress. while (0 <= i <= DKCp.l). if. auto => /#. auto => /#. wp. auto. progress;smt. rcondf{1} 16. progress. auto. while (0 <= i <= DKCp.l). if. auto => /#. auto => /#. wp. auto. progress;smt.
     
     rcondt{2} 11. auto. while (0 <= i <= Param.l). if. auto => /#. auto => /#. wp. auto. progress;smt. rcondt{2} 11. progress. while (0 <= i <= Param.l). if. auto => /#. auto => /#. wp. auto. progress;smt. rcondf{2} 16. progress. auto. while (0 <= i <= Param.l). if. auto => /#. auto => /#. wp. auto. progress;smt.
@@ -328,12 +329,15 @@ equiv true_key lp (A <:  Adv_DKC_t{Param,PRFr_Wrapped,DKCp}):
     rewrite !getP. case ((k, b1) = (i{2}, true)) => hc. rewrite !oget_some kw2w_w2kw. rewrite (Dword.lsb_dwordLsb (true) _). done. idtac=>/#. done. case ((k, b1) = (i{2}, false)) => hc'. rewrite !oget_some kw2w_w2kw. rewrite (Dword.lsb_dwordLsb (false) _). done. idtac=>/#. done. idtac=>/#.
         rewrite !getP. case ((k, b1) = (i{2}, true)) => hc. rewrite oget_some. simplify w2kw snd. rewrite (Dword.lsb_dwordLsb (true) _). done. idtac=>/#. case ((k, b1) = (i{2}, false)) => hc'. rewrite oget_some. simplify w2kw snd. rewrite (Dword.lsb_dwordLsb (false) _). done. idtac=>/#. idtac=>/#. 
         rewrite !getP => /#.  
+        idtac=>/#. idtac=>/#.
 
-    auto; progress; last 3 by idtac=>/#.
+     auto; progress; last 3 by idtac=>/#.
         by smt. 
         by rewrite map0P =>/#.
         by rewrite map0P =>/#.
         by rewrite map0P =>/#.
+        by idtac=>/#.
+        by idtac=>/#.
         by rewrite w2kw'_kw2w'. 
         rewrite KW.Dword.mu_x_def Dword.dwordLsb_mu_x. cut ->: getlsb (kw2w' kR (lsbL)) = lsbL <=> true. simplify kw2w'. rewrite get_setlsb. done. done. 
         by smt.
@@ -350,7 +354,7 @@ equiv true_key lp (A <:  Adv_DKC_t{Param,PRFr_Wrapped,DKCp}):
         by rewrite !getP => /#. 
         by rewrite !getP => /#. 
         rewrite !getP. case ((l{1}, !lsbL) = (i_R, !lsbL)) => hc. rewrite !oget_some. smt. case ((l{1}, !lsbL) = (i_R, lsbL)) => hc'. smt. idtac=>/#. 
-
+    idtac=>/#. idtac=>/#.
         wp. 
 
     call (_: 
@@ -511,7 +515,7 @@ equiv false_key lp (A <:  Adv_DKC_t{Param,DKCp,PRFr_Wrapped,RandomFunction}):
         rewrite !getP. case ((k, b1) = (i{2}, true)) => hc. rewrite !oget_some kw2w_w2kw. rewrite (Dword.lsb_dwordLsb (true) _). done. idtac=>/#. done. case ((k, b1) = (i{2}, false)) => hc'. rewrite !oget_some kw2w_w2kw. rewrite (Dword.lsb_dwordLsb (false) _). done. idtac=>/#. done. idtac=>/#.
         rewrite !getP. case ((k, b1) = (i{2}, true)) => hc. rewrite oget_some. simplify w2kw snd. rewrite (Dword.lsb_dwordLsb (true) _). done. idtac=>/#. case ((k, b1) = (i{2}, false)) => hc'. rewrite oget_some. simplify w2kw snd. rewrite (Dword.lsb_dwordLsb (false) _). done. idtac=>/#. idtac=>/#. 
         rewrite !getP => /#. 
-
+        by idtac => /#. by idtac=>/#.
 
     rcondt{1} 11. auto. while (0 <= i <= DKCp.l). if. auto => /#. auto => /#. wp. auto. progress;smt. rcondt{1} 11. progress. while (0 <= i <= DKCp.l). if. auto => /#. auto => /#. wp. auto. progress;smt. rcondf{1} 16. progress. auto. while (0 <= i <= DKCp.l). if. auto => /#. auto => /#. wp. auto. progress;smt.
     
@@ -536,12 +540,15 @@ equiv false_key lp (A <:  Adv_DKC_t{Param,DKCp,PRFr_Wrapped,RandomFunction}):
     rewrite !getP. case ((k, b1) = (i{2}, true)) => hc. rewrite !oget_some kw2w_w2kw. rewrite (Dword.lsb_dwordLsb (true) _). done. idtac=>/#. done. case ((k, b1) = (i{2}, false)) => hc'. rewrite !oget_some kw2w_w2kw. rewrite (Dword.lsb_dwordLsb (false) _). done. idtac=>/#. done. idtac=>/#.
         rewrite !getP. case ((k, b1) = (i{2}, true)) => hc. rewrite oget_some. simplify w2kw snd. rewrite (Dword.lsb_dwordLsb (true) _). done. idtac=>/#. case ((k, b1) = (i{2}, false)) => hc'. rewrite oget_some. simplify w2kw snd. rewrite (Dword.lsb_dwordLsb (false) _). done. idtac=>/#. idtac=>/#. 
         rewrite !getP => /#.  
+        by idtac => /#. by idtac=>/#.
+
     
     auto; progress; last 3 by idtac=>/#.
         by smt.
         by rewrite map0P =>/#.
         by rewrite map0P =>/#.
         by rewrite map0P =>/#.
+    by idtac => /#. by idtac=>/#.
         by rewrite Dword.dwordLsb_lossless. 
         by rewrite w2kw'_kw2w'.
         rewrite KW.Dword.mu_x_def Dword.dwordLsb_mu_x. cut ->: getlsb (kw2w' kiR (!lsbL)) = !lsbL <=> true. simplify kw2w'. rewrite get_setlsb. done. done. 
@@ -553,7 +560,7 @@ equiv false_key lp (A <:  Adv_DKC_t{Param,DKCp,PRFr_Wrapped,RandomFunction}):
         by rewrite !getP => /#. 
         by rewrite !getP => /#. 
         by rewrite !getP => /#. 
-        rewrite !getP. case ((l{1}, !lsbL) = (i_R, !lsbL)) => hc. rewrite !oget_some. smt. case ((l{1}, !lsbL) = (i_R, lsbL)) => hc'. smt. idtac=>/#. 
+        rewrite !getP. case ((l{1}, !lsbL) = (i_R, !lsbL)) => hc. rewrite !oget_some. smt. case ((l{1}, !lsbL) = (i_R, lsbL)) => hc'. smt. idtac=>/#. by idtac => /#. by idtac=>/#.
     wp.
 
     call (_ : 
@@ -693,5 +700,5 @@ lemma PrfDKC_secure (A <: Adv_DKC_t{PRFr_Wrapped,DKCp,Param,RandomFunction}) &m 
     byequiv (true_key (i) A). done. done.
     congr. byequiv (false_key (i) A). done. smt. 
 qed.
-  
+
 end SomeDKC.
