@@ -4286,38 +4286,55 @@ Pr[GameHybrid(A).garble(x - 1) @ &m : res] =
       Pr[DKCSecurity.Game(DKC_O, DKC_Adv(A)).game(false,i) @ &m : !res]) (intval 0 (SomeGarble.bound - 1))).
         move => x. rewrite intval_def. progress. congr. byequiv (GameHybrid_l1_sim (A) (x) Agen_ll Aget_ll _). idtac=>/#. done. done. congr. byequiv (GameHybrid_l_sim (A) (x) Agen_ll Aget_ll _). idtac=>/#. done. smt. done. done.
   qed.
+
+  lemma reductionSimplified' (A <: EncSecurity.Adv_IND_t{Rand,R,C,DKC_Adv,DKCp,DKC_O}) &m:
+    islossless A.gen_query =>
+    islossless A.get_challenge =>
+  Pr[GameHybrid(A).garble(-1) @ &m : res] - Pr[GameHybrid(A).garble(bound-1) @ &m : res] =
+  Mrplus.sum (fun i, 2%r * Pr[Game(DKC_O,DKC_Adv(A)).main(i)  @ &m: res] - 1%r) (intval 0 (bound-1)).
+proof.
+move => Agen_ll Aget_ll.
+  rewrite (reductionSimplified A &m Agen_ll Aget_ll).
+  rewrite (Mrplus.sum_eq (fun (i : int) =>
+      Pr[Game(DKC_O, DKC_Adv(A)).game(true, i) @ &m : res] -
+      Pr[Game(DKC_O, DKC_Adv(A)).game(false, i) @ &m : !res]) (fun (i : int) =>
+      2%r * Pr[Game(DKC_O, DKC_Adv(A)).main(i) @ &m : res] - 1%r) (intval 0 (SomeGarble.bound - 1))).
+        move => x.
+        rewrite intval_def => [[?] ?] /=.
+        rewrite (DKCGame_adv &m DKC_O (DKC_Adv(A)) x).
+        apply init_ll. apply encrypt_ll.  apply (DKC_Adv_get_ll A Agen_ll Aget_ll).
+        done.
+  done.
+qed.  
   
-(*lemma sch_is_ind (A <: EncSecurity.Adv_IND_t{Rand,R,R',G,C,DKCp,DKC,AdvInit,DKC_Adv}) &m lp:
+lemma sch_is_ind (A <: EncSecurity.Adv_IND_t{Rand,R,C,DKC_Adv,DKCp,DKC_O,R'}) &m:
   islossless A.gen_query =>
   islossless A.get_challenge =>
-  0 <= lp < boundl =>  
   `|2%r * Pr[EncSecurity.Game_IND(Rand,A).main()@ &m:res] - 1%r| =
-    2%r * (bound)%r * `|2%r * Pr[DKCSecurity.Game(DKC, DKC_Adv(DKC, A)).main(lp)@ &m:res] - 1%r|.
-proof. 
-  move => AgenL AgetL hl.
-  rewrite -(GameHybrid0_Game_IND_pr A &m) // -{1}(GameHybridBound_pr A &m) //=.
-  cut -> : forall a b, 2%r * a - 2%r * b = 2%r * (a - b) by idtac=>/#. 
-  rewrite (reductionSimplified A &m lp). apply AgenL. apply AgetL. apply hl.
+    2%r * `|Mrplus.sum (fun i, 2%r * Pr[Game(DKC_O,DKC_Adv(A)).main(i)  @ &m: res] - 1%r) (intval 0 (bound-1))|.
+proof.  
+  move => Agen_ll Aget_ll.
+rewrite -(GameHybrid0_Game_IND_pr A &m) // -{1}(GameHybridBound_pr A &m) //=.
+      cut -> : forall a b, 2%r * a - 2%r * b = 2%r * (a - b) by idtac=>/#. 
+rewrite (reductionSimplified' A &m) //=. 
   cut H: forall (a b:real), 0%r <= a => `| a * b | = a * `| b | by idtac=>/#.
-  rewrite !H=> //; first by smt. 
-  by idtac=>/#.
+  rewrite !H; first by smt. 
+  done.
 qed.
 
-lemma sch_is_sim (A <: EncSecurity.Adv_SIM_t {Rand, DKCp, C, G, R',DKC,AdvInit,DKC_Adv}) &m lp:
- islossless A.gen_query =>
- islossless A.get_challenge =>
- 0 <= lp < boundl =>  
+lemma sch_is_sim (A <: EncSecurity.Adv_SIM_t{Rand,C,DKC_Adv,DKCp,DKC_O,R',G,AdvInit}) &m:
+  islossless A.gen_query =>
+  islossless A.get_challenge =>
   `|2%r * Pr[EncSecurity.Game_SIM(Rand,EncSecurity.SIM(Rand),A).main()@ &m:res] - 1%r| <=
-    2%r * (bound)%r * `|2%r * Pr[DKCSecurity.Game(DKC, DKC_Adv(DKC, EncSecurity.RedSI(A))).main(lp)@ &m:res] - 1%r|.
+    2%r * `|Mrplus.sum (fun i, 2%r * Pr[Game(DKC_O,DKC_Adv(EncSecurity.RedSI(A))).main(i)  @ &m: res] - 1%r) (intval 0 (bound-1))|.
 proof.
-  move=> ll_ADVp1 ll_ADVp2 hl.
-  rewrite -(sch_is_ind (EncSecurity.RedSI(A)) &m lp _ _).
+  move => Agen_ll Aget_ll.
+  rewrite -(sch_is_ind (EncSecurity.RedSI(A)) &m _ _).
     by apply (EncSecurity.RedSIgenL A).
-    by apply (EncSecurity.RedSIgetL A).
-    by apply hl.
-  apply (EncSecurity.ind_implies_sim Rand A _ _ &m _)=> //.
+    by apply (EncSecurity.RedSIgetL A).  
+  apply (EncSecurity.ind_implies_sim Rand A _ _ &m _) => //.
   by apply sch_is_pi.
-qed.*)
+qed.    
 
 end SomeGarble.
 export SomeGarble.

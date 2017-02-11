@@ -7,6 +7,7 @@ require import FSet.
 require import NewFMap.
 require import Real.
 require import List.
+require import Sum.
 
 require        Sch.
 require        SchSec.
@@ -73,7 +74,7 @@ theory EfficientScheme.
        enc x f a b g false true,
        enc x f a b g true  false,
        enc x f a b g true  true).
-
+      
     (* Definitions *)
     op validCircuit(f:(bool funct_t)) =
       let (n, m, q, aa, bb) = f.`1 in
@@ -123,7 +124,18 @@ theory EfficientScheme.
       rewrite /init_dep.
       pose {2}n := l.
       cut: 0 <= n by idtac=>/#.
-      elim/intind n;[ |progress;rewrite ForLoop.range_ind_lazy]. simplify. smt tmo=40. idtac=>/#. smt. 
+      elim/intind n;[ |progress;rewrite ForLoop.range_ind_lazy]. simplify.
+      rewrite range_base //. 
+      rewrite size_blit //.
+        rewrite size_ge0.
+        rewrite size_offun max_ler. 
+          (have : 0 <= size ar by rewrite size_ge0) => /#.
+          by idtac=>/#.
+      rewrite size_offun max_ler.
+        by (have : 0 <= size ar by rewrite size_ge0) => /#.
+        done.
+      by idtac=>/#.
+      by smt.
     qed.
     
     (* Will extend whatever input array is there with size = gate count *)
@@ -317,7 +329,7 @@ theory EfficientScheme.
       move : H. rewrite ?domP. rewrite in_fsetU. move => H. elim H. rewrite ?domP. rewrite in_fsetU. move => H. elim H. move => H. idtac=>/#. rewrite in_fset1. cut ->: (i, b) = (size xs, false) <=> false by idtac=>/#. trivial. rewrite in_fset1. cut ->: (i, b) = (size xs, true) <=> false by idtac=>/#. trivial. 
   qed.
 
-  op interval : int -> int -> int fset.
+  (*op interval : int -> int -> int fset.
   axiom interval_neg : forall (x y:int), y < x => interval x y = fset0.
   axiom interval_pos : forall (x y:int), x <= y => interval x y = (fset1 y) `|` (interval x (y-1)).
 
@@ -353,12 +365,12 @@ theory EfficientScheme.
     by smt.
     by smt.
     by idtac=>/#.
-  qed.
+  qed.*)
   
   lemma dom_arrayToMap (x:('a * 'a) array):
     dom (arrayToMap x) =
-      FSet.( `|` ) (image (fun i, (i,false)) (interval 0 (size x - 1)))
-            (image (fun i, (i, true)) (interval 0 (size x - 1))).
+      FSet.( `|` ) (image (fun i, (i,false)) (intval 0 (size x - 1)))
+            (image (fun i, (i, true)) (intval 0 (size x - 1))).
   proof.
     apply fsetP=> y.
     elim y=> i b.
@@ -366,9 +378,9 @@ theory EfficientScheme.
       move=> h; case b=> hb; [right | left];
          cut ->: forall (b:bool), (i, b) = (fun (i0 : int), (i0, b)) i by idtac=>/#;
       apply imageP; rewrite mem_interval; idtac=>/#.
-      rewrite !imageP. progress. exists i. smt. 
-      rewrite !imageP. progress. exists i. smt. 
-      rewrite !imageP. progress. smt. smt. 
+      rewrite !imageP. progress. exists i. rewrite intval_def => /#.  
+      rewrite !imageP. progress. exists i. rewrite intval_def => /#. 
+      rewrite !imageP. progress; smt.
   qed.
   
   lemma max_arrayToMap (x:('a * 'a) array):
@@ -381,20 +393,21 @@ theory EfficientScheme.
     cut Antisymm: forall (x y : int), x <= y => y <= x => x = y by idtac=>/#.
     apply Antisymm.
       cut: forall y, mem xs y => y.`1 < size x.
-         by move=> y; rewrite /xs  !in_fsetU=> h; smt tmo=10.
-    elim/fset_ind xs. smt. progress. rewrite (foldC (x0) _ _ _). progress. smt.
+         move=> y; rewrite /xs  !in_fsetU=> h; smt tmo=10.
+    elim/fset_ind xs; first by smt. progress. rewrite (foldC (x0) _ _ _). progress; first by smt.
       rewrite in_fsetU in_fset1. by right. 
-    cut ->: (s `|` fset1 x0) `\` fset1 x0 = s by smt. simplify.
-      smt tmo=30.
+    cut ->: (s `|` fset1 x0) `\` fset1 x0 = s.
+      rewrite fsetP => x1. rewrite in_fsetD in_fsetU !in_fset1 => /#.
+      smt.
     case (size x = 0)=> h. 
     cut ->: fold (fun (p : int * bool) (s : int) => max p.`1 s) (-1) xs = List.foldr (fun (p : int * bool) (s : int) => max p.`1 s) (-1) (elems xs) by smt.
-    simplify. smt.
+    simplify. smt tmo=30. 
     cut: mem xs ((size x - 1), false).
         by rewrite /xs in_fsetU !imageP; left; exists (size x - 1); smt.
     elim/fset_ind xs. progress. smt. progress.
     rewrite (foldC x0 _ _ _). progress. smt. by rewrite in_fsetU in_fset1; right. 
     simplify.
-    cut ->: ((s `|` fset1 x0) `\` fset1 x0) = s by smt.
+    cut ->: ((s `|` fset1 x0) `\` fset1 x0) = s. rewrite fsetP => x1. rewrite in_fsetD in_fsetU !in_fset1 => /#.
     smt.
   qed.
 
@@ -410,9 +423,9 @@ theory EfficientScheme.
       cut:= h 0 false=> /=.
       rewrite in_fsetU !imageP -nor.
       move=> [i_false i_true].
-      cut: !mem (interval 0 (size x - 1)) 0 by smt.
-      rewrite mem_interval.
-      smt.
+      cut: !mem (intval 0 (size x - 1)) 0 by smt.
+      rewrite intval_def.
+      by smt.
 
       move=> i le0i IH x IH1.
       cut ineg: i + 1 <= size x.
@@ -424,12 +437,11 @@ theory EfficientScheme.
       case (i + 1 < size x)=> hi0; last smt.
       cut hh: mem (FSet.(`|`)
                   (image (fun (i1 : int), (i1, false))
-                     ((interval 0 (size x - 1))))
+                     ((intval 0 (size x - 1))))
                   (image (fun (i1 : int), (i1, true))
-                     ((interval 0 (size x - 1))))) (i+1, false)
-        by smt tmo=10.
-      cut: 0 <= i + 1 < i + 1 by smt.
-      smt.
+                     ((intval 0 (size x - 1))))) (i+1, false)
+        by smt. 
+      by (cut: 0 <= i + 1 < i + 1 by idtac=>/#) => /#.
   qed.
 
   lemma map_array (x:(int*bool, 'a) fmap) :
@@ -452,7 +464,7 @@ theory EfficientScheme.
         by smt. 
         by smt. 
       move: hy (h y); rewrite -neqF !memE (*(eq_sym None)*)=> -> /=.
-      elim y=> y1 y2 /=; case y2. smt. smt.
+      by elim y=> y1 y2 /=; case y2; smt. 
   qed.
 
   lemma array_map (x:('a * 'a) array) : mapToArray (arrayToMap x) = x.
@@ -462,9 +474,8 @@ theory EfficientScheme.
     rewrite size_offun.
     rewrite max_arrayToMap.
     move=> i hi.
-    rewrite offunE //=; first by smt.
-    rewrite !get_arrayToMap !/snd /=. 
-    by smt.
+    rewrite offunE //=; first by idtac=>/#. 
+    rewrite !get_arrayToMap !/snd /= => /#. 
   qed.
 
   op init_gates (size:int) (f:int->bool->bool->'a) : 'a gates_t =
@@ -508,19 +519,19 @@ theory EfficientScheme.
           cut:= appendInit_size ar i extract1.
           simplify appendInit appender=> appLen.
           move: (appLen _) => // {appLen} appLen.
-          cut-> : forall x, x + (i + 1) - 1 = x + i by smt.
-          cut-> : i + 1 - 1 = i by smt.
-          rewrite get_snoc; first by smt. 
-          rewrite get_set; first smt.
+          cut-> : forall x, x + (i + 1) - 1 = x + i by idtac=>/#.
+          cut-> : i + 1 - 1 = i by idtac=>/#.
+          rewrite get_snoc; first by idtac=>/#. 
+          rewrite get_set; first idtac=>/#.
           rewrite appLen //.
-          cut:= IH _; first smt.
+          cut:= IH _; first idtac=>/#.
           move => [H11 H12].
           case (k < size ar + i)=> h.
-            cut Hisize : (i + size ar = k) = false by smt.
+            cut Hisize : (i + size ar = k) = false by idtac=>/#.
             simplify.
-            rewrite -H12; first smt.
-             simplify appender; smt.
-            cut Hisize : (i + size ar = k) = true by smt.
+            rewrite -H12; first idtac=>/#.
+             simplify appender; idtac=>/#.
+            cut Hisize : (i + size ar = k) = true by idtac=>/#.
             simplify.
               cut ->:
           (if k = i + size ar then
@@ -534,13 +545,13 @@ else
      (fun (i0 : int) (r : 'a array) => r.[i0 + size ar <- extract2 i0 r])).[k]) = extract2 i
     (range 0 i
        (blit (offun (fun (_ : int) => ar.[0]) (size ar + l)) 0 ar 0 (size ar))
-       (fun (i0 : int) (r : 'a array) => r.[i0 + size ar <- extract2 i0 r])) by  smt.
-            apply H; first smt.
+       (fun (i0 : int) (r : 'a array) => r.[i0 + size ar <- extract2 i0 r])) by idtac=>/#.
+            apply H; first idtac=>/#.
             progress.
-            rewrite -H12; first smt.
+            rewrite -H12; first idtac=>/#.
             by simplify appender.
         move => h.
-        by apply arrayP; smt.
+        by apply arrayP; smt. 
   qed.
   
   lemma map_array2 (n q:int) (x:(int * bool * bool,'a) fmap):
@@ -560,12 +571,13 @@ else
     cut -> : size
           (init_gates q
              (fun (g0 : int) (a0 b0 : bool), oget (x.[(g0 + n, a0, b0)]))) =
-        q by smt=> /= ->.
-    case (n <= g < n + q)=> hc; last smt.
+        q by smt => /= ->.
+    case (n <= g < n + q)=> hc; last idtac=>/#.
     simplify init_gates.
-    rewrite offunE; first smt.
+    rewrite offunE; first idtac=>/#.
     simplify evalTupleGate.
-    rewrite (_: g - n + n = g); first by smt. progress. smt tmo=25.
+    rewrite (_: g - n + n = g); first by idtac=>/#.
+      progress. smt tmo=30.
   qed.
 
   lemma array_map2 (n q:int) (x:('a * 'a * 'a * 'a) array):
@@ -579,8 +591,8 @@ else
     move=> i ih.
     rewrite offunE /= //; first by smt.
     rewrite hq /= !SG.get_initGates; first 4 smt.
-    cut ->: (n <= i + n < n + q) = true; first smt.
-    by rewrite /evalTupleGate; smt tmo=10.
+    cut ->: (n <= i + n < n + q) = true; first idtac=>/#.
+    by rewrite /evalTupleGate => /#. 
   qed.
 
   lemma size_randFormat nq m r: nq = Array.size r => size (randFormat nq m r) = size r.
@@ -611,12 +623,19 @@ else
       topoED (topoDE x) = x.
   proof strict.
     elim x=> n m q aa bb Htopo. 
-    progress; apply arrayP; split; first by smt.
+    progress; apply arrayP; split; first by smt. 
     move=> i; rewrite size_append // size_offun ?size_sub; first 3 by smt.
-    by move => i_bnd; case (i < n); move => H; rewrite /functD_topo_valid /=; progress;
-       [rewrite get_append_left | rewrite get_append_right]; smt tmo=60. 
-    smt.
-    move => i; rewrite size_append // size_offun ?size_sub; first 3 smt.
+    move => i_bnd; case (i < n); move => H; rewrite /functD_topo_valid /=; progress;
+        [rewrite get_append_left | rewrite get_append_right].
+      by rewrite size_offun => /#.
+      by rewrite offunE => /#.
+      rewrite size_sub; first 3 by idtac=>/#.
+      by rewrite size_offun => /#.
+      rewrite size_offun max_ler; first by idtac=>/#.
+      by rewrite get_sub => /#.
+      rewrite size_append size_sub; first 3 idtac=>/#. 
+      by rewrite size_offun => /#.
+    move => i; rewrite size_append // size_offun ?size_sub; first 3 idtac=>/#.
     move => i_bnd; case (i < n); move => H; rewrite /functD_topo_valid /=; progress;
        [rewrite get_append_left | rewrite get_append_right].
        rewrite size_offun max_ler => /#.
@@ -625,7 +644,7 @@ else
        rewrite size_sub => /#.
          rewrite size_offun max_ler; first by idtac=> /#.
          rewrite subE takeE dropE. rewrite ofarrayK. 
-         rewrite getE. rewrite ofarrayK. rewrite nth_take; first 2 by idtac=>/#.
+         rewrite getE ofarrayK nth_take; first 2 by idtac=>/#.
          rewrite nth_drop; first 2 by idtac=>/#.
          cut ->: n + (i - n) = i by idtac=>/#.
          by rewrite getE.
@@ -636,17 +655,37 @@ else
   proof.
     simplify functE_topo_valid; elim x => n m q aa bb /=. 
     progress.
-    apply arrayP; split; first by smt.
-    by move => i i_bound; smt tmo=30.
-    apply arrayP; split; first by smt.
-    by move => i i_bound; smt tmo=40.
+    apply arrayP; split.
+      rewrite size_sub; first 2 by idtac=>/#.
+      by rewrite size_append size_offun => /#.
+      done.
+    rewrite size_sub; first 2 by idtac=>/#.
+    by rewrite size_append size_offun => /#.
+    move => i i_bound.
+    rewrite get_sub; first 2 by idtac=>/#.
+    by rewrite size_append size_offun => /#.
+    done.
+    rewrite get_append; first by rewrite size_append size_offun => /#.
+    by rewrite size_offun max_ler => /#.
+    apply arrayP; split.
+      rewrite size_sub; first 2 by idtac=>/#.
+      by rewrite size_append size_offun => /#.
+      by rewrite H1.
+    rewrite size_sub; first 2 by idtac=>/#.
+    by rewrite size_append size_offun => /#.
+    move => i i_bound.
+    rewrite get_sub; first 2 by idtac=>/#.
+    by rewrite size_append size_offun => /#.
+    done.
+    rewrite get_append; first by rewrite size_append size_offun => /#.
+    by rewrite size_offun max_ler => /#.
   qed.
   
   op leakED (x:ProjScheme.Sch.Scheme.leak_t): SG.GSch.leak_t = topoED x.
   op leakDE (x:SG.GSch.leak_t): ProjScheme.Sch.Scheme.leak_t = topoDE x.
 
   lemma leak_EDDE x: functD_topo_valid x =>
-      leakED (leakDE x) = x by smt.
+      leakED (leakDE x) = x by smt. 
 
   lemma leak_DEED x: functE_topo_valid x =>
     leakDE (leakED x) = x by smt.
@@ -728,14 +767,34 @@ else
     rewrite !/snd /=.
     progress.
       apply arrayP; split.
-        smt.
-        move=> i; rewrite size_append // size_offun ?size_sub; first 3 smt.
-        by move=> i_bnd; case (i < n)=> i_n; [rewrite get_append_left | rewrite get_append_right]; smt tmo=30.
+        by rewrite size_append size_offun size_sub => /#.
+        move=> i; rewrite size_append // size_offun ?size_sub; first 3 idtac=>/#.
+        move=> i_bnd; case (i < n)=> i_n; [rewrite get_append_left | rewrite get_append_right].
+          rewrite size_offun max_ler => /#.
+          rewrite offunE => /#.
+          rewrite ?size_offun ?max_ler; first by idtac=> /#.
+          rewrite size_sub => /#.
+          rewrite size_offun max_ler; first by idtac=> /#.
+          rewrite subE takeE dropE. rewrite ofarrayK. 
+          rewrite getE ofarrayK nth_take; first 2 by idtac=>/#.
+          rewrite nth_drop; first 2 by idtac=>/#.
+          cut ->: n + (i - n) = i by idtac=>/#.
+          by rewrite getE.
       apply arrayP; split.
-        smt.
-        move=> i; rewrite size_append // size_offun ?size_sub; first 3 smt.
-        by move=> i_bnd; case (i < n)=> i_n; [rewrite get_append_left | rewrite get_append_right]; smt tmo=30.
-      smt.
+        by rewrite size_append size_offun size_sub => /#.
+        move=> i; rewrite size_append // size_offun ?size_sub; first 3 idtac=>/#.
+        move=> i_bnd; case (i < n)=> i_n; [rewrite get_append_left | rewrite get_append_right].
+          rewrite size_offun max_ler => /#.
+          rewrite offunE => /#.
+          rewrite ?size_offun ?max_ler; first by idtac=> /#.
+          rewrite size_sub => /#.
+          rewrite size_offun max_ler; first by idtac=> /#.
+          rewrite subE takeE dropE. rewrite ofarrayK. 
+          rewrite getE ofarrayK nth_take; first 2 by idtac=>/#.
+          rewrite nth_drop; first 2 by idtac=>/#.
+          cut ->: n + (i - n) = i by idtac=>/#.
+          by rewrite getE.
+    rewrite map_array2 => /#.
   qed.
 
   lemma fun_DEED x : functE_valid x => funDE (funED x) = x.
@@ -743,7 +802,32 @@ else
     rewrite /funED /funDE /functE_valid /functE_topo_valid /functE_gg_valid /=.
     elim x=> topo gg /=.
     elim topo=> n m q aa bb /=.
-    by rewrite !/snd; smt.
+    rewrite !/snd; progress.
+    apply arrayP; split.
+      rewrite size_sub; first 2 by idtac=>/#.
+      by rewrite size_append size_offun  => /#.
+      done.
+      rewrite size_sub; first 2 by idtac=>/#.
+        by rewrite size_append size_offun => /#.
+      move => i i_bound.
+      rewrite get_sub; first 2 by idtac=>/#.
+      by rewrite size_append size_offun => /#.
+      done.
+      rewrite get_append; first by rewrite size_append size_offun => /#.
+      rewrite size_offun max_ler => /#.
+    apply arrayP; split.
+      rewrite size_sub; first 2 by idtac=>/#.
+      by rewrite size_append size_offun  => /#.
+      by rewrite H1. 
+      rewrite size_sub; first 2 by idtac=>/#.
+      by rewrite size_append size_offun => /#.
+      move => i i_bound.
+      rewrite get_sub; first 2 by idtac=>/#.
+      by rewrite size_append size_offun => /#.
+      done.
+      rewrite get_append; first by rewrite size_append size_offun => /#.
+      rewrite size_offun max_ler => /#.
+    by rewrite array_map2.
   qed.
 
   op funGED (x:ProjScheme.Sch.Scheme.funG_t) : SG.GSch.funG_t =
@@ -761,14 +845,24 @@ else
     rewrite !/snd /=.
     progress.
       apply arrayP; split.
-        smt.
-        move=> i; rewrite size_append // size_offun ?size_sub; first 3 smt.
-        by move=> i_bnd; case (i < n)=> i_n; [rewrite get_append_left | rewrite get_append_right]; smt tmo=30.
-      apply arrayP; split.
-        smt.
-        move=> i; rewrite size_append // size_offun ?size_sub; first 3 smt.
-        by move=> i_bnd; case (i < n)=> i_n; [rewrite get_append_left | rewrite get_append_right]; smt tmo=30.
-      smt.
+        by (rewrite size_append size_sub; first 3 by idtac=>/#); rewrite size_offun => /#.
+        move=> i; rewrite size_append // size_offun ?size_sub; first 3 idtac=>/#.
+        rewrite max_ler; first by idtac => /#.
+        move=> i_bnd; case (i < n)=> i_n; [rewrite get_append_left | rewrite get_append_right].
+          by rewrite size_offun max_ler => /#.
+          by rewrite offunE => /#.
+          by rewrite size_offun size_sub => /#.
+          by (rewrite size_offun max_ler; first by idtac=>/#); rewrite get_sub => /#.
+    apply arrayP; split.
+        by (rewrite size_append size_sub; first 3 by idtac=>/#); rewrite size_offun => /#.
+        move=> i; rewrite size_append // size_offun ?size_sub; first 3 idtac=>/#.
+        rewrite max_ler; first by idtac => /#.
+        move=> i_bnd; case (i < n)=> i_n; [rewrite get_append_left | rewrite get_append_right].
+          by rewrite size_offun max_ler => /#.
+          by rewrite offunE => /#.
+          by rewrite size_offun size_sub => /#.
+          by (rewrite size_offun max_ler; first by idtac=>/#); rewrite get_sub => /#.
+      by rewrite map_array2. 
   qed.
 
   lemma funG_DEED x : functE_valid x => funGDE (funGED x) = x.
@@ -776,7 +870,44 @@ else
     rewrite /funGED /funGDE /functE_valid /functE_topo_valid /functE_gg_valid.
     elim x=> topo gg /=.
     elim topo=> n m q aa bb /=.
-    by rewrite /snd; smt.
+    rewrite /snd; progress.
+      apply arrayP; split.
+        rewrite size_sub; first 2 by idtac=> /#.
+        by rewrite size_append size_offun  => /#.
+        done.
+        move=> i.
+        rewrite size_sub; first 2 by idtac=>/#.
+        rewrite size_append size_offun max_ler => /#. 
+        move=> i_bnd; case (i < n)=> i_n.
+          rewrite get_sub; first 2 by idtac=>/#.
+          by rewrite size_append size_offun => /#.
+          done.
+          rewrite get_append_right; first by rewrite size_offun max_ler => /#.
+          by rewrite size_offun max_ler => /#.
+          rewrite get_sub; first 2 by idtac=>/#.
+          by rewrite size_append size_offun => /#.
+          done.
+          rewrite get_append_right; first by rewrite size_offun max_ler => /#.
+          by rewrite size_offun max_ler => /#.
+      apply arrayP; split.
+        rewrite size_sub; first 2 by idtac=> /#.
+        by rewrite size_append size_offun  => /#.
+        by rewrite H1. 
+        move=> i.
+        rewrite size_sub; first 2 by idtac=>/#.
+        rewrite size_append size_offun max_ler => /#. 
+        move=> i_bnd; case (i < n)=> i_n.
+          rewrite get_sub; first 2 by idtac=>/#.
+          by rewrite size_append size_offun => /#.
+          done.
+          rewrite get_append_right; first by rewrite size_offun max_ler => /#.
+          by rewrite size_offun max_ler => /#.
+          rewrite get_sub; first 2 by idtac=>/#.
+          by rewrite size_append size_offun => /#.
+          done.
+          rewrite get_append_right; first by rewrite size_offun max_ler => /#.
+          by rewrite size_offun max_ler => /#.
+    by rewrite array_map2.  
   qed.
   (*end section Bijection*)
 
@@ -797,11 +928,11 @@ else
     cut hli: 0 <= size i by apply Array.size_ge0.
     subst.
     apply arrayP.
-    split; first by rewrite !size_offun //; smt.
+    split; first by rewrite !size_offun //; idtac=>/#.
     rewrite ?size_offun //.
     move => j hj.
-    rewrite !offunE //=; first 2 by smt.
-    rewrite !offunE //=; first 2 by smt.
+    rewrite !offunE //=; first 2 by idtac=>/#.
+    rewrite !offunE //=; first 2 by idtac=>/#.
   qed.
 
   lemma phi_ED (fn:bool SG.funct_t) : functD_topo_valid (fn.`1) =>
@@ -811,16 +942,21 @@ else
     elim fn=> topo gg /=.
     elim topo=> n m q aa bb /=.
     progress; apply arrayP; split.
-      smt.
-      move=> i; rewrite size_append // size_offun ?size_sub; first 3 smt.
-      by move=> i_bnd; case (i < n)=> i_n; [rewrite get_append_left | rewrite get_append_right]; smt tmo=30.
-      smt.
-      move=> i; rewrite size_append // size_offun ?size_sub; first 3 smt.
+      by rewrite size_append size_mkarray size_map size_iota size_sub => /#.
+      move=> i; rewrite size_append // size_offun ?size_sub; first 3 idtac=>/#.
+      rewrite max_ler; first by idtac => /#.
       move=> i_bnd; case (i < n)=> i_n; [rewrite get_append_left | rewrite get_append_right].
+        by rewrite size_mkarray size_map size_iota max_ler => /#.
+        by rewrite offunE => /#. 
+        by rewrite size_offun size_sub => /#.
+        by (rewrite size_offun max_ler; first by idtac=>/#); rewrite get_sub => /#.
+        by (rewrite size_append size_mkarray size_map size_iota max_ler; first by idtac => /#); rewrite size_sub => /#.
+      move=> i i_bnd; case (i < n)=> i_n; [rewrite get_append_left | rewrite get_append_right].
         by rewrite size_mkarray size_map size_iota max_ler => /#. 
         rewrite getE. rewrite ofarrayK. rewrite (nth_map (witness) (witness) _ _); first by rewrite size_iota max_ler => /#. rewrite nth_iota; first by idtac=>/#. idtac=>/#.
-        rewrite size_mkarray size_map ?size_iota size_sub => /#.
-        rewrite size_mkarray size_map size_iota max_ler; first by idtac=>/#. rewrite get_sub; first 4 by idtac=>/#. by cut ->: i - n + n = i by idtac=>/#.
+        rewrite size_mkarray size_map ?size_iota max_ler; first by idtac=>/#.
+        rewrite size_sub; first 3 by idtac  => /#. smt. 
+        rewrite size_mkarray size_map size_iota max_ler; first by idtac=>/#. rewrite get_sub; first 3 by idtac=>/#. smt. by cut ->: i - n + n = i by idtac=>/#.
   qed.
 
   pred eval_valid (fn:'a SG.funct_t) (i:'a array) =
@@ -841,11 +977,11 @@ else
     congr=> //.
     simplify GarbleTools.evalComplete.
     apply eq_sym.
-    apply appendInit_init_dep; first smt.
+    apply appendInit_init_dep; first idtac=>/#.
     progress.
-    rewrite /extractB snd_pair /= /evalTupleGate offunE. smt. simplify.
+    rewrite /extractB snd_pair /= /evalTupleGate offunE; first idtac=>/#. simplify.
     rewrite hi.
-    cut ->: gg.[(n + i0 - 1 + 1, xs1.[aa.[n + i0 - 1 + 1]], xs1.[bb.[n + i0 - 1 + 1]])] = gg.[(n + i0, xs1.[aa.[n + i0]], xs1.[bb.[n + i0]])] by smt.
+    cut ->: gg.[(n + i0 - 1 + 1, xs1.[aa.[n + i0 - 1 + 1]], xs1.[bb.[n + i0 - 1 + 1]])] = gg.[(n + i0, xs1.[aa.[n + i0]], xs1.[bb.[n + i0]])] by idtac=>/#.
     case (xs2.[(sub aa n q).[i0]]).
     case (xs2.[(sub bb n q).[i0]]).
     move => Hc1 Hc2.
@@ -881,11 +1017,11 @@ else
     congr=> //.
     simplify GarbleTools.evalComplete.
     apply eq_sym.
-    apply appendInit_init_dep; first smt.
+    apply appendInit_init_dep; first idtac=>/#.
     progress.
-    rewrite /extractG snd_pair /= /evalTupleGate offunE ?hli; first smt.
-    cut -> : size i + i0 - 1 + 1 = size i + i0 by smt.
-    rewrite !H6; first 2 smt.
+    rewrite /extractG snd_pair /= /evalTupleGate offunE ?hli; first idtac=>/#.
+    cut -> : size i + i0 - 1 + 1 = size i + i0 by idtac=>/#.
+    rewrite !H6; first 2 idtac=>/#.
     congr; expect 4 by rewrite !get_sub => /#. 
   qed.
 
@@ -916,12 +1052,12 @@ else
     simplify validRandD.
     move=> vRand.
     rewrite /Sch.Scheme.validRand /=.
-    cut leni_nq: size i = n + q by smt. 
+    cut leni_nq: size i = n + q by idtac=>/#. 
     rewrite /funED snd_pair /=.
     rewrite /topoED /=.
     rewrite /randFormatD /=.
     rewrite rand_DEED /randED /randFormat.
-    cut -> //=: (size i < n + q) = false by smt.
+    cut -> //=: (size i < n + q) = false by idtac=>/#.
     rewrite /SG.GSch.validRand /SG.GSch.validRand fst_pair /=.
     rewrite leni_nq //= eq_sym eqT=> k k_bnd.
       rewrite !get_arrayToMap /=
@@ -931,11 +1067,11 @@ else
       rewrite get_mapi ?leni_nq //=.
       case (k < n + q - m)=> k_nqm.
         rewrite snd_pair /=.
-        cut ->: (n + q - m <= k) = false by smt=> //=.
-        by rewrite set_getlsb (*/SG.W.getlsb*) get_setlsb; smt.
+        cut ->: (n + q - m <= k) = false by idtac=>/# => //=.
+        by rewrite set_getlsb get_setlsb; idtac=>/#.
         rewrite snd_pair /=.
-        cut ->: (n + q - m <= k) = true by smt=> //=.
-        by rewrite (*/DKCScheme.W.getlsb*) !get_setlsb.
+        cut ->: (n + q - m <= k) = true by idtac=>/# => //=.
+        by rewrite !get_setlsb.
   qed.
   
   lemma funG_ED (fn:bool SG.funct_t) (r:(int*bool, word) fmap):
@@ -952,15 +1088,15 @@ else
     progress.
     rewrite get_append // size_offun //.
     case (0 <= i < n)=> h.
-      by rewrite offunE //;smt.
-      by rewrite get_sub ? H1 //;smt.
+      by rewrite offunE //;idtac=>/#.
+      by rewrite get_sub ? H1 //;idtac=>/#.
     cut hlen : size (offun (fun (i0 : int), 0) n || sub bb n q) = n + q by rewrite size_append ? size_offun ? size_sub ? H2 // max_ler. 
     apply arrayP;split;first by rewrite hlen H2.
     progress.
     rewrite get_append // size_offun //.
     case (0 <= i < n)=> h.
-      by rewrite offunE //;smt.
-      by rewrite get_sub ? H2 //;smt.
+      by rewrite offunE //;idtac=>/#.
+      by rewrite get_sub ? H2 //;idtac=>/#.
     rewrite /Sch.Scheme.funG /randFormatD /funG /funDE /topoDE /= !snd_pair /= /arrayToMap2 /mapToArray2 /=.
     apply fmapP=> y.
     elim y=> g a b.
@@ -970,36 +1106,36 @@ else
     rewrite !SG.get_initGates //.
     case (n <= g < n + q)=> h //.
     rewrite /garbMap /garbleGate /init_gates /SG.enc /enc /evalTupleGate /randED !snd_pair /=.
-    rewrite !/fst offunE /=;first smt.
+    rewrite !/fst offunE /=;first idtac=>/#.
   (*  simplify "_.[_]".*)
     pose r' := randFormat (n + q) m (randDE r).
-    cut h' : 0 <= g - n < q by smt.
+    cut h' : 0 <= g - n < q by idtac=>/#.
     rewrite !get_sub // ?H1 ?H2 //.
     rewrite offunE //.
     rewrite /evalTupleGate (*/SG.W.getlsb*) /getTok /=.
     rewrite !get_arrayToMap.
     rewrite !snd_pair.
     rewrite (*/SG.W.getlsb*) /getTok /=.
-    cut ->: size r' = n + q. simplify r'. rewrite /randFormat. cut ->: size (randDE r) < n + q <=> false by smt. simplify. rewrite size_mapi. rewrite /randDE /mapToArray. smt. 
-    cut ->: 0 <= g < n + q by smt.
-    cut ->: 0 <= aa.[g] < n + q by smt.
-    cut ->: 0 <= bb.[g] < n + q by smt.
-    cut ->: g - n + n = g by smt.
-    cut ->: n + (g - n) = g by smt.
+    cut ->: size r' = n + q. simplify r'. rewrite /randFormat. cut ->: size (randDE r) < n + q <=> false by smt. simplify. rewrite size_mapi. rewrite /randDE /mapToArray. smt.
+    cut ->: 0 <= g < n + q by idtac=>/#.
+    cut ->: 0 <= aa.[g] < n + q by idtac=>/#.
+    cut ->: 0 <= bb.[g] < n + q by idtac=>/#.
+    cut ->: g - n + n = g by idtac=>/#.
+    cut ->: n + (g - n) = g by idtac=>/#.
     rewrite /= !oget_some.
     cut h1 : getlsb (r'.[aa.[g]].`2) = ! getlsb (r'.[aa.[g]].`1).
     simplify r' randFormat.
     case (size (randDE r) < n + q).
       by rewrite offunE ?fst_pair ?snd_pair ?get_setlsb;smt.
-      by (rewrite get_mapi /=;first smt tmo=20);case (aa.[g] < n + q - m); rewrite !get_setlsb //.
+      by (rewrite get_mapi /=;first smt);case (aa.[g] < n + q - m); rewrite !get_setlsb //.
     cut h2 : getlsb (r'.[bb.[g]].`2) = !getlsb (r'.[bb.[g]].`1).
     simplify r' randFormat.
     case (size (randDE r) < n + q).
       by rewrite offunE ?fst_pair ?snd_pair ?get_setlsb;smt.
-      by (rewrite get_mapi /=;first smt tmo=30);case (bb.[g] < n + q - m);rewrite !get_setlsb //.
+      by (rewrite get_mapi /=;first smt);case (bb.[g] < n + q - m);rewrite !get_setlsb //.
     rewrite h1 h2.
     by rewrite /Bool.(^^) /snd; case a; case b; case (getlsb (r'.[aa.[g]]).`1); case (getlsb (r'.[bb.[g]]).`1);
-       move=> //=; smt.
+       move=> //= => /#. 
   qed.
 
   pred inputK_valid (fn:'a SG.funct_t) (r:SG.GSch.rand_t) = 
@@ -1020,28 +1156,28 @@ else
     elim topo=> n m q aa bb /=.
     progress.
     apply fmapP=> y.
-    cut nq_pos : 0 <= n + q by smt.
+    cut nq_pos : 0 <= n + q by idtac=>/#.
     cut len_r : size (randDE r) = n + q  by rewrite /randDE /mapToArray /= size_offun H1 // max_ler.
     simplify randFormatD randED.
     rewrite get_arrayToMap.
     rewrite filterP !get_arrayToMap //.
     rewrite size_sub //=;
-      first by rewrite size_randFormat // len_r //;smt.
+      first by rewrite size_randFormat // len_r //;idtac=>/#.
     rewrite size_randFormat // len_r // /fst /=.
     case (0 <= y.`1 < n)=> h //=.
-    cut -> /=: 0 <= y.`1 < n + q by smt.
-    by rewrite get_sub // smt. 
+    cut -> /=: 0 <= y.`1 < n + q by idtac=>/#.
+    by rewrite get_sub // smt.
   qed.
 
   lemma outputK_ED fn r:
     outputKED (ProjScheme.Sch.Scheme.outputK (funDE fn) (randDE r)) =
      SG.GSch.outputK fn (randFormatD (fn.`1) r)
-  by smt.
+  by idtac=>/#.
 
   lemma decode_ED k y:
     outputED (ProjScheme.Sch.Scheme.decode (outputKDE k) (outputGDE y)) =
      SG.GSch.decode k y
-  by smt.
+  by idtac=>/#.
 
   lemma pi_sampler_ED x : functD_topo_valid (fst x) =>
     (let y = (ProjScheme.Sch.Scheme.pi_sampler (leakDE (fst x), (outputDE (snd x)))) in (funED (fst y), snd y)) = SG.GSch.pi_sampler x.
@@ -1051,17 +1187,21 @@ else
     elim t=> n m q aa bb /=.
     simplify fst snd.
     progress. 
-      rewrite arrayP; split; first smt.
+      rewrite arrayP; split; first by rewrite size_append size_offun size_sub => /#. 
+      (rewrite size_append size_offun max_ler; first by idtac=>/#); rewrite size_sub; first 3 by idtac=>/#. 
+      move=> i0 i_bnd; rewrite get_append //.
+      case (0 <= i0 < n)=> i_split.
+        by rewrite size_append size_offun size_sub => /#.
+        by rewrite size_append size_offun size_sub => /#.
+        rewrite size_offun max_ler; first by idtac=>/#.
+        case (0 <= i0 < n)=> i_split.
+        by rewrite offunE //=; cut [->]:= H3 i0 _; idtac=>/#.
+        rewrite get_sub 3:H1 //; idtac=>/#.
+      apply arrayP; split; first by rewrite size_append size_offun size_sub => /#. 
       move=> i0 i_bnd; rewrite get_append // size_offun //.
       case (0 <= i0 < n)=> i_split.
-        by rewrite offunE //=; cut [->]:= H3 i0 _; smt.
-        rewrite get_sub 3:H1 //.
-        move : i_bnd. rewrite size_append size_offun size_sub //= => /#. idtac=>/#.
-      apply arrayP; split; first smt.
-      move=> i0 i_bnd; rewrite get_append // size_offun //.
-      case (0 <= i0 < n)=> i_split.
-        by rewrite offunE //=; cut [_ ->]:= H3 i0 _; smt.
-        rewrite get_sub 3:H2 //. smt tmo=10. smt.
+        by rewrite offunE //=; cut [_ ->]:= H3 i0 _; idtac=>/#.
+        rewrite get_sub 3:H2 // smt. 
       apply fmapP=> y.
       elim y=> g a b.
       cut /= -> // :=
@@ -1079,10 +1219,10 @@ else
       move=> Hf //. 
       case (n <= g < n + q)=> h //.
       rewrite max_ler; first by assumption. simplify.
-      rewrite SG.get_initGates. smt. rewrite h. simplify.
-      rewrite offunE. smt.
-                            simplify evalTupleGate. 
-      case (g - n < q - m). progress. smt. smt. smt.
+      rewrite SG.get_initGates. idtac=>/#. rewrite h. simplify.
+      rewrite offunE => /#. 
+      rewrite max_ler; first by idtac=>/#. simplify.
+      case (g - n < q - m) => hc => /#. 
   qed.
 
   lemma validInputs_DE fn i :
@@ -1096,28 +1236,30 @@ else
     elim topo=> n m q aa bb /=.
     rewrite /= !snd_pair /= !fst_pair /=.
     rewrite eq_iff.
-    progress; first 2 by
+    progress; first  by idtac=>/#.
       rewrite size_append size_offun max_ler => /#.
-      rewrite /arrayToMap2. cut ->: size gg = size aa <=> true by idtac=>/#. simplify. smt.
+  rewrite size_append size_offun max_ler => /#.
+       rewrite /arrayToMap2. cut ->: size gg = size aa <=> true by idtac=>/#. simplify. smt.
       rewrite get_append; first by rewrite size_append size_offun max_ler => /#. rewrite size_offun max_ler => /#.
       rewrite get_append; first by rewrite size_append size_offun max_ler => /#. rewrite size_offun max_ler => /#.
       rewrite get_append; first by rewrite size_append size_offun max_ler => /#. rewrite size_offun max_ler => /#.
       rewrite !get_append; first 2 by rewrite !size_append !size_offun !max_ler => /#. rewrite size_offun max_ler => /#.
-      smt tmo=30. smt tmo=30.
-      
-    cut := H7 (size i) false false _;smt tmo=10. 
-      cut := H8 (i0 + size i) _; first by smt.
-        rewrite ?get_append 1,2: smt.
-        by rewrite size_offun max_ler; smt. 
-      cut := H8 (i0 + size i) _; first by smt.
-        rewrite ?get_append 1,2: smt.
-        +by rewrite size_offun max_ler; smt. 
-      cut := H8 (i0 + size i) _;first by smt.
-        rewrite ?get_append 1,2: smt.
-        by rewrite size_offun max_ler; smt. 
-      cut := H8 (i0 + size i) _;first by smt.
-        rewrite ?get_append 1,2: smt.
-        by rewrite size_offun max_ler; smt.   
+      idtac=>/#. idtac=>/#. idtac=>/#.
+      by (move : H5; rewrite size_append size_offun max_ler; first by idtac=>/#) => /#.
+      by (move : H6; rewrite size_append size_offun max_ler; first by idtac=>/#) => /#. 
+    cut := H7 (size i) false false _; first by idtac=>/#. smt.   
+      cut := H8 (i0 + size i) _; first by idtac=>/#.
+        rewrite ?get_append; first 2 by idtac=>/#. 
+        by rewrite size_offun max_ler => /#. 
+      cut := H8 (i0 + size i) _; first by idtac=>/#.
+        rewrite ?get_append; first 2 idtac=>/#.
+        by rewrite size_offun max_ler; idtac=>/#. 
+      cut := H8 (i0 + size i) _;first by idtac=>/#.
+        rewrite ?get_append; first 2 idtac=>/#.
+        by rewrite size_offun max_ler => /#.  
+      cut := H8 (i0 + size i) _;first by idtac=>/#.
+        rewrite ?get_append; first 2 idtac=>/#.
+        by rewrite size_offun max_ler => /#.    
   qed.
 (* End Morphism *)
   
@@ -1156,32 +1298,32 @@ else
     progress.
     by rewrite size_ge0.
     by rewrite size_ge0.
-    by rewrite size_append size_offun ? size_ge0 max_ler 1:smt.
-    by rewrite size_append size_offun ? size_ge0 max_ler 1:smt // -H5. 
-    by rewrite get_append_left ? size_offun ? size_ge0 ?max_ler 1:smt ?offunE.
-    by rewrite get_append_left ? size_offun ? size_ge0 ?max_ler 1:smt ?offunE.
+    by rewrite size_append size_offun ? size_ge0 max_ler =>/#.
+    by rewrite size_append size_offun ? size_ge0 max_ler => /#.  
+    by (rewrite get_append_left ? size_offun ? size_ge0 ?max_ler; first by idtac => /#); rewrite ?offunE.
+    by (rewrite get_append_left ? size_offun ? size_ge0 ?max_ler; first by idtac=>/#); rewrite ?offunE.
     by rewrite size_ge0.
     by rewrite size_ge0.
-    by rewrite size_append size_offun ? size_ge0 ?max_ler 1:smt.
-    by rewrite size_append size_offun ? size_ge0 ?max_ler 1:smt // -H5.
-    by cut := H7 i0 _=> //;progress;rewrite get_append_right ? size_offun ? size_ge0 //;smt.
-    by cut := H7 i0 _=> //;progress;rewrite get_append_right ? size_offun ? size_ge0 //;smt.
-    by cut := H7 i0 _=> //;progress;rewrite get_append_right ? size_offun ? size_ge0 //;smt.
-    by cut := H7 i0 _=> //;progress;rewrite get_append_right ? size_offun ? size_ge0 //;smt.
-    by smt.
-    by rewrite max_arrayToMap;smt.
-    by rewrite get_append_left ? size_offun ? size_ge0 ?max_ler 1:smt ? offunE.
-    by rewrite get_append_left ? size_offun ? size_ge0 ?max_ler 1:smt ? offunE.
+    by rewrite size_append size_offun ? size_ge0 ?max_ler => /#. 
+    by rewrite size_append size_offun ? size_ge0 ?max_ler => /#. 
+    by cut := H7 i0 _=> //;progress;rewrite get_append_right ? size_offun ? size_ge0 //;idtac=>/#.
+    by cut := H7 i0 _=> //;progress;rewrite get_append_right ? size_offun ? size_ge0 //;idtac=>/#.
+    by cut := H7 i0 _=> //;progress;rewrite get_append_right ? size_offun ? size_ge0 //;idtac=>/#.
+    by cut := H7 i0 _=> //;progress;rewrite get_append_right ? size_offun ? size_ge0 //;idtac=>/#.
+    by idtac=>/#.
+    by rewrite max_arrayToMap; smt. 
+    by (rewrite get_append_left ? size_offun ? size_ge0 ?max_ler; first by idtac => /#); rewrite ?offunE.
+    by (rewrite get_append_left ? size_offun ? size_ge0 ?max_ler; first by idtac=>/#); rewrite ?offunE.
     by rewrite /randED max_arrayToMap;smt.
-    by (cut := H7 (i0 - size i) _;first smt);progress;rewrite get_append_right ? size_offun ? size_ge0 //;smt.
-    by (cut := H7 (i0 - size i) _;first smt);progress;rewrite get_append_right ? size_offun ? size_ge0 //;smt.
-    by (cut := H7 (i0 - size i) _;first smt);progress;rewrite get_append_right ? size_offun ? size_ge0 //;smt.
-    by (cut := H7 (i0 - size i) _;first smt);progress;rewrite get_append_right ? size_offun ? size_ge0 //;smt.
-    by rewrite size_offun ? size_sub ?size_randFormat;smt.
-    by rewrite /snd /= size_offun ?max_ler 1:smt.
-    by rewrite /snd /= size_offun ?max_ler 1:smt.
-    by rewrite /snd /= size_offun ?max_ler 1:smt.
-    by rewrite /snd /= size_offun ?max_ler 1:smt.
+    by (cut := H7 (i0 - size i) _;first idtac=>/#);progress;rewrite get_append_right ? size_offun ? size_ge0 //;idtac=>/#.
+    by (cut := H7 (i0 - size i) _;first idtac=>/#);progress;rewrite get_append_right ? size_offun ? size_ge0 //;idtac=>/#.
+    by (cut := H7 (i0 - size i) _;first idtac=>/#);progress;rewrite get_append_right ? size_offun ? size_ge0 //;idtac=>/#.
+    by (cut := H7 (i0 - size i) _;first idtac=>/#);progress;rewrite get_append_right ? size_offun ? size_ge0 //;idtac=>/#.
+    by rewrite size_offun ? size_sub ?size_randFormat;idtac=>/#.
+    by rewrite /snd /= size_offun ?max_ler => /#. 
+    by rewrite /snd /= size_offun ?max_ler => /#. 
+    by rewrite /snd /= size_offun ?max_ler => /#. 
+    by rewrite /snd /= size_offun ?max_ler => /#. 
   qed.
   
 (* Begin Correction Lemma *)
@@ -1256,10 +1398,9 @@ proof strict.
   q{1}  = q{2} /\
   aa{1} = aa{2} /\
   bb{1} = bb{2} /\ true).
-    by wp;rnd;rnd;wp;rnd;wp;skip;smt.
-    by wp;skip;smt.
+    by wp;rnd;rnd;wp;rnd;wp;skip => /#. 
+    by wp;skip => /#. 
 qed.
-
 
   module Rand:EncSecurity.Rand_t = {
     proc genTok(): word * word = {
@@ -1289,7 +1430,7 @@ lemma dlsb': forall x b,  mu Dword.dword (fun (y : word), x = setlsb y b) = if g
 proof.
 move => x b.
 case (getlsb x = b)=> h;
-  last (cut -> : (fun (y : word), x = setlsb y b) = (fun x, false) by (apply ExtEq.fun_ext;smt);smt).
+  last (cut -> : (fun (y : word), x = setlsb y b) = (fun x, false) by (apply ExtEq.fun_ext;smt);idtac=>/#).
 pose s := (fset1 (setlsb x true)) `|` ((fset1 (setlsb x false)) `|` FSet.fset0).
 cut -> : (fun (y : word), x = setlsb y b) = fun y, mem s y.
   apply ExtEq.fun_ext=> y; smt.
@@ -1300,14 +1441,14 @@ cut -> : (fun (y : word), x = setlsb y b) = fun y, mem s y.
 rewrite (Dword.mu_cpMemw s).
 cut -> : card s = 2. by (rewrite /s ! fcardUI_indep ? fcards0;smt).
 simplify base.
-cut -> : forall x0, 0 < x0 => 2 ^ x0 = 2 * (2 ^ (x0-1)) by smt.
-smt.
+cut -> : forall x0, 0 < x0 => 2 ^ x0 = 2 * (2 ^ (x0-1)) by smt. 
+by (have : 2 <= length by rewrite leq2_length) => /#.
 cut : 0 < 2 ^ (EfficientScheme.W.length - 1) by smt.
 simplify EfficientScheme.W.length EfficientScheme.W.length.
 move : (2 ^ (EfficientScheme.W.length - 1)).
 move=> x' lt0x'.
-cut ->: 2%r / (2 * x')%r = 2%r /(2%r * x'%r) by smt. smt.
-smt.
+cut ->: 2%r / (2 * x')%r = 2%r /(2%r * x'%r) by idtac=>/#. idtac=>/#.
+by smt.
 qed.
 
 equiv eqR (bb:bool): R1.genTok ~ Rand.genTok:
@@ -1346,7 +1487,7 @@ seq 3: (a1 = R1.trnd /\ a2 = R1.tok1)
          1%r
          0%r=> //.
     wp; rnd; skip=> //=.
-    by case bb=> h &hr ->> /=; [rewrite ExtEq.eqL | case a1=> /=]; smt.
+    by case bb=> h &hr ->> /=; [rewrite ExtEq.eqL | case a1=> /=]; smt. 
     rnd; skip=> //=.
     move=> &hr -> //=; rewrite ExtEq.eqL. cut ->: (mu (Dword.dwordLsb R1.trnd{hr}) ((=) a2)) = (Distr.mu_x (Dword.dwordLsb R1.trnd{hr}) a2). smt. by rewrite Dword.dwordLsb_mu_x.
     rnd; skip=> //=.
@@ -1373,23 +1514,23 @@ seq 1: (a1 = (bb && getlsb tok1) /\ a2 = setlsb tok1 (bb && getlsb tok1))
   case bb=> hb /=.
   case (getlsb a2 = a1)=> h.
     cut ->: (fun (x : word), a1 = getlsb x /\ a2 = setlsb x (getlsb x)) = (=) a2.
-      by apply ExtEq.fun_ext=> y /=; rewrite -h set_getlsb; smt.
+      by apply ExtEq.fun_ext=> y /=; rewrite -h set_getlsb; idtac=>/#.
     move: Dword.mu_x_def. rewrite /Distr.mu_x /base //= => hdword.
-    cut : 0 < EfficientScheme.W.length by smt.
+    cut : 0 < EfficientScheme.W.length by smt. 
     move => Hsize.
     cut -> //: (2^(EfficientScheme.W.length - 1))%r * 2%r = (2^EfficientScheme.W.length)%r.
-      cut ->: (2^(EfficientScheme.W.length - 1))%r * 2%r = (2^(EfficientScheme.W.length - 1) * 2)%r by smt.
-      by congr; rewrite mulzC -powS; smt. 
-      cut ->: ((=) a2) = Pred.pred1 a2 by smt.
-      rewrite hdword. smt.       
+      cut ->: (2^(EfficientScheme.W.length - 1))%r * 2%r = (2^(EfficientScheme.W.length - 1) * 2)%r by idtac=>/#.
+      by congr; rewrite mulzC -powS; idtac=>/#. 
+      cut ->: ((=) a2) = Pred.pred1 a2 by smt. 
+      by rewrite hdword.       
       cut ->: (fun (x : word), a1 = getlsb x /\ a2 = setlsb x (getlsb x)) = (fun x,false).
-      by apply ExtEq.fun_ext=> x /=; smt.       
+      by apply ExtEq.fun_ext=> x /=; smt.        
     by rewrite -/Pred.pred0 Distr.mu_false.
   case (a1 = false)=> //=.
-    by rewrite dlsb'; smt.
-    by rewrite -/Pred.pred0; smt.
+    by rewrite dlsb'; idtac=>/#.
+    by rewrite -/Pred.pred0; smt. 
   rnd; skip=> //=.
-  by move=> &hr [->> ->>] //=; rewrite dlsb'; smt.
+  by move=> &hr [->> ->>] //=; rewrite dlsb'; idtac=>/#.
   rnd; skip=> //=.
   by move=> &hr; rewrite -nand -!neqF; move => [-> | ->] //=; rewrite -/Pred.pred0 Distr.mu_false.
   by case (getlsb a2 = a1); case (getlsb a3 = !a1); case (bb);case a1.
@@ -1407,7 +1548,7 @@ forall x, mem (dom m1) x => m1.[x] = m2.[x].
 
 lemma leq_dom (m1 m2:('a,'b) fmap): m1 <= m2 => dom m1 <= dom m2.
 proof strict.
-by move=> H x; rewrite (mem_domE m2)=> x_m1; smt.
+by move=> H x; rewrite (mem_domE m2)=> x_m1; smt. 
 qed.
 
 lemma nosmt leq_refl (m:('a,'b) fmap):
@@ -1434,7 +1575,7 @@ qed.
 lemma in_dom_set (m:('a,'b) fmap) x y x':
   in_dom x' (m.[x <- y]) = (in_dom x' m \/ x' = x).
 proof strict. 
-by rewrite /in_dom; smt.
+by rewrite /in_dom; smt. 
 qed.
 
 lemma nosmt in_dom_set_in (m:('a,'b) fmap) x y:
@@ -1507,49 +1648,49 @@ proof.
     simplify.
     (do ! (do ? (move => h;elim h);move => ?)).
     subst.
-    split;first smt.
-    split;first smt.
+    split;first idtac=>/#.
+    split;first idtac=>/#.
     split=> //.
     move => j b;rewrite ! in_dom_set.
     case (i{2} = j)=> h.
-      by rewrite h;case b;smt.
-      by cut := H17 j b;smt.
+      by rewrite h;case b;idtac=>/#.
+      by cut := H17 j b;idtac=>/#.
     split=> //.
     move => j hj.
     simplify "_.[_]".
-    rewrite ! get_set ;first smt.
+    rewrite ! get_set ;first idtac=>/#.
     case (i{2} = j)=> h.
-      rewrite -h //=; smt. 
+      rewrite -h //=; smt.  
       by cut := H18 j _;smt tmo=10.
-  smt.
-  split => //; first by smt.
-  split => //; first by smt.
+  by rewrite size_set. 
+  split => //; first by idtac=>/#.
+  split => //; first by idtac=>/#.
   split => //.
     move => j b; rewrite ! in_dom_set. 
     case (i{2} = j)=> h.
-      by rewrite h;case b;smt.
-      by cut := H17 j b;smt.
+      by rewrite h;case b;idtac=>/#.
+      by cut := H17 j b;idtac=>/#.
     split=> //.
     move => j hj.
     simplify "_.[_]".
-    rewrite ! get_set ;first smt.
+    rewrite ! get_set ;first idtac=>/#.
     case (i{2} = j)=> h.
-      by rewrite -h //=; smt. 
+      by rewrite -h //=; smt.  
       cut := H18 j _. idtac=>/#.
-  smt tmo=40. rewrite size_set => /#. 
+  cut ->: j = i{2} <=> false by idtac=>/#. simplify. smt tmo=10. rewrite size_set => /#. 
   wp.
   skip.
   move : H H0.
-  progress;first 7 smt.
+  progress;first 7 smt. 
   apply fmapP=> y.
   elim y=> i b.
   simplify randED randFormat.
   rewrite get_arrayToMap snd_pair /=.
-  cut -> : (size x_R < n' + q') = false by smt.
+  cut -> : (size x_R < n' + q') = false by idtac=>/#.
   rewrite /= size_mapi.
   case (0 <= i < size x_R)=> hh.
   rewrite get_mapi //.
-    smt. smt.
+    idtac=>/#. smt. 
 qed.
 
 lemma Rand_islossless : islossless Rand.gen.
@@ -1558,8 +1699,8 @@ proc.
 while (true) (n + q - i + 1).
 move => z.
 inline Rand.genTok.
-wp;rnd;rnd;skip. progress. smt. smt. smt. 
-wp;skip;smt.
+wp;rnd;rnd;skip. progress. idtac=>/#. smt. smt. 
+wp;skip => /#. 
 qed.
 
 equiv Rand_stateless : Rand.gen ~ Rand.gen : ={l} ==> res{1} = res{2}.
@@ -1595,16 +1736,18 @@ module Red(A:EncSecurity.Adv_SIM_t) : SG.Sec.EncSecurity.Adv_SIM_t = {
   }
 }.
 
-    
-(*lemma sch_is_sim (A <: EncSecurity.Adv_SIM_t {Rand, SG.Rand, SG.DKCSecurity.DKCp, SG.C, SG.R, SG.G, SG.R', SG.DKCSecurity.DKCp}) &m l:
+require import OldMonoid.
+require import Sum.
+
+lemma sch_is_sim (A <: EncSecurity.Adv_SIM_t {Rand, SG.Rand, SG.DKCSecurity.DKCp, SG.C, SG.R, SG.G, SG.R', SG.DKCSecurity.DKCp}) &m:
  islossless A.gen_query =>
  islossless A.get_challenge =>
- 0 <= l < SG.DKCSecurity.boundl =>   
   `|2%r * Pr[EncSecurity.Game_SIM(Rand,EncSecurity.SIM(Rand), A).main()@ &m:res] - 1%r| <=
-    2%r * (SG.bound)%r * `|2%r * Pr[SG.DKCSecurity.Game(SG.DKCSecurity.DKC, SG.DKC_Adv(SG.DKCSecurity.DKC, SG.Sec.EncSecurity.RedSI(Red(A)))).main(l)@ &m:res] - 1%r|.
+    2%r * `|Mrplus.sum (fun i, 2%r * Pr[SG.DKCSecurity.Game(SG.DKCSecurity.DKC_O, SG.DKC_Adv(SG.Sec.EncSecurity.RedSI(Red(A)))).main(i)@ &m:res] - 1%r) (intval 0 (bound-1))|.
 proof strict.
 move=> ll_ADVp1 ll_ADVp2. 
-cut := SG.sch_is_sim (Red(A)) &m _ _=> //.
+print SG.
+  cut := SG.sch_is_sim (Red(A)) &m _ _=> //.
 by proc;call ll_ADVp1.
 by proc;call ll_ADVp2;wp.
 cut -> : Pr[SG.Sec.EncSecurity.Game_SIM(SG.Rand, SG.Sec.EncSecurity.SIM(SG.Rand), Red(A)).main()@ &m : res] = Pr[EncSecurity.Game_SIM(Rand, EncSecurity.SIM(Rand), A).main()@ &m : res];move=> //.
@@ -1692,6 +1835,6 @@ if; first smt.
   rewrite (fun_DEED ((ProjScheme.Sch.Scheme.pi_sampler (Sch.Scheme.phi fn,ProjScheme.Sch.Scheme.eval fn xx))).`1) 1://.
   rewrite -(encode_ED) 1://.
   by rewrite inputK_DEED.
-qed.*)
+qed.
 (* End security lemma *)
 end EfficientScheme.
