@@ -20,16 +20,16 @@ require import GarbleTools.
 theory SomeDKC.
   clone import ExtWord as WSD.
   clone ExtWord as KW with op length = WSD.length - 1.
-  
+
+  op bound : int.
+  axiom bound_pos : 2 < bound.
+
+  op boundl : int.
+  axiom boundl_pos : 0 <= boundl < bound.
+
   (*************************************)
   (** AUXLIAR FUNCTIONS *)
   (*************************************)
-
-  const bound : int.
-  axiom bound_pos : 1 < bound.
-
-  const boundl : int.
-  axiom boundl_pos : 1 < boundl < bound.
   
   op kw2w(kw,lsb) =
   if kw = witness then witness else
@@ -658,7 +658,7 @@ equiv false_key lp (A <:  Adv_DKC_t{Param,DKCp,PRFr_Wrapped,RandomFunction}):
       by rewrite H13 /= -aux_xorwK.
       by rewrite H13 H2 => /#.   
       cut ->: q{2}.`3 = (q{2}.`3.`1,q{2}.`3.`2) by idtac=>/#. rewrite H3 => /#.
-      simplify PrfDKC.E fst; rewrite H13 /= getP /= oget_some;smt.  
+      simplify PrfDKC.E fst; rewrite H13 /= getP /= oget_some;smt tmo=5.  
       by rewrite dom_set.
 
   case (q{2}.`3 = (Param.l{2}, Param.lsb{2})).
@@ -697,8 +697,8 @@ lemma PrfDKC_secure (A <: Adv_DKC_t{PRFr_Wrapped,DKCp,Param,RandomFunction}) &m 
   proof.
     move => hi.
     congr.
-    byequiv (true_key (i) A). done. done.
-    congr. byequiv (false_key (i) A). done. smt. 
+    byequiv (true_key (i) A) => //.
+    congr. byequiv (false_key (i) A) => // /#. 
 qed.
 
 end SomeDKC.

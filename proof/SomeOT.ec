@@ -965,7 +965,7 @@ else 0%r) = foldr (fun (x : ESn.dom_t) (z : real) => mu ESn.ddom (pred1 x) * z) 
         elim Hin => Hin; rewrite Hin //=.
         rewrite offunifE /=. 
         rewrite offunifE /=.
-        split; first by smt.
+        split; first by smt tmo=10.
           move => Hc.
           cut ->: g ^ r{2}.[k] ^ x{2} = g ^ x{2} ^ r{2}.[k].
             by rewrite? group_pow_mult gf_q_mult_comm; reflexivity.
@@ -979,7 +979,7 @@ else 0%r) = foldr (fun (x : ESn.dom_t) (z : real) => mu ESn.ddom (pred1 x) * z) 
           cut ->: (if 0 <= k < size DDHn_A.i1{2} then (ESn.H.hash hkey{2} (g ^ log xL.[k]))%ESn.H
       else Option.witness) = (ESn.H.hash hkey{2} (g ^ log xL.[k]))%ESn.H by smt.
           congr; rewrite ?mkarray_map ?ofarrayK mapE; first by smt.
-          by simplify; rewrite ?getE ?ofarrayK; smt timeout=30. 
+          by simplify; rewrite !getE !ofarrayK (nth_map (Option.witness) (Option.witness) _ _ _); smt tmo=10.  
           by smt.
     qed.
 

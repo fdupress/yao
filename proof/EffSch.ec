@@ -28,17 +28,13 @@ theory EfficientScheme.
 
   op nwires : int.
   axiom nwires_pos : 2 < nwires.
-  
-  clone import SomeDKC.SomeDKC with
-  theory WSD <- W,
-  op bound = nwires + 1,
-  op boundl = EfficientScheme.bound.
     
   clone import SomeGarble.SomeGarble as SG with
     theory WSG <- W,
-    theory D <- SomeDKC.PrfDKC,
     op nwires = EfficientScheme.nwires,
     op bound = EfficientScheme.bound.
+
+  import SG.SomeDKC.
     
   theory Local.
     (* some types reused for garbling scheme definition  *)
@@ -328,44 +324,6 @@ theory EfficientScheme.
 
       move : H. rewrite ?domP. rewrite in_fsetU. move => H. elim H. rewrite ?domP. rewrite in_fsetU. move => H. elim H. move => H. idtac=>/#. rewrite in_fset1. cut ->: (i, b) = (size xs, false) <=> false by idtac=>/#. trivial. rewrite in_fset1. cut ->: (i, b) = (size xs, true) <=> false by idtac=>/#. trivial. 
   qed.
-
-  (*op interval : int -> int -> int fset.
-  axiom interval_neg : forall (x y:int), y < x => interval x y = fset0.
-  axiom interval_pos : forall (x y:int), x <= y => interval x y = (fset1 y) `|` (interval x (y-1)).
-
-  lemma mem_interval : forall (x y a:int), (mem (interval x y) a) <=> (x <= a /\ a <= y).
-    proof.
-      move => x y a.
-      case (x <= y)=> h; last first.
-        by rewrite interval_neg; smt.
-      rewrite (_ : y = (y-x+1)-1+x);first idtac=>/#.
-      apply (intind
-      (fun i, mem (interval x ((i-1)+x)) a <=> Int.(<=) x a /\ Int.(<=) a ((i-1)+x))).
-        split; rewrite interval_neg; smt.
-        simplify.
-        move => j hh hrec.
-        rewrite interval_pos; first by idtac=>/#.  
-        rewrite in_fsetU ?in_fset1 => /#. idtac=>/#.
-  qed.
-          
-  lemma card_interval_max : forall x y, card (interval x y) = max (y - x + 1) 0.
-  proof.
-    move => x y.
-    case (x <= y); last first.
-      move => Hxy. rewrite interval_neg; first by idtac => /#. rewrite fcards0 => /#. 
-    move => h.
-    rewrite (_:interval x y=interval x (x+(y-x+1)-1));first by idtac=>/#.
-    rewrite (_:max (y - x + 1) 0 = y-x+1);first by idtac=>/#.
-    apply (intind (fun i, card (interval x (x+i-1)) = i)).
-    simplify. rewrite interval_neg; first by idtac=>/#. by rewrite fcards0.  
-    simplify.
-    move => j hh hrec.
-    rewrite interval_pos; first by idtac=>/#.
-    rewrite fcardUI_indep. cut ->: x + (j + 1) - 1 = x + j by idtac=>/#.
-    by smt.
-    by smt.
-    by idtac=>/#.
-  qed.*)
   
   lemma dom_arrayToMap (x:('a * 'a) array):
     dom (arrayToMap x) =
@@ -401,7 +359,7 @@ theory EfficientScheme.
       smt.
     case (size x = 0)=> h. 
     cut ->: fold (fun (p : int * bool) (s : int) => max p.`1 s) (-1) xs = List.foldr (fun (p : int * bool) (s : int) => max p.`1 s) (-1) (elems xs) by smt.
-    simplify. smt tmo=30. 
+    simplify. smt tmo=60. 
     cut: mem xs ((size x - 1), false).
         by rewrite /xs in_fsetU !imageP; left; exists (size x - 1); smt.
     elim/fset_ind xs. progress. smt. progress.
@@ -1336,8 +1294,8 @@ else
     do 12 ! (move => [?]); move => ?.
     move : h1 h2.
     rewrite validInputs_DE validRand_DE //. 
-    move => hInputs hRand.
-    cut:= SG.gsch_correct dkc_correct (randFormatD ((funED fn).`1) (randED r)) (funED fn) (inputED i) _ _=> //=.
+    move => hInputs hRand. 
+    cut:= SG.gsch_correct (randFormatD ((funED fn).`1) (randED r)) (funED fn) (inputED i) _ _=> //=.
     rewrite -(outputK_ED (funED fn) (randED r)).
     rewrite -(funG_ED (funED fn) (randED r)) //. 
     rewrite -(inputK_ED (funED fn) (randED r)) // fun_DEED // rand_DEED.
@@ -1739,14 +1697,13 @@ module Red(A:EncSecurity.Adv_SIM_t) : SG.Sec.EncSecurity.Adv_SIM_t = {
 require import OldMonoid.
 require import Sum.
 
-lemma sch_is_sim (A <: EncSecurity.Adv_SIM_t {Rand, SG.Rand, SG.DKCSecurity.DKCp, SG.C, SG.R, SG.G, SG.R', SG.DKCSecurity.DKCp}) &m:
+lemma sch_is_sim (A <: EncSecurity.Adv_SIM_t {Rand, SG.Rand, DKCSecurity.DKCp, SG.C, SG.R, SG.G, SG.R', DKCSecurity.DKCp,PRF.RandomFunction,PRF.PRFr_Wrapped,Param}) &m:
  islossless A.gen_query =>
  islossless A.get_challenge =>
   `|2%r * Pr[EncSecurity.Game_SIM(Rand,EncSecurity.SIM(Rand), A).main()@ &m:res] - 1%r| <=
-    2%r * `|Mrplus.sum (fun i, 2%r * Pr[SG.DKCSecurity.Game(SG.DKCSecurity.DKC_O, SG.DKC_Adv(SG.Sec.EncSecurity.RedSI(Red(A)))).main(i)@ &m:res] - 1%r) (intval 0 (bound-1))|.
+    2%r * `|Mrplus.sum (fun i, Pr[PRF.IND(PRF.PRFr_Wrapped, D(DKC_Adv(Sec.EncSecurity.RedSI(Red(A))))).main(i) @ &m : res] -  Pr[PRF.IND(PRF.RandomFunction, D(DKC_Adv(Sec.EncSecurity.RedSI(Red(A))))).main(i) @ &m : res]) (intval 0 (bound-1))|.
 proof strict.
 move=> ll_ADVp1 ll_ADVp2. 
-print SG.
   cut := SG.sch_is_sim (Red(A)) &m _ _=> //.
 by proc;call ll_ADVp1.
 by proc;call ll_ADVp2;wp.
@@ -1757,9 +1714,9 @@ inline Red(A).gen_query Red(A).get_challenge SG.Sec.EncSecurity.Game_SIM(SG.Rand
 seq 4 3 : (={glob A, b} /\
 (query{1} = (funED (query{2}.`1), inputED (snd query{2}))) /\ real{1} = real{2} ).
  wp;call (_: ={glob A} ==> ={res, glob A});first by proc true.
- by wp; rnd; skip; progress; smt.
+ by wp; rnd; skip; progress => /#.
 if;[smt|by wp; rnd|].
-if; first smt.
+if; first idtac=>/#.
   exists* query{2}; elim* => qu.
   wp; call (_: true).
   wp; call (RandEq (EncSecurity.Encryption.randfeed qu)).
