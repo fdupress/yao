@@ -73,7 +73,7 @@ theory Dword.
 
   op dword: word distr.
   axiom mu_x_def w: mu_x dword w = 1%r/(2^length)%r.
-  axiom lossless: weight dword = 1%r.
+  axiom lossless: is_lossless dword.
 
   axiom in_supp_def w: in_supp w dword.
 
@@ -89,6 +89,6 @@ theory Dword.
   op dwordLsb : bool -> word distr.
 
   axiom dwordLsb_mu_x (b:bool) (x:word) : mu_x (dwordLsb b) x = if getlsb x = b then 1%r/(2^(length-1))%r else 0%r.
-  axiom dwordLsb_lossless (b:bool) : weight (dwordLsb b) = 1%r.
+  axiom dwordLsb_lossless (b:bool) : is_lossless (dwordLsb b).
   axiom lsb_dwordLsb (b:bool) (x:word): in_supp x (dwordLsb b) => getlsb x = b.
 end Dword.

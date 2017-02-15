@@ -16,6 +16,7 @@ require (*--*) DKC.
 require (*--*) DKCSec2.
 require (*--*) Sch.
 require (*--*) SchSec.
+require (*--*) SomeDKC.
 
 require import GarbleTools.
   
@@ -43,19 +44,19 @@ theory SomeGarble.
 
   (** Tweak theory, instantiated with the words defined in W *)
   clone import Tweak with theory WT <- WSG.
-  
-  clone import DKC.DKCScheme as D with
-    type tweak_t = word,
-    type key1_t = word,
-    type key2_t = word,
-    type msg_t = word,
-    type cipher_t = word.
-    
-  clone import DKCSec2.DKCSecurity with
-    theory W <- WSG,
-    theory D <- D,
+
+  clone import SomeDKC.SomeDKC with
+    theory WSD <- WSG,
     op bound = nwires + 1,
     op boundl = SomeGarble.bound.
+
+  import PrfDKC.
+    
+  (*clone import DKCSec2.DKCSecurity with
+    theory W <- WSG,
+    theory D <- PrfDKC,
+    op bound = nwires + 1,
+    op boundl = SomeGarble.bound.*)
     
   (** Auxiliar types used in the definition of the scheme *)
   (** Tokens type **)
@@ -372,10 +373,11 @@ theory SomeGarble.
     Formally, eval(fn,i) = decode (evalG(fn, encode (e,i)))
       *)
     
-  lemma gsch_correct : D.Correct () => GSch.Correct().
+  lemma gsch_correct : GSch.Correct().
   proof.
+    have : PrfDKC.Correct () by rewrite PrfDKC_correct.
     (*Some simplification before proving the main inductive formula *)
-    simplify D.Correct GSch.Correct
+    simplify PrfDKC.Correct GSch.Correct
       GSch.validInputs GSch.validRand GSch.eval GSch.decode GSch.outputK
       GSch.evalG GSch.funG GSch.Input.encode inputK => DKCHyp x fn input /=.
     elim fn=> topo ff h_fn /=.
@@ -622,7 +624,7 @@ theory SomeGarble.
   proof.
     proc => //.
     while (0 <= i <= n+q) (n+q-i).
-      move => z; auto; progress; expect 6 by smt ["Alt-Ergo"].
+      move => z; auto; progress; expect 6 by rewrite ?DBool.dbool_ll ?Dword.dwordLsb_lossless => /#. 
     by auto => /#.
   qed.
   
@@ -1699,8 +1701,8 @@ proof.
         rewrite ?getP => /#.
         rewrite ?getP => /#.
         rewrite ?get_set => /#.
-        rewrite ?getP; case (g = i{2}) => hc; smt tmo=5.
-        rewrite ?getP; case (g = i{2}) => hc; smt tmo=5.
+        rewrite ?getP; case (g = i{2}) => hc; smt tmo=10.
+        rewrite ?getP; case (g = i{2}) => hc; smt tmo=10.
         by rewrite size_set.
         by rewrite size_set.
     auto; progress; first 3 by idtac=>/#.
@@ -2000,7 +2002,7 @@ proof.
     auto. 
     inline RandomInit'.init.
     while true (C.n + C.q - i).
-      auto; progress; expect 4 by smt.  
+      auto; progress. smt. smt. smt. idtac=>/#.   
     auto.
     inline CircuitInit.init.
     while true (C.n + C.q - i0).
@@ -2989,7 +2991,7 @@ while{2} (={glob A, real, p, G.g} /\
     EncSecurity.queryValid_IND query{1} /\
   l1{2} = l{2} /\
   ={glob C} /\ size G.yy{1} = size G.yy{2} /\ size G.yy{1} = C.n{1} + C.q{1} /\
-  boundl = SomeGarble.bound /\
+  DKCSecurity.boundl = SomeGarble.bound /\
     size C.v{1} = C.n{1} + C.q{1} /\
     C.f{1} = ((C.n{1}, C.m{1}, C.q{1}, C.aa{1}, C.bb{1}), C.gg{1}) /\
     validInputsP (C.f{1}, C.x{1}) /\
@@ -3035,7 +3037,7 @@ while{2} (={glob A, real, p, G.g} /\
   l1{2} = l{2} /\
   l3{2} = l1{2} /\
   ={glob C} /\ size G.yy{1} = size G.yy{2} /\ size G.yy{1} = C.n{1} + C.q{1} /\
-  boundl = SomeGarble.bound /\
+  DKCSecurity.boundl = SomeGarble.bound /\
     size C.v{1} = C.n{1} + C.q{1} /\
     C.f{1} = ((C.n{1}, C.m{1}, C.q{1}, C.aa{1}, C.bb{1}), C.gg{1}) /\
     validInputsP (C.f{1}, C.x{1}) /\
@@ -3331,7 +3333,7 @@ qed.
 lemma GameHybrid_l_sim (A <: EncSecurity.Adv_IND_t{DKC_Adv,DKCp,DKC_O}) lp:
   islossless A.gen_query =>
   islossless A.get_challenge =>
-  0 <= lp < boundl =>
+  0 <= lp < DKCSecurity.boundl =>
   equiv [ GameHybrid(A).garble ~ DKCSecurity.Game(DKC_O, DKC_Adv(A)).game:
     ={glob A} /\ l{1} = lp /\ l{2} = lp /\ !b{2} ==> res{1} <> res{2}].
 proof.
@@ -3835,7 +3837,7 @@ while{2} (={glob A, real, p, G.g} /\
     EncSecurity.queryValid_IND query{1} /\
   l1{2} = l{2} /\
   ={glob C} /\ size G.yy{1} = size G.yy{2} /\ size G.yy{1} = C.n{1} + C.q{1} /\
-  boundl = SomeGarble.bound /\
+  DKCSecurity.boundl = SomeGarble.bound /\
     size C.v{1} = C.n{1} + C.q{1} /\
     C.f{1} = ((C.n{1}, C.m{1}, C.q{1}, C.aa{1}, C.bb{1}), C.gg{1}) /\
     validInputsP (C.f{1}, C.x{1}) /\
@@ -3881,7 +3883,7 @@ while{2} (={glob A, real, p, G.g} /\
   l1{2} = l{2} /\
   l3{2} = l1{2} /\
   ={glob C} /\ size G.yy{1} = size G.yy{2} /\ size G.yy{1} = C.n{1} + C.q{1} /\
-  boundl = SomeGarble.bound /\
+  DKCSecurity.boundl = SomeGarble.bound /\
     size C.v{1} = C.n{1} + C.q{1} /\
     C.f{1} = ((C.n{1}, C.m{1}, C.q{1}, C.aa{1}, C.bb{1}), C.gg{1}) /\
     validInputsP (C.f{1}, C.x{1}) /\
@@ -4245,7 +4247,7 @@ qed.
     require import OldMonoid.
     require import Sum.
 
-   lemma reductionSimplified (A <: EncSecurity.Adv_IND_t{Rand,R,C,DKC_Adv,DKCp,DKC_O}) &m:
+   lemma reductionSimplified_DKC (A <: EncSecurity.Adv_IND_t{Rand,R,C,DKC_Adv,DKCp,DKC_O}) &m:
     islossless A.gen_query =>
     islossless A.get_challenge =>
   Pr[GameHybrid(A).garble(-1) @ &m : res] - Pr[GameHybrid(A).garble(bound-1) @ &m : res] =
@@ -4286,15 +4288,36 @@ Pr[GameHybrid(A).garble(x - 1) @ &m : res] =
       Pr[DKCSecurity.Game(DKC_O, DKC_Adv(A)).game(false,i) @ &m : !res]) (intval 0 (SomeGarble.bound - 1))).
         move => x. rewrite intval_def. progress. congr. byequiv (GameHybrid_l1_sim (A) (x) Agen_ll Aget_ll _). idtac=>/#. done. done. congr. byequiv (GameHybrid_l_sim (A) (x) Agen_ll Aget_ll _). idtac=>/#. done. smt. done. done.
   qed.
+  
+  lemma reductionSimplified_PRF (A <: EncSecurity.Adv_IND_t{Rand,R,C,DKC_Adv,DKCp,DKC_O,PRF.PRFr_Wrapped,Param,PRF.RandomFunction}) &m:
+    islossless A.gen_query =>
+    islossless A.get_challenge =>
+  Pr[GameHybrid(A).garble(-1) @ &m : res] - Pr[GameHybrid(A).garble(bound-1) @ &m : res] =
+  Mrplus.sum (fun i, (Pr[SomeDKC.PRF.IND(SomeDKC.PRF.PRFr_Wrapped,D(DKC_Adv(A))).main(i)@ &m:res] - Pr[SomeDKC.PRF.IND(SomeDKC.PRF.RandomFunction,D(DKC_Adv(A))).main(i)@ &m:res])) (intval 0 (bound-1)).
+proof.
+  move => Agen_ll Aget_ll.
+  rewrite (reductionSimplified_DKC A &m _ _) //.
+  rewrite (Mrplus.sum_eq (fun (i : int) =>
+      Pr[Game(DKC_O, DKC_Adv(A)).game(true, i) @ &m : res] -
+      Pr[Game(DKC_O, DKC_Adv(A)).game(false, i) @ &m : !res]) (fun (i : int) =>
+      Pr[PRF.IND(PRF.PRFr_Wrapped, D(DKC_Adv(A))).main(i) @ &m : res] -
+      Pr[PRF.IND(PRF.RandomFunction, D(DKC_Adv(A))).main(i) @ &m : res]) (intval 0 (SomeGarble.bound - 1))).
+        move => x.
+        rewrite intval_def => [[?]] ? /=.
+        congr. byequiv (true_key x (DKC_Adv(A))) => // /= /#.
+        congr. byequiv (false_key x (DKC_Adv(A))) => // /= /#.
+  done.
+qed.
 
-  lemma reductionSimplified' (A <: EncSecurity.Adv_IND_t{Rand,R,C,DKC_Adv,DKCp,DKC_O}) &m:
+  
+  lemma reductionSimplified_Adv_DKC (A <: EncSecurity.Adv_IND_t{Rand,R,C,DKC_Adv,DKCp,DKC_O}) &m:
     islossless A.gen_query =>
     islossless A.get_challenge =>
   Pr[GameHybrid(A).garble(-1) @ &m : res] - Pr[GameHybrid(A).garble(bound-1) @ &m : res] =
   Mrplus.sum (fun i, 2%r * Pr[Game(DKC_O,DKC_Adv(A)).main(i)  @ &m: res] - 1%r) (intval 0 (bound-1)).
 proof.
 move => Agen_ll Aget_ll.
-  rewrite (reductionSimplified A &m Agen_ll Aget_ll).
+  rewrite (reductionSimplified_DKC A &m Agen_ll Aget_ll).
   rewrite (Mrplus.sum_eq (fun (i : int) =>
       Pr[Game(DKC_O, DKC_Adv(A)).game(true, i) @ &m : res] -
       Pr[Game(DKC_O, DKC_Adv(A)).game(false, i) @ &m : !res]) (fun (i : int) =>
@@ -4306,8 +4329,24 @@ move => Agen_ll Aget_ll.
         done.
   done.
 qed.  
-  
-lemma sch_is_ind (A <: EncSecurity.Adv_IND_t{Rand,R,C,DKC_Adv,DKCp,DKC_O,R'}) &m:
+
+lemma sch_is_ind (A <: EncSecurity.Adv_IND_t{Rand,R,C,DKC_Adv,DKCp,DKC_O,R',PRF.RandomFunction,PRF.PRFr_Wrapped,Param}) &m:
+  islossless A.gen_query =>
+  islossless A.get_challenge =>
+  `|2%r * Pr[EncSecurity.Game_IND(Rand,A).main()@ &m:res] - 1%r| =
+    2%r * `|Mrplus.sum (fun i, (Pr[SomeDKC.PRF.IND(SomeDKC.PRF.PRFr_Wrapped,D(DKC_Adv(A))).main(i)@ &m:res] - Pr[SomeDKC.PRF.IND(SomeDKC.PRF.RandomFunction,D(DKC_Adv(A))).main(i)@ &m:res])) (intval 0 (bound-1))|.
+proof.  
+  move => Agen_ll Aget_ll.
+rewrite -(GameHybrid0_Game_IND_pr A &m) // -{1}(GameHybridBound_pr A &m) //=.
+      cut -> : forall a b, 2%r * a - 2%r * b = 2%r * (a - b) by idtac=>/#. 
+rewrite (reductionSimplified_PRF A &m) //=. 
+  cut H: forall (a b:real), 0%r <= a => `| a * b | = a * `| b | by idtac=>/#.
+  rewrite !H; first by smt. 
+  done.
+qed.
+
+
+(*lemma sch_is_ind (A <: EncSecurity.Adv_IND_t{Rand,R,C,DKC_Adv,DKCp,DKC_O,R'}) &m:
   islossless A.gen_query =>
   islossless A.get_challenge =>
   `|2%r * Pr[EncSecurity.Game_IND(Rand,A).main()@ &m:res] - 1%r| =
@@ -4320,13 +4359,14 @@ rewrite (reductionSimplified' A &m) //=.
   cut H: forall (a b:real), 0%r <= a => `| a * b | = a * `| b | by idtac=>/#.
   rewrite !H; first by smt. 
   done.
-qed.
+qed.*)
 
-lemma sch_is_sim (A <: EncSecurity.Adv_SIM_t{Rand,C,DKC_Adv,DKCp,DKC_O,R',G,AdvInit}) &m:
+
+lemma sch_is_sim (A <: EncSecurity.Adv_SIM_t{Rand,C,DKC_Adv,DKCp,DKC_O,R',G,AdvInit,PRF.RandomFunction,PRF.PRFr_Wrapped,Param}) &m:
   islossless A.gen_query =>
   islossless A.get_challenge =>
   `|2%r * Pr[EncSecurity.Game_SIM(Rand,EncSecurity.SIM(Rand),A).main()@ &m:res] - 1%r| <=
-    2%r * `|Mrplus.sum (fun i, 2%r * Pr[Game(DKC_O,DKC_Adv(EncSecurity.RedSI(A))).main(i)  @ &m: res] - 1%r) (intval 0 (bound-1))|.
+    2%r * `|Mrplus.sum (fun i, (Pr[SomeDKC.PRF.IND(SomeDKC.PRF.PRFr_Wrapped,D(DKC_Adv(EncSecurity.RedSI(A)))).main(i)@ &m:res] - Pr[SomeDKC.PRF.IND(SomeDKC.PRF.RandomFunction,D(DKC_Adv(EncSecurity.RedSI(A)))).main(i)@ &m:res])) (intval 0 (bound-1))|.
 proof.
   move => Agen_ll Aget_ll.
   rewrite -(sch_is_ind (EncSecurity.RedSI(A)) &m _ _).
@@ -4336,5 +4376,39 @@ proof.
   by apply sch_is_pi.
 qed.    
 
+(*lemma adv_sim (A <: EncSecurity.Adv_SIM_t{Rand,C,DKC_Adv,DKCp,DKC_O,R',G,AdvInit,PRF.RandomFunction,PRF.PRFr_Wrapped,Param}) &m eps_prf:
+  islossless A.gen_query =>
+  islossless A.get_challenge =>
+  (forall i, 0 <= i < bound => (`|Pr[SomeDKC.PRF.IND(SomeDKC.PRF.PRFr_Wrapped,D(DKC_Adv(EncSecurity.RedSI(A)))).main(i)@ &m:res] - Pr[SomeDKC.PRF.IND(SomeDKC.PRF.RandomFunction,D(DKC_Adv(EncSecurity.RedSI(A)))).main(i)@ &m:res]|) <= eps_prf) =>
+    
+      `|2%r * Pr[EncSecurity.Game_SIM(Rand,EncSecurity.SIM(Rand),A).main()@ &m:res] - 1%r| <= 2%r* bound%r * eps_prf.  
+proof.
+  move => Agen_ll Aget_ll prf_adv.
+  (*have : `|2%r * Pr[EncSecurity.Game_SIM(Rand,EncSecurity.SIM(Rand),A).main()@ &m:res] - 1%r| <=
+    2%r * `|Mrplus.sum (fun i, (Pr[SomeDKC.PRF.IND(SomeDKC.PRF.PRFr_Wrapped,D(DKC_Adv(EncSecurity.RedSI(A)))).main(i)@ &m:res] - Pr[SomeDKC.PRF.IND(SomeDKC.PRF.RandomFunction,D(DKC_Adv(EncSecurity.RedSI(A)))).main(i)@ &m:res])) (intval 0 (bound-1))| by rewrite (sch_is_sim A &m Agen_ll Aget_ll).*)
+  cut ? : (Mrplus.sum
+     (fun (i : int) =>
+        `|Pr[PRF.IND(PRF.PRFr_Wrapped, D(DKC_Adv(EncSecurity.RedSI(A)))).main
+           (i) @ &m : res] -
+        Pr[PRF.IND(PRF.RandomFunction, D(DKC_Adv(EncSecurity.RedSI(A)))).main
+           (i) @ &m : res]|) (intval 0 (SomeGarble.bound - 1))) <= bound%r * eps_prf.
+     move : prf_adv.
+     have : 0 <= bound by smt. 
+     elim/intind bound.
+       simplify. simplify intval. rewrite List.Iota.iota0; first by done. rewrite -set0E Mrplus.sum_empty; first by done.
+       progress.
+       cut ->: (i + 1)%r * eps_prf = i%r * eps_prf + eps_prf by idtac=>/#.
+       rewrite (Mrplus.sum_rm _ _ i). rewrite intval_def => /#. 
+       simplify. 
+       cut ->: (intval 0 (i + 1 - 1) `\` fset1 i) = intval 0 (i-1). rewrite fsetP => x. rewrite in_fsetD in_fset1 !intval_def => /#.  
+       idtac=>/#. idtac=>/#.
+  cut ? : `|2%r * Pr[EncSecurity.Game_SIM(Rand,EncSecurity.SIM(Rand),A).main()@ &m:res] - 1%r| <=
+    2%r * `|Mrplus.sum (fun i, (Pr[SomeDKC.PRF.IND(SomeDKC.PRF.PRFr_Wrapped,D(DKC_Adv(EncSecurity.RedSI(A)))).main(i)@ &m:res] - Pr[SomeDKC.PRF.IND(SomeDKC.PRF.RandomFunction,D(DKC_Adv(EncSecurity.RedSI(A)))).main(i)@ &m:res])) (intval 0 (bound-1))| by rewrite (sch_is_sim A &m Agen_ll Aget_ll). smt. 
+        smt tmo=60.     
+
+
+*)
+
+     
 end SomeGarble.
 export SomeGarble.
