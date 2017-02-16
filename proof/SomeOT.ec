@@ -111,7 +111,7 @@ theory SomeOT.
     for elements of the group where the DDH problem is
     hard 
   *)
-  clone EntropySmoothing.ESn as ESn with
+  clone EntropySmoothing.ES as ESn with
     type dom_t = group,
     op ddom = Dgroup.dgroup,
     type codom_t = word,
@@ -519,7 +519,7 @@ theory SomeOT.
       the two exeuctions. If the adversary succeeds in distinguish 
       the two executions, then the ES assumption is broken.
     *)
-    module ESn_A(A1: Adv1_t): ESn.Adv_t = {
+    module ESn_A(A1: Adv1_t): ESn.ESnAdv_t = {
       var i1:input1_t
       var i2:input2_t
 
@@ -780,7 +780,7 @@ theory SomeOT.
     local lemma Game1_ideal_equiv (A1<: Adv1_t {ESn_A}):
       islossless A1.dist =>
       is_lossless ESn.H.dkey =>
-      equiv [ Game1(R1,R2,S,A1).game ~ ESn.Game(ESn_A(A1)).game:
+      equiv [ Game1(R1,R2,S,A1).game ~ ESn.ESnGame(ESn_A(A1)).game:
               ={glob A1,glob R1,glob R2} /\ !b{1} /\ !b{2} ==> ={res} ].
     proof.
       move => A1distL ESnHdkey_ll; proc => //; inline ESn_A(A1).choose_n ESn_A(A1).solve.
@@ -849,7 +849,7 @@ theory SomeOT.
       islossless A1.dist =>
       is_lossless ESn.H.dkey =>
       Pr[Game1(R1,R2,S,A1).game(false)@ &m: !res] =
-      Pr[ESn.Game(ESn_A(A1)).game(false)@ &m: !res].
+      Pr[ESn.ESnGame(ESn_A(A1)).game(false)@ &m: !res].
     proof. by move=> A1distL ESnHdkey_ll; byequiv (Game1_ideal_equiv A1 _ _). qed.
   
     (** 
@@ -868,7 +868,7 @@ theory SomeOT.
     local lemma Game1_glue_equiv (A1<:Adv1_t {DDHn_A, ESn_A}):
       islossless A1.dist =>
       is_lossless ESn.H.dkey =>
-      equiv [ ESn.Game(ESn_A(A1)).game ~ DDHn.Game(DDHn_A(A1)).game:
+      equiv [ ESn.ESnGame(ESn_A(A1)).game ~ DDHn.Game(DDHn_A(A1)).game:
               ={glob A1} /\ b{1} /\ !b{2} ==> res{1}=!res{2}].
     proof.
       move => A1distL ESnHdkey_ll; proc => //; inline ESn_A(A1).choose_n ESn_A(A1).solve 
@@ -990,7 +990,7 @@ else 0%r) = foldr (fun (x : ESn.dom_t) (z : real) => mu ESn.ddom (pred1 x) * z) 
     local lemma Game1_glue_pr (A1<:Adv1_t {DDHn_A, ESn_A}) &m:
       islossless A1.dist =>
       is_lossless ESn.H.dkey =>
-      Pr[ESn.Game(ESn_A(A1)).game(true)@ &m: res] =
+      Pr[ESn.ESnGame(ESn_A(A1)).game(true)@ &m: res] =
       Pr[DDHn.Game(DDHn_A(A1)).game(false)@ &m: !res].
     proof. by move=> A1distL ESnHdkey_ll; byequiv (Game1_glue_equiv A1 _ _). qed.
 
@@ -1099,20 +1099,21 @@ else 0%r) = foldr (fun (x : ESn.dom_t) (z : real) => mu ESn.ddom (pred1 x) * z) 
       related with the advantages of an adversary that attacks the ES assumption and
       the DDH assumption.
     *)
-    lemma ot_is_sec (A1 <: Adv1_t {ESn_A, DDHn_A, DDHn.DDHnmax.H.Count, DDHn.DDHnmax.H.HybOrcl, DDHn.DDHnmax.K, DDHn.DDHnmax.ADDH, DDHn.ADDHnmax}) (A2 <: Adv2_t) &m:
+    lemma ot_is_sec (A1 <: Adv1_t {ESn_A, DDHn_A, DDHn.DDHnmax.H.Count, DDHn.DDHnmax.H.HybOrcl, DDHn.DDHnmax.K, DDHn.DDHnmax.ADDH, DDHn.ADDHnmax,ESn.Hy.Count,ESn.Hy.HybOrcl,ESn.AdvES,ESn.AESnmax}) (A2 <: Adv2_t) &m:
       islossless A1.gen_query => islossless A1.dist =>
       islossless A2.gen_query => islossless A2.dist =>
-      forall eps_ESn eps_DDH,
-      `|2%r * Pr[ESn.Game(ESn_A(A1)).main()@ &m:res] - 1%r| <= eps_ESn =>
+      forall eps_ES eps_DDH,
+      (*`|2%r * Pr[ESn.ESnGame(ESn_A(A1)).main()@ &m:res] - 1%r| <= eps_ESn =>*)
+      `|2%r * Pr[ESn.Game(ESn.AdvES(ESn.AESnmax(ESn_A(A1)))).main()@ &m:res] - 1%r| <= eps_ES =>
       `|2%r * Pr[DDH.DDH.Game(DDHn.DDHnmax.ADDH(DDHn.ADDHnmax(DDHn_A(A1)))).main()@ &m:res] - 1%r| <= eps_DDH =>
-      `|2%r * Pr[Game1(R1,R2,S,A1).main()@ &m:res] - 1%r| <= eps_ESn + DDHn.nmax%r * eps_DDH /\
+      `|2%r * Pr[Game1(R1,R2,S,A1).main()@ &m:res] - 1%r| <= ESn.nmax%r * eps_ES + DDHn.nmax%r * eps_DDH /\
       `|2%r * Pr[Game2(R1,R2,S,A2).main()@ &m:res] - 1%r| <= 0%r.
     proof.
-      move=> A1genL A1distL A2genL A2distL eps_ESn eps_DDH HESn HDDH; split.
+      move=> A1genL A1distL A2genL A2distL eps_ES eps_DDH HESn HDDH; split.
       (* party 1 security *)
       cut real_le_trans: forall (a b c:real), a <= b => b <= c => a <= c by smt.
       apply (real_le_trans _ 
-        (`|2%r * Pr[ESn.Game(ESn_A(A1)).main() @ &m : res] - 1%r|
+        (`|2%r * Pr[ESn.ESnGame(ESn_A(A1)).main() @ &m : res] - 1%r|
         + `|2%r * Pr[DDHn.Game(DDHn_A(A1)).main() @ &m : res] - 1%r|)).
         cut real_abs_sum : forall (a b c:real), a = b + c => `|a| <= `|b| + `|c| by smt.
         apply real_abs_sum.
@@ -1120,7 +1121,7 @@ else 0%r) = foldr (fun (x : ESn.dom_t) (z : real) => mu ESn.ddom (pred1 x) * z) 
             by apply R1_lossless.
             by apply R2_lossless.
             by apply S1_lossless.
-          rewrite (ESn.Game_adv &m (ESn_A(A1))) //; first 3 smt.
+          rewrite (ESn.ESnGame_adv &m (ESn_A(A1))) //; first 3 smt.
             by apply (ESn_A_choose_ll A1).
             by apply (ESn_A_solve_ll A1).
           rewrite (DDHn.DDHn_adv &m (DDHn_A(A1))) //.
@@ -1134,12 +1135,19 @@ else 0%r) = foldr (fun (x : ESn.dom_t) (z : real) => mu ESn.ddom (pred1 x) * z) 
        cut:= DDHn.DDHn_adv_bound &m (DDHn_A(A1)) eps_DDH _ _ _ => //.
           by apply (DDHn_A_choose_ll A1).
           by apply (DDHn_A_solve_ll A1).
+      cut:= ESn.ESn_adv_bound &m (ESn_A(A1)) eps_ES _ _ _ _ _=> //; first 3 by smt. 
+          by apply (ESn_A_choose_ll A1).
+          by apply (ESn_A_solve_ll A1).
           by smt.
-          cut addleM : forall (x1 x2 y1 y2:real), x1 <= x2 => y1 <= y2 => x1 + y1 <= x2 + y2 by smt.
-          apply addleM; first by smt. 
+          (*cut addleM : forall (x1 x2 y1 y2:real), x1 <= x2 => y1 <= y2 => x1 + y1 <= x2 + y2 by smt.
+          apply addleM. first by smt tmo=10.*)  
       cut:= DDHn.DDHn_adv_bound &m (DDHn_A(A1)) eps_DDH _ _ _ => //.
           by apply (DDHn_A_choose_ll A1).
           by apply (DDHn_A_solve_ll A1).
+      cut:= ESn.ESn_adv_bound &m (ESn_A(A1)) eps_ES _ _ _ _ _=> //; first 3 by smt.
+          by apply (ESn_A_choose_ll A1).
+          by apply (ESn_A_solve_ll A1).
+      by progress => /#. 
       (* party 2 security *) 
       rewrite (Game2_adv &m A2 S R1 R2) //.
         by apply R1_lossless.

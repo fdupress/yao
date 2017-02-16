@@ -218,35 +218,21 @@ theory ES.
     by smt.
   qed.
 
-end ES.
-
-theory ESnmax.
-  import ES.
-
-  (*type dom_t.
-  type codom_t.
-  type hkey_t.
-  op ddom:dom_t distr.
-  op dcodom:codom_t distr.
-  op dkey:hkey_t distr.*)
-
+  (**********************)
+  (** ESnmax assumption *)
+  (**********************)
+  
   (** Maximum size of the list (array) *)
   const nmax:int.
   axiom nmax_pos: 0 < nmax.
   
-  (*clone KeyedHash as H with
-   type dom_t = dom_t,
-   type codom_t = codom_t,
-   type hkey_t = hkey_t,
-   op dkey = dkey.*)
-
   (** In this variant, the adversary chooses the length of the list *) 
-  module type Adv_t = {
+  module type ESnmaxAdv_t = {
     proc init(): unit
     proc solve(key: hkey_t, a:codom_t array): bool
   }.
 
-  module Game (A:Adv_t) = {
+  module ESnmaxGame (A:ESnmaxAdv_t) = {
     proc game(b:bool): bool = {
       var n:int;
       var key:hkey_t;
@@ -283,13 +269,13 @@ theory ESnmax.
   (* Lossnessness properties *)
   (***************************)
   
-  lemma Gamegame_lossless (A <: Adv_t) :
+  lemma ESnmaxGamegame_lossless (A <: ESnmaxAdv_t) :
     islossless A.init =>
     islossless A.solve =>
     is_lossless H.dkey =>
     is_lossless ddom =>
     is_lossless dcodom =>
-    islossless Game(A).game.
+    islossless ESnmaxGame(A).game.
   proof.
     move => Ainit_ll Asolve_ll Hkey_ll ddom_ll dcodom_ll.
     proc => //. 
@@ -307,13 +293,13 @@ theory ESnmax.
       by call (_:true).
   qed.
 
-  lemma Gamemain_lossless (A <: Adv_t) : 
+  lemma ESnmaxGamemain_lossless (A <: ESnmaxAdv_t) : 
     islossless A.init =>
     islossless A.solve =>
     is_lossless H.dkey =>
     is_lossless ddom =>
     is_lossless dcodom =>
-    islossless Game(A).main.
+    islossless ESnmaxGame(A).main.
   proof.
     move => Ainit_ll Asolve_ll Hkey_ll ddom_ll dcodom_ll.
     proc => //.
@@ -339,13 +325,13 @@ theory ESnmax.
   (*********************************)
   
   (** Conditional probability expansion *)
-  lemma Game_xpnd &m (A<:Adv_t):
-    Pr[Game(A).main()  @ &m: res]
-    = 1%r/2%r * (Pr[Game(A).game(true)  @ &m: res]
-      + Pr[Game(A).game(false)  @ &m: res]).
+  lemma ESnmaxGame_xpnd &m (A<:ESnmaxAdv_t):
+    Pr[ESnmaxGame(A).main()  @ &m: res]
+    = 1%r/2%r * (Pr[ESnmaxGame(A).game(true)  @ &m: res]
+      + Pr[ESnmaxGame(A).game(false)  @ &m: res]).
   proof.
-    pose p1 := Pr[Game(A).game(true) @ &m : res].
-    pose p2 := Pr[Game(A).game(false) @ &m : res].
+    pose p1 := Pr[ESnmaxGame(A).game(true) @ &m : res].
+    pose p2 := Pr[ESnmaxGame(A).game(false) @ &m : res].
     byphoare (_: (glob A) = (glob A){m} ==> _) => //.
       proc => //.
       seq 1: b (1%r/2%r) p1 (1%r/2%r) p2 ((glob A) = (glob A){m}); trivial.
@@ -368,22 +354,22 @@ theory ESnmax.
   qed.
 
   (** Advantage definition *)
-  lemma Game_adv &m (A<:Adv_t):
+  lemma ESnmaxGame_adv &m (A<:ESnmaxAdv_t):
     is_lossless dkey =>
     is_lossless ddom =>
     is_lossless dcodom =>
     islossless A.init =>
     islossless A.solve =>
-    2%r * Pr[Game(A).main()  @ &m: res] - 1%r
-    = Pr[Game(A).game(true)  @ &m: res]
-      - Pr[Game(A).game(false)  @ &m: !res].
+    2%r * Pr[ESnmaxGame(A).main()  @ &m: res] - 1%r
+    = Pr[ESnmaxGame(A).game(true)  @ &m: res]
+      - Pr[ESnmaxGame(A).game(false)  @ &m: !res].
   proof.
     move => H1 H2 H3 Ainit_ll Asolve_ll.
-    rewrite (Game_xpnd &m A).
+    rewrite (ESnmaxGame_xpnd &m A).
     rewrite Pr [mu_not].
-    cut ->: Pr[Game(A).game(false) @ &m : true] = 1%r.
+    cut ->: Pr[ESnmaxGame(A).game(false) @ &m : true] = 1%r.
       byphoare (_:true) => //.
-      by apply (Gamegame_lossless A).
+      by apply (ESnmaxGamegame_lossless A).
     by smt.
   qed.
 
@@ -453,7 +439,7 @@ theory ESnmax.
 
     (** A specific instance of the DDH.Game is obtained when we restrict Ln/Rn to
     a single oracle call (through the H.B(-) adversary construction) *)
-    module AdvES(A:Adv_t) : ES.Adv_t = {
+    module AdvES(A:ESnmaxAdv_t) : Adv_t = {
       var l0: int
 
       proc init() : unit = {
@@ -493,7 +479,7 @@ theory ESnmax.
       }
     }.
 
-    lemma AdvES_init_ll (A<:Adv_t):
+    lemma AdvES_init_ll (A<:ESnmaxAdv_t):
       islossless A.init => islossless AdvES(A).init.
     proof.
       move=> H; proc; rnd; call (_:true) => //.
@@ -502,7 +488,7 @@ theory ESnmax.
       by smt. 
     qed.
 
-    lemma AdvES_solve_ll (A<:Adv_t):
+    lemma AdvES_solve_ll (A<:ESnmaxAdv_t):
       is_lossless dkey =>
       is_lossless ddom =>
       is_lossless dcodom =>
@@ -523,7 +509,7 @@ theory ESnmax.
 (* adversary attacking ESnmax (obs: does not have access to the state of
  the modules used in the hybrid argument)
 *)
-declare module Adv_ESnmax : Adv_t {AdvES, Hy.Count, Hy.HybOrcl}.
+declare module Adv_ESnmax : ESnmaxAdv_t {AdvES, Hy.Count, Hy.HybOrcl}.
 
 axiom Adv_ESnmax_init_ll: islossless Adv_ESnmax.init.
 
@@ -562,11 +548,11 @@ local module ToAdv(Ob: Hy.Orclb, O:Hy.Orcl) = {
 
 require import DProd.
 local equiv ESn_Ln :
- Game(Adv_ESnmax).game ~ Hy.Ln(ESb, ToAdv).main :
+ ESnmaxGame(Adv_ESnmax).game ~ Hy.Ln(ESb, ToAdv).main :
  is_lossless dcodom /\ is_lossless ddom /\ b{1} /\ ={glob Adv_ESnmax} ==> ={res} /\ Hy.Count.c{2} <= nmax.
 proof.
 proc.
-inline Game(Adv_ESnmax).game Hy.Count.init ToAdv(ESb, Hy.OrclCount(Hy.L(ESb))).main
+inline ESnmaxGame(Adv_ESnmax).game Hy.Count.init ToAdv(ESb, Hy.OrclCount(Hy.L(ESb))).main
  ESb.leaks Hy.OrclCount(Hy.L(ESb)).orcl Hy.L(ESb).orcl ESb.orclL.
   wp; call (_: is_lossless dcodom /\ is_lossless ddom /\ ={glob Adv_ESnmax,key,a} ==> ={res}); first by proc true.
 rcondt {1} 5.
@@ -608,16 +594,16 @@ qed.
 
 local lemma ESn_Ln_pr &m:
     is_lossless dcodom => is_lossless ddom =>
- Pr[ Game(Adv_ESnmax).game(true) @ &m : res]
+ Pr[ ESnmaxGame(Adv_ESnmax).game(true) @ &m : res]
  = Pr[Hy.Ln(ESb, ToAdv).main() @ &m : res /\ Hy.Count.c <= nmax].
 proof. by progress; byequiv ESn_Ln. qed.
 
 local equiv ESn_Rn:
- Game(Adv_ESnmax).game ~ Hy.Rn(ESb, ToAdv).main :
+ ESnmaxGame(Adv_ESnmax).game ~ Hy.Rn(ESb, ToAdv).main :
  is_lossless dcodom /\ is_lossless ddom /\ !b{1} /\ ={glob Adv_ESnmax} ==> res{1}=!res{2} /\ Hy.Count.c{2} <= nmax. 
 proof.
 proc.
-inline Game(Adv_ESnmax).game Hy.Count.init ToAdv(ESb, Hy.OrclCount(Hy.R(ESb))).main
+inline ESnmaxGame(Adv_ESnmax).game Hy.Count.init ToAdv(ESb, Hy.OrclCount(Hy.R(ESb))).main
    ESb.leaks Hy.OrclCount(Hy.R(ESb)).orcl Hy.R(ESb).orcl ESb.orclR.
 wp; call (_: is_lossless dcodom /\ is_lossless ddom /\ ={glob Adv_ESnmax,key,a} ==> ={res}); first by proc true.
 rcondf {1} 5.
@@ -662,7 +648,7 @@ qed.
 
 local lemma ESn_Rn_pr &m:
     is_lossless dcodom => is_lossless ddom =>
- Pr[ Game(Adv_ESnmax).game(false) @ &m : !res]
+ Pr[ ESnmaxGame(Adv_ESnmax).game(false) @ &m : !res]
  = Pr[Hy.Rn(ESb, ToAdv).main() @ &m : res /\ Hy.Count.c <= nmax]
 by progress; byequiv ESn_Rn.
 
@@ -670,7 +656,7 @@ by progress; byequiv ESn_Rn.
 (** EQUIVALENCE WITH ES *)
  
 local equiv ES_L1:
- ES.Game(AdvES(Adv_ESnmax)).game ~ Hy.Ln(ESb, Hy.HybGame(ToAdv)).main :
+ Game(AdvES(Adv_ESnmax)).game ~ Hy.Ln(ESb, Hy.HybGame(ToAdv)).main :
  is_lossless ddom /\ b{1} /\ ={glob Adv_ESnmax} ==> ={res} /\ Hy.HybOrcl.l{2} <= nmax /\ Hy.Count.c{2} <= 1.
 proof.
 proc.
@@ -690,7 +676,7 @@ seq 4 5: (is_lossless ddom /\ b{1} /\ AdvES.l0{1}=Hy.HybOrcl.l0{2} /\
  swap {1} 2 -1.
  call (_: is_lossless ddom /\ ={glob Adv_ESnmax} ==> ={glob Adv_ESnmax, res}); first by proc true.
   inline Hy.Count.init; wp; rnd; wp.
-  by skip; progress; smt.
+  by skip; progress; smt. 
  done.
               
 splitwhile{1} 6: (i < AdvES.l0).
@@ -746,12 +732,12 @@ qed.
 
 local lemma ES_L1_pr &m:
     is_lossless ddom =>
- Pr[ES.Game(AdvES(Adv_ESnmax)).game(true) @ &m : res]
+ Pr[Game(AdvES(Adv_ESnmax)).game(true) @ &m : res]
  = Pr[Hy.Ln(ESb, Hy.HybGame(ToAdv)).main() @ &m : (res /\ Hy.HybOrcl.l <= nmax) /\ Hy.Count.c <= 1]
  by progress;byequiv ES_L1.
 
 local equiv ES_R1:
- ES.Game(AdvES(Adv_ESnmax)).game ~ Hy.Rn(ESb, Hy.HybGame(ToAdv)).main :
+ Game(AdvES(Adv_ESnmax)).game ~ Hy.Rn(ESb, Hy.HybGame(ToAdv)).main :
  is_lossless ddom /\ is_lossless dcodom /\ !b{1} /\ ={glob Adv_ESnmax} ==> res{1}=!res{2} /\ Hy.HybOrcl.l{2} <= nmax /\ Hy.Count.c{2} <= 1.
 proof.
 proc.
@@ -823,7 +809,7 @@ qed.
 local lemma ES_R1_pr &m:
     is_lossless ddom =>
     is_lossless dcodom =>
- Pr[ES.Game(AdvES(Adv_ESnmax)).game(false) @ &m : !res]
+ Pr[Game(AdvES(Adv_ESnmax)).game(false) @ &m : !res]
  = Pr[Hy.Rn(ESb, Hy.HybGame(ToAdv)).main() @ &m : (res /\ Hy.HybOrcl.l <= nmax) /\ Hy.Count.c <= 1]
  by progress;byequiv ES_R1.
  
@@ -858,15 +844,15 @@ lemma ESnmax_adv_bound:
      is_lossless dcodom =>
     is_lossless dkey =>
     forall &m epsilon,
- `| 2%r * Pr[ ES.Game(AdvES(Adv_ESnmax)).main() @ &m: res ] - 1%r| <= epsilon =>
- `| 2%r * Pr[ Game(Adv_ESnmax).main() @ &m: res ] - 1%r| <= nmax%r * epsilon.
+ `| 2%r * Pr[ Game(AdvES(Adv_ESnmax)).main() @ &m: res ] - 1%r| <= epsilon =>
+ `| 2%r * Pr[ ESnmaxGame(Adv_ESnmax).main() @ &m: res ] - 1%r| <= nmax%r * epsilon.
 proof.
 move => ddom_ll dcodom_ll dkey_ll &m epsilon.
 move: Adv_ESnmax_init_ll Adv_ESnmax_solve_ll => H1_ll H2_ll.
-rewrite (ES.Game_adv &m (AdvES(Adv_ESnmax))) //. 
+rewrite (Game_adv &m (AdvES(Adv_ESnmax))) //. 
   proc. rnd. call H1_ll. skip; progress; smt. 
  proc. call Adv_ESnmax_solve_ll. while true (nmax - i). move => z. if. auto. smt. if. auto. smt. auto. smt. auto. smt. 
-rewrite (Game_adv &m Adv_ESnmax) //.
+rewrite (ESnmaxGame_adv &m Adv_ESnmax) //.
 rewrite (ES_L1_pr &m) // (ES_R1_pr &m) // (ESn_Ln_pr &m) // (ESn_Rn_pr &m) // (hyb &m) //.
 move: (Pr[Hy.Ln(ESb, ToAdv).main() @ &m : res /\ Hy.Count.c <= nmax] -
        Pr[Hy.Rn(ESb, ToAdv).main() @ &m : res /\ Hy.Count.c <= nmax]) => adv.
@@ -879,7 +865,6 @@ qed.
 
 end section.
 
-end ESnmax.
 
 
 (** 
@@ -890,19 +875,8 @@ end ESnmax.
   
   This theory is a direct extension of the previous one to one dimension container type.
 *)
-theory ESn.
-  import ES.
-  (*type dom_t.
-  type codom_t.
-  type hkey_t.
-  op ddom:dom_t distr.
-  op dcodom:codom_t distr.
-  op dkey:hkey_t distr.*)
 
-  (** Maximum size of the list (array) *)
-  op nmax: int.
-  axiom nmax_pos: 0 < nmax.
-  
+
   (*clone KeyedHash as H with
    type dom_t = ES.dom_t,
    type codom_t = ES.codom_t,
@@ -910,12 +884,12 @@ theory ESn.
    op dkey = ES.dkey.*)
 
   (** In this variant, the adversary chooses the length of the list *) 
-  module type Adv_t = {
+  module type ESnAdv_t = {
     proc choose_n(): int
     proc solve(key: hkey_t, a:codom_t array): bool
   }.
 
-  module Game (A:Adv_t) = {
+  module ESnGame (A:ESnAdv_t) = {
     proc game(b:bool): bool = {
       var n:int;
       var key:hkey_t;
@@ -953,19 +927,19 @@ theory ESn.
   (* Lossnessness properties *)
   (***************************)
   
-  lemma Gamegame_lossless (A <: Adv_t) :
+  lemma ESnGamegame_lossless (A <: ESnAdv_t) :
     islossless A.choose_n =>
     islossless A.solve =>
     is_lossless H.dkey =>
     is_lossless ddom =>
     is_lossless dcodom =>
-    islossless Game(A).game.
+    islossless ESnGame(A).game.
   proof.
     move => Achoose_n_ll Asolve_ll Hkey_ll ddom_ll dcodom_ll.
     proc => //. 
     seq 1 : true => //; first by call (_:true).
-    seq 4 : true => //.
-      by auto; progress; expect 3 by smt. 
+    seq 4 : true => //. 
+      by auto; progress; expect 3 by smt tmo=10. 
     if.
     (*b*)
       seq 1 : true => //.
@@ -977,13 +951,13 @@ theory ESn.
       by call (_:true).
   qed.
 
-  lemma Gamemain_lossless (A <: Adv_t) : 
+  lemma ESnGamemain_lossless (A <: ESnAdv_t) : 
     islossless A.choose_n =>
     islossless A.solve =>
     is_lossless H.dkey =>
     is_lossless ddom =>
     is_lossless dcodom =>
-    islossless Game(A).main.
+    islossless ESnGame(A).main.
   proof.
     move => Achoose_n_ll Asolve_ll Hkey_ll ddom_ll dcodom_ll.
     proc => //.
@@ -991,7 +965,7 @@ theory ESn.
     call (_:true).
     seq 1 : true => //; first by call (_:true).
     seq 4 : true => //.
-      by auto; progress; expect 3 by smt.
+      by auto; progress; expect 3 by smt tmo=10.
     if.
     (*b*)
       seq 1 : true => //.
@@ -1009,13 +983,13 @@ theory ESn.
   (*********************************)
   
   (** Conditional probability expansion *)
-  lemma Game_xpnd &m (A<:Adv_t):
-    Pr[Game(A).main()  @ &m: res]
-    = 1%r/2%r * (Pr[Game(A).game(true)  @ &m: res]
-      + Pr[Game(A).game(false)  @ &m: res]).
+  lemma ESnGame_xpnd &m (A<:ESnAdv_t):
+    Pr[ESnGame(A).main()  @ &m: res]
+    = 1%r/2%r * (Pr[ESnGame(A).game(true)  @ &m: res]
+      + Pr[ESnGame(A).game(false)  @ &m: res]).
   proof.
-    pose p1 := Pr[Game(A).game(true) @ &m : res].
-    pose p2 := Pr[Game(A).game(false) @ &m : res].
+    pose p1 := Pr[ESnGame(A).game(true) @ &m : res].
+    pose p2 := Pr[ESnGame(A).game(false) @ &m : res].
     byphoare (_: (glob A) = (glob A){m} ==> _) => //.
       proc => //.
       seq 1: b (1%r/2%r) p1 (1%r/2%r) p2 ((glob A) = (glob A){m}); trivial.
@@ -1038,30 +1012,26 @@ theory ESn.
   qed.
 
   (** Advantage definition *)
-  lemma Game_adv &m (A<:Adv_t):
+  lemma ESnGame_adv &m (A<:ESnAdv_t):
     is_lossless dkey =>
     is_lossless ddom =>
     is_lossless dcodom =>
     islossless A.choose_n =>
     islossless A.solve =>
-    2%r * Pr[Game(A).main()  @ &m: res] - 1%r
-    = Pr[Game(A).game(true)  @ &m: res]
-      - Pr[Game(A).game(false)  @ &m: !res].
+    2%r * Pr[ESnGame(A).main()  @ &m: res] - 1%r
+    = Pr[ESnGame(A).game(true)  @ &m: res]
+      - Pr[ESnGame(A).game(false)  @ &m: !res].
   proof.
     move => H1 H2 H3 Ainit_ll Asolve_ll.
-    rewrite (Game_xpnd &m A).
+    rewrite (ESnGame_xpnd &m A).
     rewrite Pr [mu_not].
-    cut ->: Pr[Game(A).game(false) @ &m : true] = 1%r.
+    cut ->: Pr[ESnGame(A).game(false) @ &m : true] = 1%r.
       byphoare (_:true) => //.
-      by apply (Gamegame_lossless A).
+      by apply (ESnGamegame_lossless A).
     by smt.
   qed.
-
-  clone ESnmax with op nmax <- nmax.
-  print ESnmax.Adv_t.
-
   
-  module AESnmax (A: Adv_t) : ESnmax.Adv_t = {
+  module AESnmax (A: ESnAdv_t) : ESnmaxAdv_t = {
     var n: int
 
     proc init() : unit = {
@@ -1083,13 +1053,13 @@ theory ESn.
   }.
 
 import DProd.
-clone DArrayTake as L1 with type t <- dom_t.
-clone DArrayTake as L2 with type t <- codom_t.
+clone DArrayTake as L3 with type t <- dom_t.
+clone DArrayTake as L4 with type t <- codom_t.
 
-equiv ESn_nmax (A <: ESn.Adv_t {AESnmax}) :
- ESn.Game(A).main ~ ESnmax.Game(AESnmax(A)).main : ={glob A} ==> ={res}.
+equiv ESn_nmax (A <: ESnAdv_t {AESnmax}) :
+ ESnGame(A).main ~ ESnmaxGame(AESnmax(A)).main : ={glob A} ==> ={res}.
 proof.
-proc; inline ESn.Game(A).game ESnmax(AESnmax(A)).Game.game
+proc; inline ESnGame(A).game ESnmaxGame(AESnmax(A)).game
  AESnmax(A).init AESnmax(A).solve.
 wp; call (_: ={glob A, key, a} ==> ={res}); first by proc true.
 
@@ -1116,27 +1086,27 @@ transitivity {2} {
  seq 1 2: (={glob A, b0, x, key} /\
            0 <= AESnmax.n{2} <= nmax /\ n{1}=AESnmax.n{2}).
   transitivity {1} {
-   x = L1.M.gen1(n,ddom);
+   x = L3.M.gen1(n,ddom);
    }
    ( ={glob A, b0, key, n} /\ 0 <= AESnmax.n{2} <= nmax /\ n{1} = AESnmax.n{2} ==> ={glob A, b0, key, x, n} /\ 0 <= AESnmax.n{2} <= nmax /\ n{1} = AESnmax.n{2})
    ( ={glob A, b0, key} /\ 0 <= AESnmax.n{2} <= nmax /\ n{1} = AESnmax.n{2}
       ==> ={glob A, b0, x, key} /\ 0 <= AESnmax.n{2} <= nmax /\ n{1} = AESnmax.n{2} ).
      progress. by progress; exists (glob A){2} AESnmax.n{2} b0{2} key{2} AESnmax.n{2}; smt.
     by progress.
-   by inline L1.M.gen1; wp; rnd; wp; skip; progress.
+   by inline L3.M.gen1; wp; rnd; wp; skip; progress.
   transitivity {2} {
-   x = L1.M.gen2(nmax,AESnmax.n,ddom);
+   x = L3.M.gen2(nmax,AESnmax.n,ddom);
    }
    ( ={glob A, b0, key} /\ 0 <= AESnmax.n{2} <= nmax /\ n{1} = AESnmax.n{2}
      ==> ={glob A, b0, x, key} /\ 0 <= AESnmax.n{2} <= nmax /\ n{1} = AESnmax.n{2} )
    ( ={glob A, b0, key, AESnmax.n} ==> ={glob A, b0, x, key, AESnmax.n} ). 
      by progress; exists (glob A){2} AESnmax.n{2} b0{2} key{2}; smt.
     by progress.
-   by call L1.darray_take_equiv.
-  by inline L1.M.gen2; wp; rnd; wp; skip; progress; rewrite ?takeE. simplify.
+   by call L3.darray_take_equiv.
+  by inline L3.M.gen2; wp; rnd; wp; skip; progress; rewrite ?takeE. simplify.
  (*conseq (_: ={glob A, b0, x, key} /\ 0 <= AESnmax.n{2} <= nmax /\ n{1} = AESnmax.n{2} ==> ={glob A, b0, x, key, y} /\ 0 <= AESnmax.n{2} <= nmax /\ n{1} = AESnmax.n{2}). progress. smt. first by progress.*)
  transitivity {1} {
-  y = L2.M.gen1(n,dcodom);
+  y = L4.M.gen1(n,dcodom);
   }
   ( ={glob A, b0, x, key, n} /\ 0 <= AESnmax.n{2} <= nmax /\ n{1} = AESnmax.n{2} ==> ={glob A, b0, x, y, key, n} /\ 0 <= AESnmax.n{2} <= nmax /\ n{1} = AESnmax.n{2} /\ size y{1} = n{1})
   ( ={glob A, b0, x, key} /\ 0 <= AESnmax.n{2} <= nmax /\ n{1} = AESnmax.n{2}
@@ -1144,20 +1114,20 @@ transitivity {2} {
     by progress; exists (glob A){2} AESnmax.n{2} b0{2} key{2} AESnmax.n{2}
          x{2}; smt.
    progress. smt. 
-  inline L2.M.gen1; wp; rnd; wp; skip; progress. smt.
+  inline L4.M.gen1; wp; rnd; wp; skip; progress. smt.
  transitivity {2} {
-  y = L2.M.gen2(nmax,AESnmax.n,dcodom);
+  y = L4.M.gen2(nmax,AESnmax.n,dcodom);
   }
   ( ={glob A, b0, key, x} /\ 0 <= AESnmax.n{2} <= nmax /\ n{1} = AESnmax.n{2}
     ==> ={glob A, b0, key, x, y} /\ 0 <= AESnmax.n{2} <= nmax /\ n{1} = AESnmax.n{2} )
   ( ={glob A, b0, key, x, AESnmax.n} ==> ={glob A, b0, key, x, y, AESnmax.n} ). 
     by progress; exists (glob A){2} AESnmax.n{2} b0{2} key{2} x{2}; smt.
    by progress.
-  by call L2.darray_take_equiv.
- by inline L2.M.gen2; wp; rnd; wp; skip; progress; rewrite ?takeE.
+  by call L4.darray_take_equiv.
+ by inline L4.M.gen2; wp; rnd; wp; skip; progress; rewrite ?takeE.
 
 wp; rnd; wp; rnd.
-skip; progress.
+skip; progress. 
  apply arrayP; split.
   rewrite ?size_offun // size_take //; first 2 by smt. 
  move=> k; rewrite size_offun // => _.
@@ -1170,23 +1140,23 @@ move=> k; rewrite size_offun // => _.
 rewrite offunifE // get_take //=; first by smt. smt.
 qed.
 
-lemma ESn_nmax_pr &m (A<:Adv_t {AESnmax}):
- Pr[Game(A).main() @ &m : res]
- = Pr[ESnmax.Game(AESnmax(A)).main() @ &m : res] by byequiv (ESn_nmax A).
+lemma ESn_nmax_pr &m (A<:ESnAdv_t {AESnmax}):
+ Pr[ESnGame(A).main() @ &m : res]
+ = Pr[ESnmaxGame(AESnmax(A)).main() @ &m : res] by byequiv (ESn_nmax A).
 
-lemma ESn_adv_bound &m (A<:Adv_t {AESnmax, ESnmax.Hy.Count, ESnmax.Hy.HybOrcl, ESnmax.AdvES}) epsilon:
+lemma ESn_adv_bound &m (A<:ESnAdv_t {AESnmax, Hy.Count, Hy.HybOrcl, AdvES}) epsilon:
     is_lossless dkey =>
     is_lossless ddom =>
     is_lossless dcodom =>
  islossless A.choose_n =>
  islossless A.solve =>
- `| 2%r * Pr[ ES.Game(ESnmax.AdvES(AESnmax(A))).main() @ &m: res ] - 1%r| <= epsilon =>
- `| 2%r * Pr[ Game(A).main() @ &m: res ] - 1%r| <= nmax%r * epsilon.
+ `| 2%r * Pr[ Game(AdvES(AESnmax(A))).main() @ &m: res ] - 1%r| <= epsilon =>
+ `| 2%r * Pr[ ESnGame(A).main() @ &m: res ] - 1%r| <= nmax%r * epsilon.
 proof.
 move=> dkey_ll ddom_ll dcodom_ll A_choose_ll A_solve_ll; rewrite (ESn_nmax_pr &m A).
-apply (ESnmax.ESnmax_adv_bound (AESnmax(A)) _ _ _ _ _ &m); last 3 by assumption.
+apply (ESnmax_adv_bound (AESnmax(A)) _ _ _ _ _ &m); last 3 by assumption.
   by proc; wp; call A_choose_ll.
   by proc; call A_solve_ll; wp.
 qed.
   
-end ESn.
+end ES.

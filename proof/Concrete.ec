@@ -575,17 +575,17 @@ apply (CSFE.PFE_Security _ _ SomeOT.R1 SomeOT.R2 SomeOT.S ES.Rand (ES.SchSecurit
  by proc; wp; call ES.Rand_islossless; wp.
 qed.
 
-lemma Security eps_ESn eps_DDH eps_PRF : 
-  forall (A1 <: ProtSecurity.Adv1_t {ES.Rand, CSFE.B_OT1, CSFE.B_G, SomeOT.DDHn_A, SomeOT.ESn_A,SomeOT.DDHn.DDHnmax.H.Count,SomeOT.DDHn.DDHnmax.H.HybOrcl,SomeOT.DDHn.DDHnmax.K,SomeOT.DDHn.DDHnmax.ADDH,SomeOT.DDHn.ADDHnmax,ES.SG.SomeDKC.PRF.RandomFunction,ES.SG.SomeDKC.PRF.PRFr_Wrapped,ES.SG.SomeDKC.DKCSecurity.DKCp,ES.SG.SomeDKC.Param,ES.SG.C,ES.SG.R,ES.SG.G,ES.SG.R'}) (A2 <: ProtSecurity.Adv2_t {ES.Rand, CSFE.B_OT2, CSFE.B_G}) &m,
+lemma Security eps_ES eps_DDH eps_PRF : 
+  forall (A1 <: ProtSecurity.Adv1_t {ES.Rand, CSFE.B_OT1, CSFE.B_G, SomeOT.DDHn_A, SomeOT.ESn_A,SomeOT.DDHn.DDHnmax.H.Count,SomeOT.DDHn.DDHnmax.H.HybOrcl,SomeOT.DDHn.DDHnmax.K,SomeOT.DDHn.DDHnmax.ADDH,SomeOT.DDHn.ADDHnmax,ES.SG.SomeDKC.PRF.RandomFunction,ES.SG.SomeDKC.PRF.PRFr_Wrapped,ES.SG.SomeDKC.DKCSecurity.DKCp,ES.SG.SomeDKC.Param,ES.SG.C,ES.SG.R,ES.SG.G,ES.SG.R',SomeOT.ESn.Hy.Count,SomeOT.ESn.Hy.HybOrcl,SomeOT.ESn.AdvES,SomeOT.ESn.AESnmax}) (A2 <: ProtSecurity.Adv2_t {ES.Rand, CSFE.B_OT2, CSFE.B_G}) &m,
    islossless A1.gen_query =>
    islossless A1.dist =>
-   islossless A2.gen_query =>
+   islossless A2.gen_query =>    
    islossless A2.dist =>
-   `|2%r * Pr[SomeOT.ESn.Game(SomeOT.ESn_A(CSFE.B_OT1(ES.Rand ,SFE_A1(A1)))).main()@ &m:res] - 1%r| <= eps_ESn =>
+   SomeOT.ESn.nmax%r * `|2%r * Pr[SomeOT.ESn.Game(SomeOT.ESn.AdvES(SomeOT.ESn.AESnmax(SomeOT.ESn_A(CSFE.B_OT1(ES.Rand ,SFE_A1(A1)))))).main()@ &m:res] - 1%r| <= eps_ES =>
    SomeOT.DDHn.nmax%r * `|2%r * Pr[DDH.DDH.Game(SomeOT.DDHn.DDHnmax.ADDH(SomeOT.DDHn.ADDHnmax(SomeOT.DDHn_A(CSFE.B_OT1(ES.Rand, SFE_A1(A1)))))).main()@ &m : res] - 1%r| <= eps_DDH =>
     (forall i, 0 <= i < ES.SG.bound => 2%r * `|(Pr[ES.SG.SomeDKC.PRF.IND(ES.SG.SomeDKC.PRF.PRFr_Wrapped, ES.SG.SomeDKC.D(ES.SG.DKC_Adv(ES.SG.Sec.EncSecurity.RedSI(ES.Red(CSFE.B_G(SomeOT.S, SFE_A1(A1))))))).main(i)@ &m:res] - Pr[ES.SG.SomeDKC.PRF.IND(ES.SG.SomeDKC.PRF.RandomFunction, ES.SG.SomeDKC.D(ES.SG.DKC_Adv(ES.SG.Sec.EncSecurity.RedSI(ES.Red(CSFE.B_G(SomeOT.S, SFE_A1(A1))))))).main(i)@ &m:res])| <= eps_PRF) =>
     
-   let epsilon = eps_ESn + eps_DDH + ES.SG.bound%r * eps_PRF in
+   let epsilon = eps_ES + eps_DDH + ES.SG.bound%r * eps_PRF in
         
    `|2%r * Pr[ProtSecurity.Game1(R1, R2, S, A1).main() @ &m : res] - 1%r| <= epsilon /\
    `|2%r * Pr[ProtSecurity.Game2(R1, R2, S, A2).main() @ &m : res] - 1%r| <= epsilon.
@@ -626,7 +626,7 @@ lemma Security eps_ESn eps_DDH eps_PRF :
       idtac=>/#.
 
  
- move => ESn_eps DDH_eps PRF_eps bound.
+ move => ES_eps DDH_eps PRF_eps bound.
  cut Randgenll : islossless ES.Rand.gen by apply ES.Rand_islossless.
  cut Ssim1ll : islossless SomeOT.S.sim1 by apply SomeOT.S1_lossless.
  cut SFE_A1genll  : islossless SFE_A1(A1).gen_query by (proc; call A1genll; trivial).
@@ -648,7 +648,7 @@ lemma Security eps_ESn eps_DDH eps_PRF :
 
   cut []:= Connect_SFE (SFE_A1(A1)) (SFE_A2(A2)) &m _ _ _ _=> //.
   cut := SomeOT.ot_is_sec (CSFE.B_OT1(ES.Rand ,SFE_A1(A1))) (CSFE.B_OT2(ES.Rand ,SFE_A2(A2))) &m _ _ _ _
-  `|2%r * Pr[SomeOT.ESn.Game(SomeOT.ESn_A(CSFE.B_OT1(ES.Rand ,SFE_A1(A1)))).main() @ &m : res] - 1%r|
+  `|2%r * Pr[SomeOT.ESn.Game(SomeOT.ESn.AdvES(SomeOT.ESn.AESnmax(SomeOT.ESn_A(CSFE.B_OT1(ES.Rand ,SFE_A1(A1)))))).main() @ &m : res] - 1%r|
   `|2%r * Pr[DDH.DDH.Game(SomeOT.DDHn.DDHnmax.ADDH(SomeOT.DDHn.ADDHnmax(SomeOT.DDHn_A(CSFE.B_OT1(ES.Rand, SFE_A1(A1)))))).main()@ &m : res] - 1%r| _ _ => //.
 
  cut := ES.sch_is_sim  (CSFE.B_G(SomeOT.S,SFE_A1(A1))) &m _ _=> //.
