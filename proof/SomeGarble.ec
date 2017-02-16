@@ -2002,7 +2002,7 @@ proof.
     auto. 
     inline RandomInit'.init.
     while true (C.n + C.q - i).
-      auto; progress. smt. smt. smt. idtac=>/#.   
+      auto; progress. by rewrite DBool.dbool_ll. by rewrite Dword.dwordLsb_lossless. by rewrite Dword.dwordLsb_lossless. idtac=>/#.   
     auto.
     inline CircuitInit.init.
     while true (C.n + C.q - i0).
@@ -4345,23 +4345,6 @@ rewrite (reductionSimplified_PRF A &m) //=.
   done.
 qed.
 
-
-(*lemma sch_is_ind (A <: EncSecurity.Adv_IND_t{Rand,R,C,DKC_Adv,DKCp,DKC_O,R'}) &m:
-  islossless A.gen_query =>
-  islossless A.get_challenge =>
-  `|2%r * Pr[EncSecurity.Game_IND(Rand,A).main()@ &m:res] - 1%r| =
-    2%r * `|Mrplus.sum (fun i, 2%r * Pr[Game(DKC_O,DKC_Adv(A)).main(i)  @ &m: res] - 1%r) (intval 0 (bound-1))|.
-proof.  
-  move => Agen_ll Aget_ll.
-rewrite -(GameHybrid0_Game_IND_pr A &m) // -{1}(GameHybridBound_pr A &m) //=.
-      cut -> : forall a b, 2%r * a - 2%r * b = 2%r * (a - b) by idtac=>/#. 
-rewrite (reductionSimplified' A &m) //=. 
-  cut H: forall (a b:real), 0%r <= a => `| a * b | = a * `| b | by idtac=>/#.
-  rewrite !H; first by smt. 
-  done.
-qed.*)
-
-
 lemma sch_is_sim (A <: EncSecurity.Adv_SIM_t{Rand,C,DKC_Adv,DKCp,DKC_O,R',G,AdvInit,PRF.RandomFunction,PRF.PRFr_Wrapped,Param}) &m:
   islossless A.gen_query =>
   islossless A.get_challenge =>
@@ -4375,40 +4358,6 @@ proof.
   apply (EncSecurity.ind_implies_sim Rand A _ _ &m _) => //.
   by apply sch_is_pi.
 qed.    
-
-(*lemma adv_sim (A <: EncSecurity.Adv_SIM_t{Rand,C,DKC_Adv,DKCp,DKC_O,R',G,AdvInit,PRF.RandomFunction,PRF.PRFr_Wrapped,Param}) &m eps_prf:
-  islossless A.gen_query =>
-  islossless A.get_challenge =>
-  (forall i, 0 <= i < bound => (`|Pr[SomeDKC.PRF.IND(SomeDKC.PRF.PRFr_Wrapped,D(DKC_Adv(EncSecurity.RedSI(A)))).main(i)@ &m:res] - Pr[SomeDKC.PRF.IND(SomeDKC.PRF.RandomFunction,D(DKC_Adv(EncSecurity.RedSI(A)))).main(i)@ &m:res]|) <= eps_prf) =>
-    
-      `|2%r * Pr[EncSecurity.Game_SIM(Rand,EncSecurity.SIM(Rand),A).main()@ &m:res] - 1%r| <= 2%r* bound%r * eps_prf.  
-proof.
-  move => Agen_ll Aget_ll prf_adv.
-  (*have : `|2%r * Pr[EncSecurity.Game_SIM(Rand,EncSecurity.SIM(Rand),A).main()@ &m:res] - 1%r| <=
-    2%r * `|Mrplus.sum (fun i, (Pr[SomeDKC.PRF.IND(SomeDKC.PRF.PRFr_Wrapped,D(DKC_Adv(EncSecurity.RedSI(A)))).main(i)@ &m:res] - Pr[SomeDKC.PRF.IND(SomeDKC.PRF.RandomFunction,D(DKC_Adv(EncSecurity.RedSI(A)))).main(i)@ &m:res])) (intval 0 (bound-1))| by rewrite (sch_is_sim A &m Agen_ll Aget_ll).*)
-  cut ? : (Mrplus.sum
-     (fun (i : int) =>
-        `|Pr[PRF.IND(PRF.PRFr_Wrapped, D(DKC_Adv(EncSecurity.RedSI(A)))).main
-           (i) @ &m : res] -
-        Pr[PRF.IND(PRF.RandomFunction, D(DKC_Adv(EncSecurity.RedSI(A)))).main
-           (i) @ &m : res]|) (intval 0 (SomeGarble.bound - 1))) <= bound%r * eps_prf.
-     move : prf_adv.
-     have : 0 <= bound by smt. 
-     elim/intind bound.
-       simplify. simplify intval. rewrite List.Iota.iota0; first by done. rewrite -set0E Mrplus.sum_empty; first by done.
-       progress.
-       cut ->: (i + 1)%r * eps_prf = i%r * eps_prf + eps_prf by idtac=>/#.
-       rewrite (Mrplus.sum_rm _ _ i). rewrite intval_def => /#. 
-       simplify. 
-       cut ->: (intval 0 (i + 1 - 1) `\` fset1 i) = intval 0 (i-1). rewrite fsetP => x. rewrite in_fsetD in_fset1 !intval_def => /#.  
-       idtac=>/#. idtac=>/#.
-  cut ? : `|2%r * Pr[EncSecurity.Game_SIM(Rand,EncSecurity.SIM(Rand),A).main()@ &m:res] - 1%r| <=
-    2%r * `|Mrplus.sum (fun i, (Pr[SomeDKC.PRF.IND(SomeDKC.PRF.PRFr_Wrapped,D(DKC_Adv(EncSecurity.RedSI(A)))).main(i)@ &m:res] - Pr[SomeDKC.PRF.IND(SomeDKC.PRF.RandomFunction,D(DKC_Adv(EncSecurity.RedSI(A)))).main(i)@ &m:res])) (intval 0 (bound-1))| by rewrite (sch_is_sim A &m Agen_ll Aget_ll). smt. 
-        smt tmo=60.     
-
-
-*)
-
      
 end SomeGarble.
-export SomeGarble.
+export SomeGarble. 

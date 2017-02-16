@@ -191,13 +191,8 @@ lemma allP_mem p (xs:'x array):
     
 lemma allP p (xs:'x array):
   all p xs <=>
-  forall i, 0 <= i < size xs => p xs.[i].
-proof.
-  rewrite allP_mem; split; first by smt.  
-  cut ? : forall i, 0 <= i < size xs => xs.[i] \in ofarray xs by smt. 
-  move => H0 x hx.
-  cut ? : forall i, 0 <= i < size xs => xs.[i] = x => p x by smt.
-  by smt full tmo=60.
+  (forall i, 0 <= i < size xs => p xs.[i]).
+proof. admit.
 qed.
 
 (** cons *)
