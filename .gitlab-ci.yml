@@ -6,11 +6,11 @@ services:
 before_script:
 - docker info
 - docker pull easycryptpa/ec-artefact-box:yao-ccs17
-mpc:
+yao:
   only:
   - master
   - ci
-script:
-- >-
-  docker run -v $PWD:/home/ci/yao easycryptpa/ec-artefact-box:yao-ccs17
-  sh -c 'cd yao && opam config exec -- make check'
+  script:
+  - >-
+    docker run -v $PWD:/home/ci/yao easycryptpa/ec-artefact-box:yao-ccs17
+    sh -c 'cd yao && opam config exec -- make check'
