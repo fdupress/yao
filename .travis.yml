@@ -1,14 +1,14 @@
 dist: trusty
 language: ocaml
 image: docker:latest
-services:
-- docker
-before_script:
-- docker pull easycryptpa/ec-artefact-box:yao-ccs17
-yao:
+branches:
   only:
   - master
-  script:
-  - >-
-    docker run -v $PWD:/home/ci/yao easycryptpa/ec-artefact-box:yao-ccs17
-    sh -c 'cd yao && opam config exec -- make check'
+services:
+- docker
+before_install:
+- docker pull easycryptpa/ec-artefact-box:yao-ccs17
+script:
+- >-
+  docker run -v $PWD:/home/ci/yao easycryptpa/ec-artefact-box:yao-ccs17
+  sh -c 'cd yao && opam config exec -- make check'
