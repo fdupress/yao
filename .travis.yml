@@ -1,15 +1,13 @@
+dist: trusty
+language: easycrypt
 image: docker:latest
-variables:
-  DOCKER_DRIVER: overlay
 services:
-- docker:dind
+- docker
 before_script:
-- docker info
 - docker pull easycryptpa/ec-artefact-box:yao-ccs17
 yao:
   only:
   - master
-  - ci
   script:
   - >-
     docker run -v $PWD:/home/ci/yao easycryptpa/ec-artefact-box:yao-ccs17
