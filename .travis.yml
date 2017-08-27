@@ -1,5 +1,5 @@
 dist: trusty
-language: easycrypt
+language: ocaml
 image: docker:latest
 services:
 - docker
